@@ -8,17 +8,17 @@ services:
       - "5173:5173"
       - "8000:8000"
     volumes:
-      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./certs:/etc/nginx/certs:ro
+      - ./docker_support/config/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker_support/certs:/etc/nginx/certs:ro
     depends_on:
       - api
-      - frontend
+      - client
     networks:
       - agent-c-network
     restart: unless-stopped
 
   api:
-    image: agentc-api:latest
+    image: ghcr.io/centricconsulting/agentc-api:latest
     platform: ${DOCKER_PLATFORM:-linux/amd64}
     env_file:
       - ${AGENT_C_CONFIG_PATH}/agent_c.config
@@ -28,7 +28,7 @@ services:
     user: "0:0"
     volumes:
       - ${AGENT_C_IMAGES_PATH}:/app/images
-      - ${AGENT_C_PERSONAS_PATH}:/app/agent_c_config/agents/local
+      - ${AGENT_C_AGENTS_PATH}:/app/agent_c_config/agents/local
       - ${DOCUMENTS_WORKSPACE}:/app/workspaces/documents
       - ${DOWNLOADS_WORKSPACE}:/app/workspaces/downloads
       - ${DESKTOP_WORKSPACE}:/app/workspaces/desktop
@@ -44,8 +44,8 @@ services:
       - RUNNING_IN_DOCKER=True
     networks:
       - agent-c-network
-  frontend:
-    image: agentc-client:latest
+  client:
+    image: ghcr.io/centricconsulting/agentc-client:latest
     container_name: agentc-client
     expose:
       - "5173"
@@ -60,7 +60,7 @@ services:
     networks:
       - agent-c-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=3", "--spider", "http://localhost:3000"]
       interval: 30s
       timeout: 10s
       retries: 3

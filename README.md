@@ -1,96 +1,97 @@
-# Agent C Framework
+# Agent C - The Centric AI accelerator
 
-## What is Agent C?
+From the days of GPT-3 the Agent C framework has been powering LLM based solutions at Centric Consulting.  It predates most agent framework/SDKs except for LangChain and from the very beginning we took a different route.  Instead of building solutions for the models we wished we had, we built solutions that could be made reliable with the models we do have.  While many other frameworks enforce rigid patterns, our "instruction first" philosophy has allowed us to be nimble and flexible.
 
-Agent C is a framework for building interactive, AI agents that make use of advanced planning and delegation patterns to accomplish much larger workloads per chat session than most. (to say the least) 
+> [!NOTE]
+> **Instruction First** means starting with what you can accomplish through clear instructions to capable models, then designing tools specifically to support and enhance that instruction-following. It's not that tools are unimportant, they're absolutely critical for providing capabilities that models don't have. But the design philosophy is fundamentally different from traditional software development. 
+>
+> **Everything you learn about building agents in Agent C transfers to any other framework or platform.** Why? Because you're fundamentally learning how to communicate effectively with language models, not how to use a specific tool. The sophisticated coordination patterns, quality frameworks, delegation strategies, and recovery protocols, all of these are expressed in natural language instructions that work with any sufficiently capable model. 
+> 
 
-Created by Donavan Stanly, a Centric Consulting architect, it provides a runtime environment that provides:
+## The Agent C "special sauce"
 
-- Vendor flexibility
-  - Anthropic (base and via AWS Bedrock)
-    - Note: Claude 4 Sonnet is FAR and away the top model for agentic work requiring problem solving.
-  - Open AI (base and via Azure)
-  - Google Gemini
-- Stateless Agent Runtime
-  - The agent runtime and tools maintain no state beyond internal caching.
-  - All necessary context is provided on a per-call basis to the runtime / tools
-  - Designed to allow decoupling the runtime from the application layer.
-- Runtime components are designed to be non-blocking and fully asynchronous. 
-- Event stream based interactions
-  - The agent runtime and it's tools communicate with the application layer via events.
-  - All events contain routing information to allow the application layer to route events based on user ID and/or session ID
-  - This designed to be "pipe agnostic".  You supply a callback handler to receive events from the runtime and shove them in whatever pipe you want.
-- Best-in-breed agent tools
-  - Our tools are optimized to reduce token consumption by agents.
-    - For example, MCP provides a file system tool with read, write, list operations.
-      - Agent C provides a Workspace tool that provides those basic features plus
-        - read_lines, grep, replace_strings, tree, examine_code and metadata
-        - Support multiple workspaces
-        - Allows you control which workspaces which agents can see
-        - Allows you to control read/write status on a per agent basis.
-        - AND it supports more AWS S3 and Azure as a backing stores
-    - Other frameworks allow an agent to fetch a web page and feed it HTML wasting tokens.
-      - Our web tool ALLOWS for HTML to be retrieved but by default content is ran through the "Readability" algorithm and then converted to Markdown before handing to the agent.
-      - It allows for saving of content to any workspace.
-        - And FORCES it if the content is too large.
-    - Our tools can interconnect and build on each other
-      - Tools can declare other tools as dependencies and make use of them at runtime
-        - Tools that are loaded in this way are NOT shown to the agents, only their own list of tools is shown to them.
-      - Many *many* tools make use of the Workspace tool as a place to store / share information.
-    - Other frameworks return JSON to agents, again wasting precious tokens
-      - Our tools use YAML as a serialization mechanism which saves tokens, time and money.
-    - Our tools can bypass the agent and pass information back to the user.  Again saving time, tokens and money:
-      - Media files
-      - HTML
-      - Markdown
-      - etc
-- Unique interaction model
-  - Our agent to agent interaction model is born out of battle tested "agent as code" then later "agent as tool" technologies.  In Agent C, an agent is just a prompt and a set of tools.  It's easy to hide an agent behind a any generic method for someone to call, and because of that it's easy to make agent into a tool for another agent.
-    - Agent C agents can be provided with advanced delegation tools:
-      - **Agent Clone** allows an agent to make a copy of itself with an empty context window and task it with completing an objective.
-      - **Agent Team** allows for the creation of agent teams, led by a supervisor agent under the direction of the user.  The user essentially becomes "AI Management".
-      - **Agent Assist** allows agents to make use of special purpose non-interactive agents.
-        - Digging through a bunch of company blogs for info you care about can brun a LOT of tokens. So agent C includes an example "news pro" assistant that can be used by any agent on your behalf. 
-  - The user/agent interaction model is based around the "paired programming" model of development. Even for non-coding agents.
-    - As the human side of the pair, your job is to provide oversight, verification of work, etc.
-    - This becomes even more important when dealing with agent teams.
-- Planning, tracking, reasoning
-  - All work, done by agent C agents is first *planned*.
-    - Our planning tool allows for hierarchical plans, with steps and step steps
-      - Each step has explict process and context information
-      - Steps can require signoff, by supervisor agents or by the human in the loop
-      - NO top level step of any plan can be completed without human approval
-        - But our agents make that easier by giving your a "validation and signoff package"
-    - All plans include a "lesson learned" to prevent repeated mistakes.
-  - At each step of the way our agents engage in reasoning, not just at the start of the interaction.  Explicit when:
-    - Reading in a step of a plan.
-    - Receiving information from a clone, team member or assistant agent.
-    - Receiving information from an external source such as a file, tool or web page.
-  - Every single step is tracked and shared memory updated along the way.
-    - Resuming from a cold session is as simple as "bring yourself up to speed and tell me our next steps"
-    - Providing supervision, even deep into an agent team, is as simple as hitting the "stop interaction" button and then sending: "I had to stop you because of X, please make AGENT_NAME aware of KEY_DETAIL and resume working"
+What sets Agent C apart from other frameworks / solutions isn't any one thing, or some checklist of features in a comparison grid, it's a combination of many small things, few of them revolutionary that add up to a greater whole.  By focusing on getting the most out of the models we have, Agent C has been able to rapidly advance along with the models while others lag behind. 
 
-## Getting Started
+### Interleaved thinking 
+"Interleaved thinking" is one of the recent advances, that had an immediate impact and has since become a cornerstone of what makes an agent an "Agent C agent". Introduced in March by Anthropic allows a model to perform reasoning while making tool calls instead of just at the start of the interaction.  This allows the model to adapt to new information instead of blindly following a course of action. 
 
-Choose the setup path that best matches your needs:
+Agent instructions in Agent C steer the agent to use this capability more effectively, ensuring that not only is reasoning performed regularly, but that the agent is "thinking" about the correct things.
 
-### 🚀 Quick Start (Recommended for Most Users)
+### Efficient, integrated tools 
+The tool system in Agent C was designed to make developing tools for agents "dirt simple" while still providing advanced features foud in few other frameworks. While thins like MCP a great for prototyping it falls short in manu areas where Agent C excels: performance, integration and dynamic content.
 
-The Web UI is the recommended way to use Agent C:
+- **Performance**: Agent C tools can be in-process with the agent runtime and avoid a lot of network overhead.
+  - Agent C tools strive to be as efficient as possible.  There are many "micro optimizations" scattered throughout our tools that were created by observing real world usages of the tools by agents, and then finding ways to reduce the token burden  
+- **Integration**: Agent C tools can depend on and make use of other tools.  For example: The MCP "file system" tool allows an *agent* access to a file system. The Agent C `Workspace` tool does the same thing, but with a couple key differences: 1. Our workspaces can be local, S3, or Azure blob storage and 2. Any other tool that needs to use the file system does so through this tool allowing tools to share data witout an agent in the middle
+  - Tools have access to a rich set of context information about the user / chat session and importantly, **tools can communicate information directly to the user, bypassing the agent**
+- **Dynamic Content**: Any Agent C tool can provide it's own "prompt section" that can contain anything from enhanced instruction, to rendering dynamic content. Prompt sections are templates that are rendered and stitched together to form the system prompt for the agents.  They're rebuilt just before each call to the vendor API.
+  - Dynamic content rendered in the system prompt can be ephemeral, lasting only as long as the agent needs it, then discarded.  Content return as a tool call result lives in the context until "context management" comes in like a wrecking ball and removes the oldest calls. Rendering to the prompt gives tool developers greater control over when their content gets "house cleaned"
+    
+### Planning, following and reporting
 
-1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Rancher Desktop)
-2. Run the appropriate startup script:
-   - Windows: `dockerfiles\start_agent_c.bat`
-   - Mac/Linux: `dockerfiles/start_agent_c.sh`
-3. On first run, a configuration file will be created in:
-   - Windows: `%USERPROFILE%\.agent_c`
-   - Mac/Linux: `~/.agent_c`
-4. Edit this configuration file to add your API keys and set your username (see [Configuration File](#configuration-file) below)
-5. Run the startup script again
-6. Agent C will open automatically in your browser
-7. Bookmark this page to access Agent C until you remove the Docker containers
+The default interaction patterns in Agent C are modeled after many of the patterns we use as humans in order to manage complex work. Agent C agents work more like a team of professions working with a shared network drive and Kanban board than anything resembling software.  Agent C agents have protocols for planning that are designed for reliability and resiliency. Originally designed to support multi-session work without introducing errors, our planning tools and instructions guide the agents to break work down in manageable pieces, provide clear instructions and context for each step, "definition of done", etc.  Taking into account not only context window limitations, but the cognitive load on the human "driver" who must verify their output.
 
-For detailed information about the Web UI and its features, see the [Web UI Documentation](docs/web_ui_README.md).
+As agents follow a plan the user is kept informed not only by the agent but by the tools as well. As plans are built and updated, the UI reports it.  When an agent completes a task, the UI shows the completion report it filed for the task.  With our enhanced Markdown support agents can and will include Mermaid digrams, SVGs etc in their reports.
+
+### Delegation
+
+WIP
+
+
+## Agent C "Quick" Install (Preview) 
+
+The compose files here allow Docker/Rancher users to get up in running using a local version of Agent C without needing to install a bunch of developer tools on their machines.  It also provides Agent C developers to run the Agent C Client while working on the Agent C client.
+
+> [!WARNING]
+> While the new reference client offers a far better user experience han Agent C has ever had but...
+> 
+> It is still under heavy development and is short several features, but it's quite usable, if a little rough around the edges.
+> 
+
+## Getting started
+
+In the `scripts` folder are Windows batch files and *nix shell scripts to allow you to run the Agent C AOI and web client behind an HTTPS proxy using self-signed certs.  Once started you will be able to access Agent C at https://localhost:5173/chat *If you forget the port and have nothing listening on 443 you will be redirected.*
+
+These *should* be able to be double-clicked in Explorer.  Mac/Linux users will need to `chmod a+x scripts/*.sh` first.
+
+> [!IMPORTANT]
+> The container images are not yet being built and pushed on GitHub.  That will change soon but for now you must build the containers locally.
+>  
+
+### New users
+
+1. **Build the containers** - Run `scripts/build_containers.(bat/sh)` and wait a bit.
+2. **Initialize your local storage** - Run `agentc up`.
+   - This will create a `.agent_c` folder under your home folder where it will store:
+     - The configuration file
+     - The user database
+     - The chat session index.
+     - Your saved chat files
+     - Any agents you create
+   - It will then open a text editor so that you can supply the various API keys for the LLMs / tools you want to use.
+3. **Run Agent C** - Run `agentc up` again and it will see that you have a config file and launch the compose file.
+
+### Users of the old client
+
+1. **Build the containers** - Run `scripts/build_containers.(bat/sh)` and wait a bit.
+2. **Copy the databases** - Copy the two databases in the `data` subfolder to yout `.agent_c` subfolder of your user folder.
+3. **Rname your personas folder** - Rename this it `agents` and your old agents will be there. 
+4. **Run Agent C** - Run `agentc up` it will see that you have a config file and launch the compose file. 
+
+### All users
+
+The purpose of using these scripts over a simple `docker-compose up` (Which works for the fronend only compose file) is to map several well known folders to workspaces in Agent C. Docker users will have the following workspaces available for agents to access the local file system and run commands:
+
+- documents
+- desktop
+- downloads
+
+An easy was to add additional wones without building your own container is on the list.
+
+
+## Logging in
+
+There is one user, `admin` with the password `changeme`,  Except as of this writing tha ability to actualy change it if you're a user doesn't exist.. Hence preview status.
 
 ### 💻 Developer Setup
 

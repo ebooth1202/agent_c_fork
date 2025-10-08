@@ -13,26 +13,11 @@ OPENAI_API_KEY=FROM-OPEN-AI
 # Needed for Claude support
 #ANTHROPIC_API_KEY=FROM-ANTHROPIC
 
-######################################################################
-# Chat Session Manager configuration
 
-# Zep API configuration
-# Zep Cloud users should set this
-ZEP_API_KEY=FROM-ZEP
-
-# If you are using Zep CE locally use ZEP_CE_KEY and ZEP_URL
-#ZEP_CE_KEY=FROM_YOUR_CONFIG
-#ZEP_URL=http://localhost:8001
 
 ######################################################################
 # Basic Setup
 
-# This is used as your used ID in Zep, the default is "default"
-# But this is hear to make sure you're paying attention. (Hi Hayden)
-CLI_CHAT_USER_ID=Taytay
-
-# Output enhanced debug information
-ENHANCED_DEBUG_INFO=False
 
 ######################################################################
 # API keys for various services consumed by tools.
