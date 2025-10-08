@@ -746,7 +746,7 @@ class RealtimeBridge(ClientEventHandler):
 
     async def raise_render_media_markdown(self, text: str, sent_by_class: str = "RealtimeBridge"):
         event = RenderMediaEvent(content=text, session_id=self.chat_session.session_id,
-                                 content_type="text/markdown", sent_by_class= "RealtimeBridge", foreign_content=False,
+                                 content_type="text/markdown", sent_by_class=sent_by_class, foreign_content=False,
                                  user_session_id=self.chat_session.session_id,
                                  role="assistant")
 
