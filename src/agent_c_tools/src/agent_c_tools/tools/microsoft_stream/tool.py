@@ -19,7 +19,23 @@ from ...helpers.validate_kwargs import validate_required_fields
 
 class MicrosoftStreamTools(Toolset):
     """
-    TBD
+    A toolset for capturing Microsoft Stream videos by intercepting video URLs and downloading them as MP4 files.
+
+    This tool automates the process of:
+    1. Launching a browser and handling user authentication to Microsoft Stream
+    2. Intercepting SharePoint API calls to capture the direct video URL
+    3. Downloading the video using yt-dlp to the specified workspace location
+
+    The tool supports both headless and interactive modes, with interactive mode being the default
+    to allow users to manually complete authentication. Videos are saved to workspace paths using
+    the UNC path format (//workspace/path/filename.mp4).
+
+    Key Features:
+    - Automatic browser-based authentication handling
+    - SharePoint API interception for video URL capture
+    - High-quality video download using yt-dlp
+    - Workspace integration for file management
+    - Optional browser persistence for debugging
     """
 
     def __init__(self, **kwargs):
@@ -28,13 +44,16 @@ class MicrosoftStreamTools(Toolset):
         self.config = SlimConfig()
         self.browser_path = self.config.get_browser_path()
         self.browser_options = self.config.get_browser_launch_options()
-        # need to gather
-        # output_directory
 
 
     async def post_init(self):
         self.workspace_tool = self.tool_chest.available_tools.get("WorkspaceTools")
-        self.logger.info("MicrosoftStreamTools initialized")
+        if self.valid:
+            self.logger.info("MicrosoftStreamTools initialized")
+        else:
+            self.logger.info("="*80)
+            self.logger.error(" ❌ MicrosoftStreamTools NOT properly configured!")
+
 
     @staticmethod
     def _create_error_response(error_message: str) -> str:
@@ -103,7 +122,7 @@ class MicrosoftStreamTools(Toolset):
         timeout = kwargs.get('timeout', self.config.get_timeout())
         keep_open = kwargs.get('keep_open', False)
         tool_context = kwargs.get('tool_context', {})
-        bridge = tool_context.get('bridge', {})
+        bridge = tool_context.get('bridge')
 
         success, message = validate_required_fields(kwargs, ['stream_url'])
         if not success:
@@ -130,7 +149,7 @@ class MicrosoftStreamTools(Toolset):
 
         self.logger.info(f"Capturing stream from {stream_url} to {output_path}")
         ########### Placeholder for actual capture logic
-        message = f"[!IMPORTANT]\n*Browser Launch* A browser window is being launched, you may need to login within 90 seconds to complete authorization to capture stream\n"
+        message = f":::IMPORTANT\n\n- *Browser Launch* A browser window is being launched, you may need to login within 90 seconds to complete authorization to capture stream\n:::"
         await bridge.raise_render_media_markdown(message, "MicrosoftStreamTools")
 
         # Step 1: launch browser, enable user to manually authenticate if needed
@@ -144,7 +163,8 @@ class MicrosoftStreamTools(Toolset):
         if not auth_success:
             self.logger.error("❌ Authentication failed or timed out")
             self.logger.error("   Make sure you complete login and the video player loads")
-            message = "[!CAUTION]\n*Authentication Failed* Authentication failed or timed out. You may want to ask the agent to try again\n"
+            message = ":::CAUTION\n\n*Authentication Failed* Authentication failed or timed out. You may want to ask the agent to try again\n:::"
+            await bridge.raise_render_media_markdown(message, "MicrosoftStreamTools")
             await browser.close()
             return self._create_error_response(message)
         else:
@@ -163,17 +183,15 @@ class MicrosoftStreamTools(Toolset):
             self.logger.info(f"✓ Video URL captured successfully")
 
         if keep_open:
-            message = "[!IMPORTANT]\n*Browser Left Open* The browser has been left open per your request. You can close it manually when done.\n"
-            await bridge.raise_render_media_markdown(message, "MicrosoftStreamTools")
+            message = ":::Important\n\n*Browser Left Open* The browser has been left open per your request. You can close it manually when done.\n:::"
         else:
-            message = "[!Note]\n*Browser Closed* The browser has been automatically closed.  The video should be downloading in teh background now.\n"
-            await bridge.raise_render_media_markdown(message, "MicrosoftStreamTools")
+            message = ":::Note\n\n*Browser Closed* The browser has been automatically closed.  The video should be downloading in teh background now.\n:::"
             try:
                 await browser.close()
                 self.logger.info("✓ Browser closed")
             except Exception as cleanup_error:
                 self.logger.warning(f"Browser cleanup warning (ignoring): {cleanup_error}")
-
+        await bridge.raise_render_media_markdown(message, "MicrosoftStreamTools")
         # Step 3: Download video with yt-dlp
         self.logger.info("=== STEP 3: Video Download ===")
 
@@ -196,8 +214,8 @@ class MicrosoftStreamTools(Toolset):
 
 
 
-        message = f"[!SUCCESS]\n*Stream Captured* The stream has been captured successfully and saved to the specified location.\n- Output Path: {output_path}\n- File Size: {download_result.get('file_size_mb', 0):.2f} MB\n"
-        await bridge.raise_render_media_markdown(message, "MicrosoftStreamTools")
+        # message = f":::SUCCESS\n\n*Stream Captured* The stream has been captured successfully and saved to the specified location.\n- Output Path: {output_path}\n- File Size: {download_result.get('file_size_mb', 0):.2f} MB\n:::"
+        # await bridge.raise_render_media_markdown(message, "MicrosoftStreamTools")
 
         # Simulate successful capture
         return self._create_success_response(

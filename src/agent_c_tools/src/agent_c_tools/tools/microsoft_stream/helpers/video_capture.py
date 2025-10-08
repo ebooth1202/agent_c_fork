@@ -276,8 +276,8 @@ async def capture_video_url(page, page_url: str, interceptor: SharePointIntercep
             logger.error("Failed to extract video metadata")
             return None
         
-        logger.info(f"✓ Extracted video URL: {metadata['video_url']}")
-        logger.info(f"✓ Media base URL: {metadata.get('media_base_url', 'N/A')}")
+        logger.info(f"✓ Extracted video URL: {metadata['video_url'][:100]}... +{len(metadata['video_url'])} chars")
+        logger.info(f"✓ Media base URL: {metadata.get('media_base_url'[:100], 'N/A')}...")
         
         return metadata
         
