@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -5,7 +6,7 @@ import yaml
 from pyppeteer import launch
 
 from agent_c_tools.tools.microsoft_stream.helpers.config import SlimConfig
-from .helpers.flow import orchestrate_flow
+
 from .helpers.login import perform_manual_login
 from .helpers.video_capture import setup_interception, capture_video_url
 from .helpers.ytdlp_command import YtdlpDownloader
@@ -60,8 +61,8 @@ class MicrosoftStreamTools(Toolset):
             },
             "output_path": {
                 "type": "string",
-                "description": "A full UNC path and filename on where to save the mp4 file. If not provided, defaults to '//project/videos/{$$timestamp}.mp4'",
-                "required": True
+                "description": "A full UNC path and filename on where to save the mp4 file. If not provided, defaults to '//project/videos/{timestamp}.mp4'",
+                "required": False
             },
             "headless": {
                 "type": "boolean",
@@ -88,22 +89,23 @@ class MicrosoftStreamTools(Toolset):
         Capture a Microsoft Stream video given its URL.
 
         Args:
-            stream_url (str): The URL of the Microsoft Stream video to capture.
-            output_path (Optional[str]): The workspace path where the captured video will be saved.
-                                         If None, a default path will be used.
+            kwargs: Keyword arguments including:
+                stream_url (str): The URL of the Microsoft Stream video to capture.
+                output_path (Optional[str]): The workspace path where the captured video will be saved.
+                                             If None, a default path will be used.
 
         Returns:
-            dict: A dictionary containing the result of the capture operation.
+            str: A yaml string indicating success or failure, and details.
         """
-        output_path = kwargs.get('output_path', f"//project/videos/{datetime.datetime()}.mp4")
+        output_path = kwargs.get('output_path', f"//project/videos/{datetime.now().strftime('%y%m%d_%H%M%S')}.mp4")
         stream_url = kwargs.get('stream_url')
         headless = kwargs.get('headless', False)
         timeout = kwargs.get('timeout', self.config.get_timeout())
         keep_open = kwargs.get('keep_open', False)
         tool_context = kwargs.get('tool_context', {})
-        bridge = tool_context.get('bridge')
+        bridge = tool_context.get('bridge', {})
 
-        success, message = validate_required_fields(kwargs, ['stream_url', 'output_path'])
+        success, message = validate_required_fields(kwargs, ['stream_url'])
         if not success:
             return message
 
@@ -176,9 +178,7 @@ class MicrosoftStreamTools(Toolset):
         self.logger.info("=== STEP 3: Video Download ===")
 
         # Prepare output path
-        partial_filename = video_url.split('?')[0].split('/')[-1]
-        filename = output_full_os_path + '/' + partial_filename
-        filename = ensure_file_extension(filename, '.mp4')
+        filename = ensure_file_extension(output_full_os_path, '.mp4')
         self.logger.info(f"Downloading to: {filename}")
         client = YtdlpDownloader()
         download_result = await client.download_video(video_url, Path(filename))
@@ -196,15 +196,14 @@ class MicrosoftStreamTools(Toolset):
 
 
 
-        message = f"[!SUCCESS]\n*Stream Captured* The stream has been captured successfully and saved to the specified location.\n- Output Path: {output_path}\\{partial_filename}\n- File Size: {download_result.get('file_size_mb', 0):.2f} MB\n"
+        message = f"[!SUCCESS]\n*Stream Captured* The stream has been captured successfully and saved to the specified location.\n- Output Path: {output_path}\n- File Size: {download_result.get('file_size_mb', 0):.2f} MB\n"
         await bridge.raise_render_media_markdown(message, "MicrosoftStreamTools")
 
         # Simulate successful capture
         return self._create_success_response(
             message="Stream captured successfully",
-            output_path=output_path,
-            filename=partial_filename,
-            file_size_mb=download_result.get('file_size_mb', 0)
+            filename=output_path,
+            file_size_mb=round(download_result.get('file_size_mb', 0), 2)
         )
 
 
