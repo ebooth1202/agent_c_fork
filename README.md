@@ -17,6 +17,7 @@ What sets Agent C apart from other frameworks / solutions isn't any one thing, o
 
 Agent instructions in Agent C steer the agent to use this capability more effectively, ensuring that not only is reasoning performed regularly, but that the agent is "thinking" about the correct things.
 
+
 ### Efficient, integrated tools 
 The tool system in Agent C was designed to make developing tools for agents "dirt simple" while still providing advanced features foud in few other frameworks. While thins like MCP a great for prototyping it falls short in manu areas where Agent C excels: performance, integration and dynamic content.
 
@@ -35,7 +36,7 @@ As agents follow a plan the user is kept informed not only by the agent but by t
 
 ### Delegation
 
-WIP
+The delegation tools in Agent C are where it stands out...  WIP 
 
 
 ## Agent C "Quick" Install (Preview) 
@@ -198,22 +199,6 @@ Follow the [Get Started With Claude](https://docs.anthropic.com/en/docs/get-star
    OPENAI_API_KEY=your-api-key-here
    ```
 
-## Running Agent C
-
-### Casual: Docker mode
-
-The simple way to run Agent C is through the Web UI using Docker. You will have fewer options for creating local workspaces in this mode.
-
-```bash
-# On Windows
-dockerfiles\start_agent_c.bat
-
-# On Mac/Linux
-./dockerfiles/start_agent_c.sh
-```
-
-This provides a full-featured experience with an intuitive interface for configuring and using agents. For detailed information about the Web UI features, see the [Web UI Documentation](docs/web_ui_README.md).
-
 
 ## Configuration File
 
@@ -233,13 +218,13 @@ For development or to allow for mapping of ANY folder as a workspace (Docker mak
 **Windows**
 ```commandline
 start scripts\start_api.bat
-start scripts\start_fe.bat
+start scripts\start_client.bat
 ```
 
 **OSX/Liunx
 ```bash
-scripts\start_api.bat &
-scripts\start_fe.bat &
+scripts/start_api.sh &
+scripts/start_client.sh &
 ```
 
 ### Essential Configuration
@@ -268,9 +253,6 @@ AWS_REGION_NAME=your-region-name
 AWS_SECRET_ACCESS_KEY=your-secret-access-key
 AWS_ACCESS_KEY_ID=your-access-key-id
 
-
-# Optional: Debug information
-ENHANCED_DEBUG_INFO=False
 
 # Optional: API keys for various tools
 # Uncomment and add keys for tools you want to use
