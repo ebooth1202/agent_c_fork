@@ -36,7 +36,7 @@ class GmailBase(Toolset):
     def __init__(self, **kwargs):
         super().__init__(**kwargs, needed_keys=['GOOGLE_CREDENTIALS_FILE'])
         self.logger: logging.Logger = logging.getLogger(__name__)
-        self.workspace_tool = self.tool_chest.active_tools.get('WorkspaceTools')
+        self.workspace_tool = self.tool_chest.available_tools.get('WorkspaceTools')
         self.service = self._initialize_gmail_service()
         self.cache_expire = 300  # 5 minute default cache expiration for emails
         self.MAX_TOKEN_SIZE = 35000
