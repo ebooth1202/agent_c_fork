@@ -23,8 +23,8 @@ COPY agent_c_config /app/agent_c_config
 RUN pip install --no-cache-dir --upgrade pip
 USER root
 RUN chown -R agent_c:agent_c /app
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY docker_support/api_entrypoint.sh /app/api_entrypoint.sh
+RUN chmod +x /app/api_entrypoint.sh
 USER agent_c
 # Install Python dependencies
 WORKDIR /app/src
@@ -47,5 +47,6 @@ EXPOSE 8000
 
 
 
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["python", "-m", "uvicorn", "agent_c_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "info"]
+#ENTRYPOINT ["/entrypoint.sh"]
+#CMD ["python", "-m", "uvicorn", "agent_c_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "info"]
+CMD["/app/api_entrypoint.sh"]

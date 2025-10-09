@@ -285,6 +285,155 @@ class AuthRepository:
             )
             raise
     
+    async def update_user(
+        self,
+        user_id: str,
+        email: Optional[str] = None,
+        first_name: Optional[str] = None,
+        last_name: Optional[str] = None,
+        roles: Optional[List[str]] = None,
+        is_active: Optional[bool] = None
+    ) -> Optional[ChatUser]:
+        """
+        Update user profile information.
+        
+        Only provided fields (not None) will be updated. This supports partial updates.
+        
+        Args:
+            user_id: User ID to update
+            email: New email address (optional)
+            first_name: New first name (optional)
+            last_name: New last name (optional)
+            roles: New roles list (optional)
+            is_active: New active status (optional)
+            
+        Returns:
+            Optional[ChatUser]: Updated user model if found, None if user doesn't exist
+        """
+        start_time = time.time()
+        
+        try:
+            self.logger.info(
+                "user_updating",
+                user_id=user_id,
+                has_email=email is not None,
+                has_first_name=first_name is not None,
+                has_last_name=last_name is not None,
+                has_roles=roles is not None,
+                has_is_active=is_active is not None
+            )
+            
+            # Get existing user
+            result = await self.session.execute(
+                select(ChatUserTable).where(ChatUserTable.user_id == user_id)
+            )
+            table_user = result.scalar_one_or_none()
+            
+            if not table_user:
+                self.logger.warning(
+                    "user_update_not_found",
+                    user_id=user_id
+                )
+                return None
+            
+            # Update only provided fields
+            if email is not None:
+                table_user.email = email
+            if first_name is not None:
+                table_user.first_name = first_name
+            if last_name is not None:
+                table_user.last_name = last_name
+            if roles is not None:
+                table_user.roles = roles
+            if is_active is not None:
+                table_user.is_active = is_active
+            
+            # Update timestamp
+            table_user.updated_at = datetime.now().isoformat()
+            
+            # Commit changes
+            await self.session.commit()
+            await self.session.refresh(table_user)
+            
+            duration = time.time() - start_time
+            self.logger.info(
+                "user_updated",
+                user_id=user_id,
+                duration_ms=round(duration * 1000, 2)
+            )
+            
+            return table_user.to_chat_user()
+            
+        except Exception as e:
+            await self.session.rollback()
+            duration = time.time() - start_time
+            self.logger.error(
+                "user_update_error",
+                user_id=user_id,
+                error=str(e),
+                duration_ms=round(duration * 1000, 2)
+            )
+            raise
+    
+    async def update_password(self, user_id: str, password_hash: str) -> bool:
+        """
+        Update user's password hash.
+        
+        Args:
+            user_id: User ID whose password to update
+            password_hash: New bcrypt hashed password
+            
+        Returns:
+            bool: True if password was updated, False if user not found
+        """
+        start_time = time.time()
+        
+        try:
+            self.logger.info(
+                "user_password_updating",
+                user_id=user_id
+            )
+            
+            # Get existing user
+            result = await self.session.execute(
+                select(ChatUserTable).where(ChatUserTable.user_id == user_id)
+            )
+            table_user = result.scalar_one_or_none()
+            
+            if not table_user:
+                self.logger.warning(
+                    "user_password_update_not_found",
+                    user_id=user_id
+                )
+                return False
+            
+            # Update password and timestamp
+            table_user.password_hash = password_hash
+            table_user.updated_at = datetime.now().isoformat()
+            
+            # Commit changes
+            await self.session.commit()
+            
+            duration = time.time() - start_time
+            self.logger.info(
+                "user_password_updated",
+                user_id=user_id,
+                duration_ms=round(duration * 1000, 2)
+            )
+            
+            return True
+            
+        except Exception as e:
+            await self.session.rollback()
+            duration = time.time() - start_time
+            self.logger.error(
+                "user_password_update_error",
+                user_id=user_id,
+                error=str(e),
+                duration_ms=round(duration * 1000, 2)
+            )
+            raise
+    
     async def delete_user(self, user_id: str) -> bool:
         """
         Delete a user from the database.
@@ -302,17 +451,16 @@ class AuthRepository:
                 select(ChatUserTable).where(ChatUserTable.user_id == user_id)
             )
             table_user = result.scalar_one_or_none()
-            user = table_user.to_chat_user() if table_user else None
             
-            if user:
-                await self.session.delete(user)
+            if table_user:
+                await self.session.delete(table_user)
                 await self.session.commit()
                 
                 duration = time.time() - start_time
                 self.logger.info(
                     "user_deleted",
                     user_id=user_id,
-                    username=user.username,
+                    username=table_user.user_name,
                     duration_ms=round(duration * 1000, 2)
                 )
                 return True

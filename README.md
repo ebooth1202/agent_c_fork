@@ -17,6 +17,7 @@ What sets Agent C apart from other frameworks / solutions isn't any one thing, o
 
 Agent instructions in Agent C steer the agent to use this capability more effectively, ensuring that not only is reasoning performed regularly, but that the agent is "thinking" about the correct things.
 
+
 ### Efficient, integrated tools 
 The tool system in Agent C was designed to make developing tools for agents "dirt simple" while still providing advanced features foud in few other frameworks. While thins like MCP a great for prototyping it falls short in manu areas where Agent C excels: performance, integration and dynamic content.
 
@@ -33,10 +34,45 @@ The default interaction patterns in Agent C are modeled after many of the patter
 
 As agents follow a plan the user is kept informed not only by the agent but by the tools as well. As plans are built and updated, the UI reports it.  When an agent completes a task, the UI shows the completion report it filed for the task.  With our enhanced Markdown support agents can and will include Mermaid digrams, SVGs etc in their reports.
 
+- Rich context management: technical, business, implementation, and risk context
+- Hierarchical task organization with parent-child relationships
+- Human oversight integration with required sign-offs and audit trails
+- Knowledge capture and automated report generation (without consuming agent context!)
+
 ### Delegation
 
-WIP
+The delegation tools in Agent C are where single-agent limitations transform into multi-agent possibilities and allow for large volumes of work to be reliably preformed without suffering from and overloaded context window.
 
+**Three Delegation Patterns**:
+
+- **Agent Clone Tools**: Perfect self-delegation for routine tasks. Your agent can create exact copies of itself to handle focused work while preserving its context for strategic thinking and user interaction. Each clone gets specific process context that transforms generic capability into specialized execution.
+  
+- **Agent Assist Tools**: Collaboration with specialized agents from a broader ecosystem. Need expert analysis, creative writing, or domain-specific capabilities? Agents can consult specialists without you managing the coordination.
+  
+- **Agent Team Tools**: Structured collaboration with predefined teams of specialists. For complex projects, orchestrator agents coordinate teams of focused experts, each handling specific aspects while maintaining clear handoff procedures and quality gates.
+
+Traditional single-agent approaches hit a wall: either your agent tries to do everything and burns through its context window, or you manually manage multiple agents and their coordination. Agent C's delegation tools enable sophisticated multi-agent workflows through natural language instructions rather than code.
+
+The sophistication here might seem overwhelming—delegation rules, handoff procedures, recovery protocols, quality gates—but here's the thing: **you don't design these coordination patterns alone**.
+
+### Meet Bobb: Your Expert Agent Designer
+
+Agent C is instruction-first. If you can express something in a system prompt, an agent can create that system prompt. **Bobb the Agent Builder** is a specialized agent who designs other agents—from simple task executors to sophisticated orchestration systems with comprehensive coordination patterns, quality frameworks, and recovery mechanisms.
+
+When you need a coding assistant for a new project, Bobb:
+
+- Analyzes your project structure to understand technical requirements
+- Identifies appropriate tools and guides you to equip them
+- Extracts domain guidelines from your documentation
+- Composes instruction patterns from proven quality frameworks
+- Designs coordination protocols if multi-agent workflows are needed
+- Implements appropriate safeguards based on complexity
+
+Bobb has access to our comprehensive agent delegation design bible—all those complex coordination patterns, context management strategies, and quality assurance frameworks. You explain what you want to accomplish; Bobb handles the intricate technical details.
+
+
+> [!IMPORTANT]
+>  **Agent C Agents are something you've never worked with before.** The hardest thing for most people to do is to change their mindset from "thinking about software" to *thinking about interns*.  "Driving" agents is a skill it takes time to develop.
 
 ## Agent C "Quick" Install (Preview) 
 
@@ -50,9 +86,8 @@ The compose files here allow Docker/Rancher users to get up in running using a l
 
 ## Getting started
 
-In the `scripts` folder are Windows batch files and *nix shell scripts to allow you to run the Agent C AOI and web client behind an HTTPS proxy using self-signed certs.  Once started you will be able to access Agent C at https://localhost:5173/chat *If you forget the port and have nothing listening on 443 you will be redirected.*
+The `agentc` script allows you to run the Agent C API and web client behind an HTTPS proxy using self-signed certs.  Once started you will be able to access Agent C at https://localhost:5173/chat *If you forget the port and have nothing listening on 443 you will be redirected.*
 
-These *should* be able to be double-clicked in Explorer.  Mac/Linux users will need to `chmod a+x scripts/*.sh` first.
 
 > [!IMPORTANT]
 > The container images are not yet being built and pushed on GitHub.  That will change soon but for now you must build the containers locally.
@@ -60,7 +95,7 @@ These *should* be able to be double-clicked in Explorer.  Mac/Linux users will n
 
 ### New users
 
-1. **Build the containers** - Run `scripts/build_containers.(bat/sh)` and wait a bit.
+1. **Build the containers** - Run `ci/build_containers.(bat/sh)` and wait a bit.
 2. **Initialize your local storage** - Run `agentc up`.
    - This will create a `.agent_c` folder under your home folder where it will store:
      - The configuration file
@@ -73,7 +108,7 @@ These *should* be able to be double-clicked in Explorer.  Mac/Linux users will n
 
 ### Users of the old client
 
-1. **Build the containers** - Run `scripts/build_containers.(bat/sh)` and wait a bit.
+1. **Build the containers** - Run `ci/build_containers.(bat/sh)` and wait a bit.
 2. **Copy the databases** - Copy the two databases in the `data` subfolder to yout `.agent_c` subfolder of your user folder.
 3. **Rname your personas folder** - Rename this it `agents` and your old agents will be there. 
 4. **Run Agent C** - Run `agentc up` it will see that you have a config file and launch the compose file. 
@@ -91,7 +126,7 @@ An easy was to add additional wones without building your own container is on th
 
 ## Logging in
 
-There is one user, `admin` with the password `changeme`,  Except as of this writing tha ability to actualy change it if you're a user doesn't exist.. Hence preview status.
+There is one user, `admin` with the password `changeme`,  Except as of this writing tha ability to actually change it if you're a user doesn't exist.. Hence preview status.
 
 ### 💻 Developer Setup
 
@@ -198,22 +233,6 @@ Follow the [Get Started With Claude](https://docs.anthropic.com/en/docs/get-star
    OPENAI_API_KEY=your-api-key-here
    ```
 
-## Running Agent C
-
-### Casual: Docker mode
-
-The simple way to run Agent C is through the Web UI using Docker. You will have fewer options for creating local workspaces in this mode.
-
-```bash
-# On Windows
-dockerfiles\start_agent_c.bat
-
-# On Mac/Linux
-./dockerfiles/start_agent_c.sh
-```
-
-This provides a full-featured experience with an intuitive interface for configuring and using agents. For detailed information about the Web UI features, see the [Web UI Documentation](docs/web_ui_README.md).
-
 
 ## Configuration File
 
@@ -233,13 +252,13 @@ For development or to allow for mapping of ANY folder as a workspace (Docker mak
 **Windows**
 ```commandline
 start scripts\start_api.bat
-start scripts\start_fe.bat
+start scripts\start_client.bat
 ```
 
 **OSX/Liunx
 ```bash
-scripts\start_api.bat &
-scripts\start_fe.bat &
+scripts/start_api.sh &
+scripts/start_client.sh &
 ```
 
 ### Essential Configuration
@@ -268,9 +287,6 @@ AWS_REGION_NAME=your-region-name
 AWS_SECRET_ACCESS_KEY=your-secret-access-key
 AWS_ACCESS_KEY_ID=your-access-key-id
 
-
-# Optional: Debug information
-ENHANCED_DEBUG_INFO=False
 
 # Optional: API keys for various tools
 # Uncomment and add keys for tools you want to use

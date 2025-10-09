@@ -7,17 +7,17 @@ services:
       - "443:443"
       - "5173:5173"
     volumes:
-      - ./docker_support/config/nginx.conf.frontend-only:/etc/nginx/nginx.conf:ro
+      - ./docker_support/config/nginx.conf.client-only:/etc/nginx/nginx.conf:ro
       - ./docker_support/certs:/etc/nginx/certs:ro
     depends_on:
-      - frontend
+      - client
     networks:
       - agent-c-network
     restart: unless-stopped
 
   client:
     image: ghcr.io/centricconsulting/agentc-client:latest
-    container_name: agentc-client
+    container_name: agentc-client-dev
     expose:
       - "5173"
     environment:
