@@ -920,7 +920,7 @@ class RealtimeBridge(ClientEventHandler):
             prompt_metadata = await self._build_prompt_metadata()
             tool_params = {}
             if len(self.chat_session.agent_config.tools):
-                await self.tool_chest.initialize_toolsets(self.chat_session.agent_config.tools)
+                await self.tool_chest.activate_toolset(self.chat_session.agent_config.tools)
                 tool_params = self.tool_chest.get_inference_data(self.chat_session.agent_config.tools, agent_runtime.tool_format)
                 tool_params['schemas'] = self.chat_session.agent_config.filter_allowed_tools(tool_params['schemas'])
                 tool_params["toolsets"] = self.chat_session.agent_config.tools
