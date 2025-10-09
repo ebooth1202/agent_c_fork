@@ -23,8 +23,10 @@ COPY agent_c_config /app/agent_c_config
 RUN pip install --no-cache-dir --upgrade pip
 USER root
 RUN chown -R agent_c:agent_c /app
-COPY build_support/api_entrypoint.sh /app/api_entrypoint.sh
-RUN chmod +x /app/api_entrypoint.sh
+
+COPY build_support/entrypoint.sh /entrypoint.sh
+RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
+
 USER agent_c
 # Install Python dependencies
 WORKDIR /app/src
@@ -41,12 +43,9 @@ ENV ENVIRONMENT="LOCAL_DEV"
 ENV DALLE_IMAGE_SAVE_FOLDER="/app/images"
 ENV RUNNING_IN_DOCKER="True"
 
-
 # Expose the FastAPI server port
 EXPOSE 8000
 
-
-
-#ENTRYPOINT ["/entrypoint.sh"]
-#CMD ["python", "-m", "uvicorn", "agent_c_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "info"]
-CMD ["/app/api_entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["python", "-m", "uvicorn", "agent_c_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "info"]
+#CMD ["/app/api_entrypoint.sh"]
