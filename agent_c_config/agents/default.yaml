@@ -13,6 +13,7 @@ tools:
   - MarkdownToHtmlReportTools
   - ClaudeWebSearchTools
   - ClaudeWebFetchTools
+  - ToolbeltTools
 agent_params:
   budget_tokens: 20000
   max_tokens: 64000
