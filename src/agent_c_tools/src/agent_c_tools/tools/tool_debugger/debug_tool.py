@@ -219,7 +219,7 @@ class ToolDebugger:
             await self.tool_chest.init_tools(tool_opts=tool_opts)
 
             # Set the active toolsets
-            await self.tool_chest.set_active_toolsets([tool_class.__name__], tool_opts=tool_opts)
+            await self.tool_chest.activate_toolset([tool_class.__name__], tool_opts=tool_opts)
             self.logger.info(f"Set active toolset: {tool_class.__name__}")
 
             self.logger.info(f"Tool {tool_class.__name__} setup complete")
