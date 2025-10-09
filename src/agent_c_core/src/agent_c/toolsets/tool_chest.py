@@ -93,7 +93,8 @@ class ToolChest:
         """
         # Convert to list if a single string is provided
         toolset_names = [toolset_name_or_names] if isinstance(toolset_name_or_names, str) else toolset_name_or_names
-        
+
+        self.logger.debug(f"Activating toolsets: {toolset_names} with options: {tool_opts}")
         # Track activation stack to prevent infinite recursion
         activation_stack = getattr(self, '_activation_stack', [])
         self._activation_stack = activation_stack
@@ -198,7 +199,7 @@ class ToolChest:
                 self.logger.warning(f"Error in post_init for toolset {name}: {str(e)}")
                 success = False
                 # Don't remove from active instances as it may still be partially functional
-        
+        self.logger.debug(f"Active toolsets after activation: {list(self.__toolset_instances.keys())}.  Success key was: {success}")
         return success
 
 
