@@ -62,7 +62,7 @@ python -m pip install --upgrade pip
 pip install tomli
 
 echo "Installing pnpm version 9..."
-npm install -g pnpm@9
+CALL npm install -g pnpm@9
 
 :: Install the requirements
 echo Installing dependencies.
