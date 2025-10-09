@@ -17,7 +17,7 @@ services:
 
   client:
     image: ghcr.io/centricconsulting/agentc-client:latest
-    container_name: agentc-client
+    container_name: agentc-client-dev
     expose:
       - "5173"
     environment:
