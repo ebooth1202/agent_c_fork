@@ -10,7 +10,7 @@ if ! docker info > /dev/null 2>&1; then
     exit 1
 fi
 
-source docker_support/posix.env.sh
+source build_support/posix.env.sh
 
 # Create directories if they don't exist
 mkdir -p "$AGENT_C_CONFIG_PATH"
@@ -21,8 +21,8 @@ mkdir -p "$AGENT_C_SAVED_CHAT_FOLDER"
 # Check if config file exists and set up AI keys
 if [ ! -f "$AGENT_C_CONFIG_PATH/agent_c.config" ]; then
     echo "Creating new configuration file..."
-    cp config/agent_c.config.example "$AGENT_C_CONFIG_PATH/agent_c.config"
-    cp data/*.db  "$AGENT_C_CONFIG_PATH/"
+    cp build_support/config/agent_c.config.example "$AGENT_C_CONFIG_PATH/agent_c.config"
+    cp build_support/data/*.db  "$AGENT_C_CONFIG_PATH/"
 
     # Prompt for OpenAI API key
     read -p "Please enter your OpenAI API key: " OPENAI_API_KEY

@@ -23,7 +23,7 @@ COPY agent_c_config /app/agent_c_config
 RUN pip install --no-cache-dir --upgrade pip
 USER root
 RUN chown -R agent_c:agent_c /app
-COPY docker_support/api_entrypoint.sh /app/api_entrypoint.sh
+COPY build_support/api_entrypoint.sh /app/api_entrypoint.sh
 RUN chmod +x /app/api_entrypoint.sh
 USER agent_c
 # Install Python dependencies
