@@ -155,12 +155,12 @@ class ToolChest:
                     success = False
                     activation_stack.remove(name)
                     continue
-                
+
                 required_tools = Toolset.get_required_tools(name)
                 
                 # Log dependencies for debugging
                 if required_tools:
-                    self.logger.debug(f"Toolset {name} requires: {', '.join(required_tools)}")
+                    self.logger.info(f"Toolset {name} requires: {', '.join(required_tools)}")
                     
                     # Recursively activate required tools
                     required_success = await self.activate_toolset(required_tools, tool_opts, init_only)
@@ -198,6 +198,10 @@ class ToolChest:
                     # Create the toolset instance
                     toolset_obj = toolset_class(**local_tool_opts)
                     
+                    # Check if toolset is valid after instantiation
+                    if hasattr(toolset_obj, 'tool_valid') and not toolset_obj.tool_valid:
+                        self.logger.warning(f"Toolset {name} was instantiated but marked as invalid - it will not function properly")
+
                     # Add to instances and active instances
                     self.__toolset_instances[name] = toolset_obj
                     if not init_only:
