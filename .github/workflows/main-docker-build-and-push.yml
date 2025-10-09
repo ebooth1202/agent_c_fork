@@ -1,12 +1,6 @@
 name: Build and Push Dev Docker Images
 
 on:
-  pull_request:
-    branches: [ main ]
-    types: [ opened, synchronize, reopened ]
-  pull_request_target:
-    branches: [ main ]
-    types: [ closed ]
   push:
     branches: [ main ]
   workflow_dispatch:
@@ -85,15 +79,14 @@ jobs:
         with:
           context: .
           file: ./pythonbase.Dockerfile
-          # Push on PR close, push to main, or manual dispatch
-          push: ${{ github.event_name == 'pull_request_target' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+          push: true
           tags: |
             ghcr.io/${{ env.OWNER }}/agent_c_python_base:latest
             ghcr.io/${{ env.OWNER }}/agent_c_python_base:build-${{ github.run_number }}
             ghcr.io/${{ env.OWNER }}/agent_c_python_base:${{ env.DATE }}
 
       - name: Verify base image push
-        if: (needs.check-changes.outputs.base_changed == 'true') && (github.event_name == 'pull_request_target' || github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+if: needs.check-changes.outputs.base_changed == 'true'
         run: |
           echo "Verifying base image was published"
           docker pull ghcr.io/${{ env.OWNER }}/agent_c_python_base:${{ env.SHORT_SHA }} || echo "Failed to pull image - may not be available immediately"
@@ -103,8 +96,7 @@ jobs:
         with:
           context: .
           file: ./api.Dockerfile
-          # Push on PR close, push to main, or manual dispatch
-          push: ${{ github.event_name == 'pull_request_target' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+          push: true
           tags: |
             ghcr.io/${{ env.OWNER }}/agentc-api:latest
             ghcr.io/${{ env.OWNER }}/agentc-api:build-${{ github.run_number }}
@@ -114,8 +106,7 @@ jobs:
         with:
           context: ./src/realtime_client
           file: ./client.Dockerfile
-          # Push on PR close, push to main, or manual dispatch
-          push: ${{ github.event_name == 'pull_request_target' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+          push: true
           tags: |
             ghcr.io/${{ env.OWNER }}/agentc-client:latest
             ghcr.io/${{ env.OWNER }}/agentc-client:build-${{ github.run_number }}
