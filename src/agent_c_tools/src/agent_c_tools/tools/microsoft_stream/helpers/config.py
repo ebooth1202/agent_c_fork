@@ -46,10 +46,26 @@ class SlimConfig:
         '--disable-default-apps',
         '--disable-sync',
         '--disable-background-networking',
-        '--blink-settings=imagesEnabled=true'
+        '--blink-settings=imagesEnabled=true',
+        # Suppress verbose logging that causes noisy console output
+        '--log-level=3',  # Only show fatal errors
+        # '--silent',
+        # '--disable-logging',
+        # '--disable-gpu-sandbox',
+        # '--disable-software-rasterizer',
+        # '--disable-background-timer-throttling',
+        # '--disable-backgrounding-occluded-windows',
+        # '--disable-renderer-backgrounding',
+        # '--disable-features=TranslateUI',
+        # '--disable-ipc-flooding-protection',
+        # '--disable-hang-monitor',
+        # '--disable-client-side-phishing-detection',
+        # '--disable-component-update',
+        # '--no-zygote',
+        # '--single-process'
     ]
     
-    def __init__(self, app_name: str = 'SharedownSlim'):
+    def __init__(self, app_name: str = 'MSFTStreamSlim'):
         self.app_name = app_name
         self.app_data_path = self._get_app_data_path()
         self.config_file = self.app_data_path / 'config.json'
@@ -106,7 +122,7 @@ class SlimConfig:
     def _save_config(self):
         """Save current configuration to file."""
         self.settings['_version'] = self.CONFIG_VERSION
-        
+
         try:
             with open(self.config_file, 'w', encoding='utf-8') as f:
                 json.dump(self.settings, f, indent=2, ensure_ascii=False)
