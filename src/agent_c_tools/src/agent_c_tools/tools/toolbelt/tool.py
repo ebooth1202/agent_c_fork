@@ -181,24 +181,20 @@ class ToolbeltTools(Toolset):
             tool_context = kwargs.get('tool_context')
             show_invalid = kwargs.get('show_invalid', True)
 
-            active_tools = None
+            # Get active tools from bridge's tool_chest
+            if not tool_context or 'bridge' not in tool_context:
+                return "ERROR: Bridge not available in tool context"
 
-            # Try to get active tools from tool_chest if available
-            if hasattr(self, 'tool_chest') and hasattr(self.tool_chest, 'active_tools'):
-                active_tools = self.tool_chest.active_tools
+            bridge: 'RealtimeBridge' = tool_context['bridge']
+            
+            if not hasattr(bridge, 'tool_chest'):
+                return "ERROR: Bridge does not have tool_chest"
 
-            # If tool_chest not available, try to get from bridge context
-            elif tool_context and 'bridge' in tool_context:
-                bridge = tool_context['bridge']
-                if hasattr(bridge, 'get_active_tools'):
-                    active_tools = await bridge.get_active_tools()
+            # Get available tools from the tool_chest
+            active_tools = bridge.tool_chest.available_tools
 
-            if active_tools is None:
-                return "No active tools information available"
-
-            # Convert to dict if it's not already
-            if not isinstance(active_tools, dict):
-                return self._yaml_dump({"active_toolsets": list(active_tools) if active_tools else []})
+            if not active_tools:
+                return self._yaml_dump({"valid_toolsets": [], "invalid_toolsets": [], "total_active": 0})
 
             # Separate valid and invalid tools
             valid_tools = []
