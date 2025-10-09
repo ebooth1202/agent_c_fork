@@ -318,9 +318,10 @@ class RealtimeBridge(ClientEventHandler):
 
         if 'BridgeTools' not in self.chat_session.agent_config.tools:
             self.chat_session.agent_config.tools.append('BridgeTools')
+        self.logger.debug(f"Resuming session with {self.chat_session.agent_config.tools}")
 
         await self.tool_chest.activate_toolset(self.chat_session.agent_config.tools)
-        self.logger.info(f"RealtimeBridge resumed chat session {self.chat_session.session_id}")
+        self.logger.info(f"RealtimeBridge resumed chat session {self.chat_session.session_id} with {len(self.chat_session.agent_config.tools)} tools")
         await self.send_chat_session()
         await self.send_event(SystemMessageEvent(content=F"Welcome back! **Session ID:** {self.chat_session.session_id}", session_id=self.chat_session.session_id,
                                                  severity="info", role="system"))
@@ -378,7 +379,10 @@ class RealtimeBridge(ClientEventHandler):
         self.logger.info(f"Requesting new tool list for agent {self.chat_session.agent_config.key} to: {new_tools}")
         equipped: bool = False
         try:
-            equipped = await self.tool_chest.activate_toolset(self.chat_session.agent_config.tools)
+            # old code
+            # equipped = await self.tool_chest.activate_toolset(self.chat_session.agent_config.tools)
+            # Use new_tools parameter (not agent_config.tools) to activate the updated tool list
+            equipped = await self.tool_chest.activate_toolset(new_tools)
         except Exception as e:
             self.logger.error(f"Error updating tools: {e}\n{traceback.format_exc()}")
             await self.send_system_message(f"Error updating tools: {e}", severity="error")
@@ -669,10 +673,12 @@ class RealtimeBridge(ClientEventHandler):
         message = ("# Welcome to Agent C\n\n:::TIP\n- **First time here?** Send *Hello Domo* to get started!\n"
                    "- Send `!help` for information on available chat commands.\n\n:::\n\n")
 
-
-
         if len(self.chat_session.messages) > 0:
             message = "# Welcome back Agent C\n\nYour previous session has been restored."
+            # Activate tools for the restored session
+            if len(self.chat_session.agent_config.tools) > 0:
+                await self.tool_chest.activate_toolset(self.chat_session.agent_config.tools)
+                self.logger.debug(f"Activated tools for restored session: {self.chat_session.agent_config.tools}")
 
         await self.raise_render_media_markdown(message)
 
@@ -746,7 +752,7 @@ class RealtimeBridge(ClientEventHandler):
 
     async def raise_render_media_markdown(self, text: str, sent_by_class: str = "RealtimeBridge"):
         event = RenderMediaEvent(content=text, session_id=self.chat_session.session_id,
-                                 content_type="text/markdown", sent_by_class= "RealtimeBridge", foreign_content=False,
+                                 content_type="text/markdown", sent_by_class=sent_by_class, foreign_content=False,
                                  user_session_id=self.chat_session.session_id,
                                  role="assistant")
 
@@ -873,7 +879,8 @@ class RealtimeBridge(ClientEventHandler):
                 "client_wants_cancel": self.client_wants_cancel,
                 "env_name": os.getenv('ENV_NAME', 'development'),
                 "streaming_callback": on_event if on_event is not None else self.runtime_callback,
-                "prompt_metadata": prompt_metadata}
+                "prompt_metadata": prompt_metadata,
+                'agent_runtime': self.runtime_cache.runtime_for_agent(self.chat_session.agent_config)}
 
     async def interact(self, user_message: str, file_ids: Optional[List[str]] = None, on_event: Optional[callable] = None) -> None:
         """
@@ -916,7 +923,7 @@ class RealtimeBridge(ClientEventHandler):
             prompt_metadata = await self._build_prompt_metadata()
             tool_params = {}
             if len(self.chat_session.agent_config.tools):
-                await self.tool_chest.initialize_toolsets(self.chat_session.agent_config.tools)
+                await self.tool_chest.activate_toolset(self.chat_session.agent_config.tools)
                 tool_params = self.tool_chest.get_inference_data(self.chat_session.agent_config.tools, agent_runtime.tool_format)
                 tool_params['schemas'] = self.chat_session.agent_config.filter_allowed_tools(tool_params['schemas'])
                 tool_params["toolsets"] = self.chat_session.agent_config.tools

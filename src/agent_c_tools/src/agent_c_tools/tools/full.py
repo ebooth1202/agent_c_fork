@@ -36,12 +36,14 @@ from .sars import SarsTools
 from .insurance_demo import InsuranceDemoTools
 from .workspace import DynamicCommandTools
 from .toolbelt.tool import ToolbeltTools
+from .microsoft_stream.tool import MicrosoftStreamTools
 
 __all__ = [
     # Essential Tools for good agents
     'MemoryTools',
     'ThinkTools',
     'MarkdownToHtmlReportTools',
+    'ToolbeltTools',
 
     # Code Exploring Tools
     'CssExplorerTools',
@@ -95,6 +97,7 @@ __all__ = [
     'MathTools',
     'BrowserPlaywrightTools',
     'CodeInterpreterTools',
+    'MicrosoftStreamTools',
 
     # Data tools
     'DataVisualizationTools',

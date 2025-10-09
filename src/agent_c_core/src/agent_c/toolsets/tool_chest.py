@@ -79,10 +79,7 @@ class ToolChest:
                 if 'function' in schema and 'name' in schema['function']:
                     self._tool_name_to_instance_map[schema['function']['name']] = toolset
 
-    async def initialize_toolsets(self, toolset_name_or_names: Union[str, List[str]], tool_opts: Optional[Dict[str, any]] = None) -> bool:
-        return await self.activate_toolset(toolset_name_or_names, tool_opts, True)
-
-    async def activate_toolset(self, toolset_name_or_names: Union[str, List[str]], tool_opts: Optional[Dict[str, any]] = None, init_only: bool = False) -> bool:
+    async def activate_toolset(self, toolset_name_or_names: Union[str, List[str]], tool_opts: Optional[Dict[str, any]] = None) -> bool:
         """
         Activate one or more toolsets by name.
         
@@ -96,7 +93,8 @@ class ToolChest:
         """
         # Convert to list if a single string is provided
         toolset_names = [toolset_name_or_names] if isinstance(toolset_name_or_names, str) else toolset_name_or_names
-        
+
+        self.logger.debug(f"Activating toolsets: {toolset_names} with options: {tool_opts}")
         # Track activation stack to prevent infinite recursion
         activation_stack = getattr(self, '_activation_stack', [])
         self._activation_stack = activation_stack
@@ -137,7 +135,7 @@ class ToolChest:
                 self.logger.debug(f"Toolset {name} requires: {', '.join(required_tools)}")
 
                 # Recursively activate required tools
-                required_success = await self.activate_toolset(required_tools, tool_opts, init_only)
+                required_success = await self.activate_toolset(required_tools, tool_opts)
                 if not required_success:
                     self.logger.warning(f"Failed to activate required tools for {name}")
                     success = False
@@ -201,7 +199,7 @@ class ToolChest:
                 self.logger.warning(f"Error in post_init for toolset {name}: {str(e)}")
                 success = False
                 # Don't remove from active instances as it may still be partially functional
-        
+        self.logger.debug(f"Active toolsets after activation: {list(self.__toolset_instances.keys())}.  Success key was: {success}")
         return success
 
 

@@ -48,6 +48,53 @@ class MockAgentRuntime:
         # This provides the agent_runtime.count_tokens() method expected by tools
         return len(text) // 10  # Rough approximation (10 chars per token)
 
+# Add a mock Bridge for handling media events
+class MockBridge:
+    """Mock bridge to handle media events in debug environment"""
+
+    def __init__(self, logger=None):
+        self.logger = logger or logging.getLogger(__name__)
+        self.media_events = []  # Store media events for debugging
+
+    async def raise_render_media_markdown(self, message: str, sent_by: str = "DebugTool"):
+        """Mock implementation of bridge media event handler"""
+        self.logger.info(f"Bridge Media Event (Markdown) from {sent_by}: {message[:100]}...")
+        self.media_events.append({
+            "type": "markdown",
+            "message": message,
+            "sent_by": sent_by,
+            "timestamp": time.time()
+        })
+
+    async def raise_render_media_html(self, content: str, sent_by: str = "DebugTool"):
+        """Mock implementation of bridge HTML media event handler"""
+        self.logger.info(f"Bridge Media Event (HTML) from {sent_by}: {content[:100]}...")
+        self.media_events.append({
+            "type": "html",
+            "content": content,
+            "sent_by": sent_by,
+            "timestamp": time.time()
+        })
+
+    async def raise_render_media(self, content_type: str, content: str, sent_by: str = "DebugTool", **kwargs):
+        """Generic bridge media event handler"""
+        self.logger.info(f"Bridge Media Event ({content_type}) from {sent_by}: {content[:100]}...")
+        self.media_events.append({
+            "type": content_type,
+            "content": content,
+            "sent_by": sent_by,
+            "timestamp": time.time(),
+            "metadata": kwargs
+        })
+
+    def get_media_events(self):
+        """Get all captured media events for debugging"""
+        return self.media_events.copy()
+
+    def clear_media_events(self):
+        """Clear captured media events"""
+        self.media_events.clear()
+
 # Add the mock to sys.modules so it can be imported by local_storage.py
 mock_module = types.ModuleType('agent_c.util.token_counter')
 mock_module.TokenCounter = MockTokenCounter
@@ -307,7 +354,7 @@ class ToolDebugger:
         except Exception as e:
             print(f"  Error accessing map: {e}")
 
-    async def run_tool_test(self, tool_name: str, tool_params: Dict[str, Any], tool_context: Dict[str, Any] = None) -> List[Dict[str, Any]]:
+    async def run_tool_test(self, tool_name: str, tool_params: Dict[str, Any], tool_context: Dict[str, Any] = None, bridge: Dict[str, Any] = None) -> List[Dict[str, Any]]:
         """
         Run a test for a specific tool with given parameters.
 
@@ -315,11 +362,15 @@ class ToolDebugger:
             tool_context: Context information passed to tools (optional, defaults to basic context)
             tool_name: Name of the tool to call (e.g., 'flash_docs_outline_to_powerpoint')
             tool_params: Parameters for the tool call
+            bridge: Bridge context for inter-tool communication (optional)
 
         Returns:
             The raw tool results
         """
         test_id = f"test_{int(time.time())}"
+
+        # Create a MockBridge instance for this test
+        mock_bridge = MockBridge(self.logger)
 
         if tool_context is None:
             tool_context = {
@@ -329,6 +380,29 @@ class ToolDebugger:
                 "debug_mode": True,
                 "agent_runtime": MockAgentRuntime()
             }
+
+        # Add bridge to tool_context - use provided bridge or default to MockBridge
+        if bridge is not None:
+            # If a bridge dict is provided, merge it with MockBridge capabilities
+            if isinstance(bridge, dict):
+                # Create a combined bridge object with both provided data and MockBridge methods
+                class CombinedBridge(MockBridge):
+                    def __init__(self, logger, bridge_data):
+                        super().__init__(logger)
+                        # Add any additional bridge data as attributes
+                        for key, value in bridge_data.items():
+                            setattr(self, key, value)
+
+                tool_context['bridge'] = CombinedBridge(self.logger, bridge)
+            else:
+                # Use the provided bridge object directly
+                tool_context['bridge'] = bridge
+        else:
+            # Use the MockBridge by default
+            tool_context['bridge'] = mock_bridge
+
+        # Store reference to bridge for accessing media events later
+        self._last_bridge = tool_context['bridge']
 
         # Add tool_context to tool_params if not already present
         if 'tool_context' not in tool_params:
@@ -355,6 +429,52 @@ class ToolDebugger:
             error_msg = f"Error executing tool call {tool_name}: {str(e)}"
             self.logger.error(error_msg)
             return [{"error": error_msg}]
+
+    def get_media_events(self) -> List[Dict[str, Any]]:
+        """
+        Get media events captured from the last tool test run.
+
+        Returns:
+            List of media events with type, content, timestamp, etc.
+        """
+        if hasattr(self, '_last_bridge') and hasattr(self._last_bridge, 'get_media_events'):
+            return self._last_bridge.get_media_events()
+        return []
+
+    def clear_media_events(self) -> None:
+        """
+        Clear media events from the last bridge used.
+        """
+        if hasattr(self, '_last_bridge') and hasattr(self._last_bridge, 'clear_media_events'):
+            self._last_bridge.clear_media_events()
+
+    def print_media_events(self) -> None:
+        """
+        Print captured media events in a readable format for debugging.
+        """
+        events = self.get_media_events()
+        if not events:
+            print("No media events captured.")
+            return
+
+        print(f"\n=== Media Events Captured ({len(events)}) ===")
+        for i, event in enumerate(events, 1):
+            print(f"\nEvent {i}:")
+            print(f"  Type: {event.get('type', 'unknown')}")
+            print(f"  Sent by: {event.get('sent_by', 'unknown')}")
+            print(f"  Timestamp: {event.get('timestamp', 'unknown')}")
+
+            # Show content preview
+            content = event.get('content') or event.get('message', '')
+            if content:
+                preview = content[:200] + "..." if len(content) > 200 else content
+                print(f"  Content: {preview}")
+
+            # Show metadata if present
+            if 'metadata' in event:
+                print(f"  Metadata: {event['metadata']}")
+
+        print("="*50)
 
     def extract_content_from_results(self, results: List[Dict[str, Any]]) -> str:
         """
@@ -560,4 +680,3 @@ class ToolDebugger:
             self.logger.error(f"Error getting tool names: {str(e)}")
 
         return tool_names
-
