@@ -50,16 +50,10 @@ class MicrosoftStreamTools(Toolset):
         # Try multiple approaches to get WorkspaceTools dependency
         self.workspace_tool = None
 
-        # First, try to get from active toolsets
-        self.workspace_tool = self.tool_chest.active_tools.get("WorkspaceTools")
+        # First, try to get from available_tools (the correct property)
+        self.workspace_tool = self.tool_chest.available_tools.get("WorkspaceTools")
 
-        # If not found in active_tools, try available_tools (fallback for timing issues)
-        if not self.workspace_tool:
-            self.workspace_tool = self.tool_chest.available_tools.get("WorkspaceTools")
-            if self.workspace_tool:
-                self.logger.warning("⚠ Found WorkspaceTools in available_tools but not active_tools - using fallback")
-
-        # If still not found, try to get from toolset instances directly
+        # If still not found, try to get from toolset instances directly as fallback
         if not self.workspace_tool and hasattr(self.tool_chest, '_ToolChest__toolset_instances'):
             self.workspace_tool = self.tool_chest._ToolChest__toolset_instances.get("WorkspaceTools")
             if self.workspace_tool:
@@ -69,7 +63,6 @@ class MicrosoftStreamTools(Toolset):
             self.logger.info("✓ MicrosoftStreamTools initialized with WorkspaceTools dependency")
         else:
             self.logger.error("❌ MicrosoftStreamTools failed to get WorkspaceTools dependency")
-            self.logger.debug(f"Available active tools: {list(self.tool_chest.active_tools.keys())}")
             self.logger.debug(f"Available tools: {list(self.tool_chest.available_tools.keys())}")
 
         if self.valid and self.workspace_tool:
