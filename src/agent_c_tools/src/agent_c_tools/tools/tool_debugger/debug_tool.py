@@ -266,15 +266,15 @@ class ToolDebugger:
             await self.tool_chest.init_tools(tool_opts=tool_opts)
 
             # Set the active toolsets
-            await self.tool_chest.set_active_toolsets([tool_class.__name__], tool_opts=tool_opts)
+            await self.tool_chest.activate_toolset([tool_class.__name__], tool_opts=tool_opts)
             self.logger.info(f"Set active toolset: {tool_class.__name__}")
 
             self.logger.info(f"Tool {tool_class.__name__} setup complete")
 
             # Log available tools for debugging
-            self.logger.info(f"Active tools: {list(self.tool_chest.active_tools.keys())}")
+            self.logger.info(f"Active tools: {list(self.tool_chest.available_tools.keys())}")
 
-            if 'WorkspaceTools' in self.tool_chest.active_tools and not self.init_local_workspaces:
+            if 'WorkspaceTools' in self.tool_chest.available_tools and not self.init_local_workspaces:
                 self.logger.warning(
                     f"ALERT: Tool {tool_class.__name__} has activated WorkspaceTools as a dependency, "
                     f"but init_local_workspaces is set to False. This may cause errors when running tools."
@@ -322,7 +322,7 @@ class ToolDebugger:
         """
         print("\n=== Tool Information ===")
 
-        for name, tool in self.tool_chest.active_tools.items():
+        for name, tool in self.tool_chest.available_tools.items():
             print(f"\nTool '{name}' details:")
             print(f"  Class: {tool.__class__.__name__}")
             print(f"  Name attribute: {tool.name if hasattr(tool, 'name') else 'No name attribute'}")
@@ -337,7 +337,7 @@ class ToolDebugger:
 
         # Print schema information
         print("\nToolset schemas:")
-        for name, toolset in self.tool_chest.active_tools.items():
+        for name, toolset in self.tool_chest.available_tools.items():
             print(f"\nToolset '{name}' schemas:")
             try:
                 for i, schema in enumerate(toolset.openai_schemas):

@@ -15,7 +15,6 @@ from agent_c.util.heygen_streaming_avatar_client import HeyGenStreamingClient
 from agent_c_api.config.env_config import settings
 from agent_c_api.core.realtime_session_manager import RealtimeSessionManager
 from agent_c_api.core.util.logging_utils import LoggingManager
-from agent_c_api.core.agent_manager import UItoAgentBridgeManager
 from agent_c_api.core.util.middleware_logging import APILoggingMiddleware
 from agent_c.config.agent_config_loader import AgentConfigLoader
 
@@ -71,55 +70,6 @@ def create_application(router: APIRouter, **kwargs) -> FastAPI:
             logger.error(f"❌ Error initializing HeyGen client: {e}")
             lifespan_app.state.heygen_client = None
             lifespan_app.state.heygen_avatar_list = []
-        
-        # Validate Redis connection (no longer managing server lifecycle)
-        # logger.info("🔍 Validating Redis connection and configuration...")
-        # redis_status = await RedisConfig.validate_connection()
-        #
-        # # Store Redis status in app state for health checks
-        # lifespan_app.state.redis_status = redis_status
-        
-        # if redis_status["connected"]:
-        #     logger.info(f"✅ Redis connection successful at {redis_status['host']}:{redis_status['port']} (DB: {redis_status['db']})")
-        #
-        #     # Log detailed server information
-        #     if redis_status["server_info"]:
-        #         info = redis_status["server_info"]
-        #         logger.info(f"📊 Redis Server Details:")
-        #         logger.info(f"   Version: {info.get('redis_version', 'unknown')}")
-        #         logger.info(f"   Mode: {info.get('redis_mode', 'unknown')}")
-        #         logger.info(f"   Memory Usage: {info.get('used_memory_human', 'unknown')}")
-        #         logger.info(f"   Connected Clients: {info.get('connected_clients', 'unknown')}")
-        #         logger.info(f"   Uptime: {info.get('uptime_in_seconds', 'unknown')} seconds")
-        #
-        #     # Log connection pool configuration
-        #     logger.info(f"🔧 Redis Connection Config:")
-        #     logger.info(f"   Host: {settings.REDIS_HOST}")
-        #     logger.info(f"   Port: {settings.REDIS_PORT}")
-        #     logger.info(f"   Database: {settings.REDIS_DB}")
-        #     logger.info(f"   Connection Timeout: {getattr(settings, 'REDIS_CONNECT_TIMEOUT', 10)}s")
-        #     logger.info(f"   Socket Timeout: {getattr(settings, 'REDIS_SOCKET_TIMEOUT', 10)}s")
-        #
-        #     # All Redis-dependent features will be available
-        #     logger.info("🚀 All Redis-dependent features are available:")
-        #     logger.info("   - Session management and persistence")
-        #     logger.info("   - User data storage")
-        #     logger.info("   - Chat history caching")
-        #     logger.info("   - Real-time session state")
-        #
-        # else:
-        #     logger.warning(f"⚠️ Redis connection failed: {redis_status['error']}")
-        #     logger.warning(f"🔧 Connection attempted to: {redis_status['host']}:{redis_status['port']} (DB: {redis_status['db']})")
-        #     logger.warning("")
-        #     logger.warning("🚨 IMPACT: The following features will be affected:")
-        #     logger.warning("   - Session persistence (sessions will be memory-only)")
-        #     logger.warning("   - User data storage (limited functionality)")
-        #     logger.warning("   - Chat history (no persistence between restarts)")
-        #     logger.warning("   - Real-time session state (degraded performance)")
-        #     logger.warning("")
-        #     logger.warning("💡 To resolve: Ensure Redis server is running and accessible")
-        #     logger.warning(f"   Command: redis-server --port {redis_status['port']}")
-        #     logger.warning(f"   Or check connection settings in environment configuration")
 
         # Initialize the chat session manager
         logger.info(f"🔧 Initializing chat session index and migrating old chat sessions (this may take a while):")
@@ -127,10 +77,10 @@ def create_application(router: APIRouter, **kwargs) -> FastAPI:
         lifespan_app.state.chat_session_manager = ChatSessionManager(loader=chat_loader)
         logger.info("✅ Chat session manager initialized successfully")
 
-        logger.info("🤖 Initializing Realtime Manager...")
+        logger.info("🤖 Initializing Client Session Manager...")
         lifespan_app.state.realtime_manager = RealtimeSessionManager(lifespan_app.state.chat_session_manager)
         await lifespan_app.state.realtime_manager.create_user_runtime_cache_entry("admin")  # Pre-create cache for admin user
-        logger.info("✅ Realtime Manager initialized successfully")
+        logger.info("✅ Client Session Manager initialized successfully")
         
         # Initialize FastAPICache with InMemoryBackend
         logger.info("💾 Initializing FastAPI Cache...")
@@ -152,7 +102,6 @@ def create_application(router: APIRouter, **kwargs) -> FastAPI:
 
         # Log startup completion
         logger.info("🎉 Application startup completed successfully")
-
 
         yield
 

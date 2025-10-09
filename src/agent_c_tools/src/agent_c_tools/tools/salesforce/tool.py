@@ -58,7 +58,7 @@ class SalesforceTools(Toolset):
                          needed_keys=['SALESFORCE_USERID', 'SALESFORCE_PASSWORD', 'SALESFORCE_SECURITY_TOKEN',
                                       'SALESFORCE_DOMAIN'])
         self.logger: logging.Logger = logging.getLogger(__name__)
-        self.workspace_tool = self.tool_chest.active_tools.get('WorkspaceTools')
+        self.workspace_tool = self.tool_chest.available_tools.get('WorkspaceTools')
 
         self.section = SalesforcePrompt()
         # adding domain to the object causes validation errors. This still works without the domain being passed

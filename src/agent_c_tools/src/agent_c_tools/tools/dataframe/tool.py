@@ -35,7 +35,7 @@ class DataframeTools(Toolset):
         self.temp_dataframe = None
         self.file_path = None
         self.section = DataframeToolsSection()
-        self.workspace_tool = self.tool_chest.active_tools.get('WorkspaceTools')
+        self.workspace_tool = self.tool_chest.available_tools.get('WorkspaceTools')
 
         self.key_prefix = 'df_'  # for unique dataframe cache keys
 
