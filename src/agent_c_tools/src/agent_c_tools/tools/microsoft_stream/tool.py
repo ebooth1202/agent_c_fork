@@ -1,19 +1,19 @@
+import yaml
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
-
-import yaml
 from pyppeteer import launch
 
-from agent_c_tools.tools.microsoft_stream.helpers.config import SlimConfig
-
-from .helpers.login import perform_manual_login
-from .helpers.video_capture import setup_interception, capture_video_url
-from .helpers.ytdlp_command import YtdlpDownloader
-from ..workspace.tool import WorkspaceTools
 from agent_c.toolsets import Toolset, json_schema
+from ..workspace.tool import WorkspaceTools
+
 from ...helpers.path_helper import os_file_system_path, ensure_file_extension
 from ...helpers.validate_kwargs import validate_required_fields
+
+from .helpers.login import perform_manual_login
+from .helpers.config import SlimConfig
+from .helpers.video_capture import setup_interception, capture_video_url
+from .helpers.ytdlp_command import YtdlpDownloader
 
 
 
@@ -39,7 +39,7 @@ class MicrosoftStreamTools(Toolset):
     """
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs, name='msft_stream_capture', tool_role='stream_capture', use_prefix=False)
+        super().__init__(**kwargs, name='msft_stream_capture', use_prefix=False)
         self.workspace_tool: Optional[WorkspaceTools] = None
         self.config = SlimConfig()
         self.browser_path = self.config.get_browser_path()
@@ -47,12 +47,38 @@ class MicrosoftStreamTools(Toolset):
 
 
     async def post_init(self):
-        self.workspace_tool = self.tool_chest.available_tools.get("WorkspaceTools")
-        if self.valid:
-            self.logger.info("MicrosoftStreamTools initialized")
+        # Try multiple approaches to get WorkspaceTools dependency
+        self.workspace_tool = None
+
+        # First, try to get from active toolsets
+        self.workspace_tool = self.tool_chest.active_tools.get("WorkspaceTools")
+
+        # If not found in active_tools, try available_tools (fallback for timing issues)
+        if not self.workspace_tool:
+            self.workspace_tool = self.tool_chest.available_tools.get("WorkspaceTools")
+            if self.workspace_tool:
+                self.logger.warning("⚠ Found WorkspaceTools in available_tools but not active_tools - using fallback")
+
+        # If still not found, try to get from toolset instances directly
+        if not self.workspace_tool and hasattr(self.tool_chest, '_ToolChest__toolset_instances'):
+            self.workspace_tool = self.tool_chest._ToolChest__toolset_instances.get("WorkspaceTools")
+            if self.workspace_tool:
+                self.logger.warning("⚠ Found WorkspaceTools in toolset instances - using direct access fallback")
+
+        if self.workspace_tool:
+            self.logger.info("✓ MicrosoftStreamTools initialized with WorkspaceTools dependency")
         else:
-            self.logger.info("="*80)
-            self.logger.error(" ❌ MicrosoftStreamTools NOT properly configured!")
+            self.logger.error("❌ MicrosoftStreamTools failed to get WorkspaceTools dependency")
+            self.logger.debug(f"Available active tools: {list(self.tool_chest.active_tools.keys())}")
+            self.logger.debug(f"Available tools: {list(self.tool_chest.available_tools.keys())}")
+
+        if self.valid and self.workspace_tool:
+            print("MicrosoftStreamTools initialized")
+        else:
+            print("="*80)
+            print(" ❌ MicrosoftStreamTools NOT properly configured!")
+            if not self.workspace_tool:
+                print(" - WorkspaceTools dependency not found")
 
 
     @staticmethod
