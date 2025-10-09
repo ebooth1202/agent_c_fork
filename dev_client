@@ -10,7 +10,7 @@ if ! docker info > /dev/null 2>&1; then
     exit 1
 fi
 
-source docker_support/posix.env.sh
+source build_support/posix.env.sh
 
 # Create directories if they don't exist
 mkdir -p "$AGENT_C_CONFIG_PATH"

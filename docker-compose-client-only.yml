@@ -7,8 +7,8 @@ services:
       - "443:443"
       - "5173:5173"
     volumes:
-      - ./docker_support/config/nginx.conf.client-only:/etc/nginx/nginx.conf:ro
-      - ./docker_support/certs:/etc/nginx/certs:ro
+      - ./build_support/config/nginx.conf.client-only:/etc/nginx/nginx.conf:ro
+      - ./build_support/certs:/etc/nginx/certs:ro
     depends_on:
       - client
     networks:

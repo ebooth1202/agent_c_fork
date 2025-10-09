@@ -39,7 +39,7 @@ ENV PATH="/home/agent_c/.cargo/bin:${PATH}"
 
 # Install pnpm
 RUN npm install -g pnpm@9
-ADD  ./docker_support/requirements.txt /tmp/
+ADD  build_support/requirements.txt /tmp/
 RUN mkdir -p /app && chown -R agent_c:agent_c /app
 WORKDIR /app
 
