@@ -121,9 +121,15 @@ class Toolset:
         needed_keys: List[str] = kwargs.get('needed_keys', [])
         self.tool_valid: bool = self._validate_env_keys(needed_keys)
 
+        # Log environment validation failure
+        if not self.tool_valid and needed_keys:
+            missing_keys = [key for key in needed_keys if not os.getenv(key)]
+            self.logger.warning(f"Toolset {self.name} marked invalid - missing required environment variables: {missing_keys}")
+
         # If toolset requires a tool-using agent but the agent cannot use tools, invalid toolset
         if self.need_tool_user and not self.agent_can_use_tools:
             self.tool_valid = False
+            self.logger.warning(f"Toolset {self.name} marked invalid - requires tool-using agent but agent cannot use tools")
 
         # Additional attributes
         self.streaming_callback = kwargs.get('streaming_callback')
