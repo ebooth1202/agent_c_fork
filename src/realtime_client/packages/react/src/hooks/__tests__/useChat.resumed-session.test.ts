@@ -14,7 +14,56 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import type { Mock } from 'vitest';
 import { useChat } from '../useChat';
 import type { RealtimeClient, ChatSession, Message } from '@agentc/realtime-core';
-import testSessionData from '../../../../../.scratch/chat_fixes/session_with_delegation.json';
+
+// Mock test session data with delegation
+const testSessionData = {
+  session_id: 'test-session-with-delegation',
+  messages: [
+    {
+      role: 'user',
+      content: 'Message from user',
+      timestamp: new Date().toISOString(),
+      format: 'text'
+    },
+    {
+      role: 'assistant',
+      type: 'tool_use',
+      name: 'think',
+      content: 'thought from agent',
+      timestamp: new Date().toISOString(),
+      format: 'markdown'
+    },
+    {
+      role: 'assistant',
+      content: "I'll delegate this request.",
+      timestamp: new Date().toISOString(),
+      format: 'text'
+    },
+    {
+      role: 'assistant',
+      type: 'tool_use',
+      name: 'ateam_chat',
+      input: {
+        message: 'Hello other agent please to the thing\n\nThank you!',
+        agent_key: 'realtime_core_coordinator'
+      },
+      timestamp: new Date().toISOString()
+    },
+    {
+      role: 'assistant',
+      type: 'tool_result',
+      content: 'REPORT fback to the calling agent',
+      timestamp: new Date().toISOString()
+    },
+    {
+      role: 'assistant',
+      content: 'response to user?',
+      timestamp: new Date().toISOString(),
+      format: 'text'
+    }
+  ],
+  context: {}
+};
 
 // Mock dependencies
 vi.mock('../../providers/AgentCContext', () => ({
@@ -132,18 +181,30 @@ describe('useChat - Resumed Session Integration Test', () => {
       expect(result.current.messages).toHaveLength(0);
       expect(result.current.currentSession).toBeNull();
 
-      // Simulate receiving the chat_session_changed event with test data
+      // Simulate receiving the chat-session-changed event with test data
       // This simulates what happens when a session is resumed
+      // NEW: This clears messages and sets loading state
       await act(async () => {
-        emitClientEvent('chat_session_changed', {
-          chat_session: testSessionData
+        emitSessionEvent('chat-session-changed', {
+          currentChatSession: testSessionData,
+          previousChatSession: null
         });
       });
+
+      // Messages should be cleared during loading
+      expect(result.current.messages).toHaveLength(0);
+      expect(result.current.currentSessionId).toBe(testSessionData.session_id);
       
-      // The hook now uses ensureMessagesFormat which doesn't handle delegation properly
-      // We need to simulate the EventStreamProcessor's mapResumedMessagesToEvents behavior
-      // by emitting the individual message events that it would generate
+      // NEW: Simulate session-messages-loaded event that delivers all the messages
+      // The EventStreamProcessor would emit this after processing the resumed session
       await act(async () => {
+        // First emit session-messages-loaded to complete loading state
+        emitSessionEvent('session-messages-loaded', {
+          sessionId: testSessionData.session_id,
+          messages: []
+        });
+        
+        // Then simulate individual message events from EventStreamProcessor
         // First: User message "Message from user"
         emitSessionEvent('message-added', {
           sessionId: testSessionData.session_id,
@@ -367,13 +428,23 @@ describe('useChat - Resumed Session Integration Test', () => {
 
       // Load the test session
       await act(async () => {
-        emitClientEvent('chat_session_changed', {
-          chat_session: testSessionData
+        emitSessionEvent('chat-session-changed', {
+          currentChatSession: testSessionData,
+          previousChatSession: null
         });
       });
+
+      // Messages should be cleared during loading
+      expect(result.current.messages).toHaveLength(0);
       
-      // Simulate the EventStreamProcessor processing the messages
+      // NEW: Complete loading state first
       await act(async () => {
+        emitSessionEvent('session-messages-loaded', {
+          sessionId: testSessionData.session_id,
+          messages: []
+        });
+        
+        // Then simulate the EventStreamProcessor processing the messages
         // Add a few messages before the subsession
         emitSessionEvent('message-added', {
           sessionId: testSessionData.session_id,
@@ -450,8 +521,24 @@ describe('useChat - Resumed Session Integration Test', () => {
 
       // Load resumed session
       await act(async () => {
-        emitClientEvent('chat_session_changed', {
-          chat_session: testSessionData
+        emitSessionEvent('chat-session-changed', {
+          currentChatSession: testSessionData,
+          previousChatSession: null
+        });
+      });
+
+      // NEW: Complete loading state
+      await act(async () => {
+        emitSessionEvent('session-messages-loaded', {
+          sessionId: testSessionData.session_id,
+          messages: [
+            {
+              role: 'user',
+              content: 'Test message',
+              timestamp: new Date().toISOString(),
+              format: 'text'
+            }
+          ]
         });
       });
 
@@ -511,11 +598,24 @@ describe('useChat - Resumed Session Integration Test', () => {
 
       // Load empty session
       await act(async () => {
-        emitClientEvent('chat_session_changed', {
-          chat_session: {
+        emitSessionEvent('chat-session-changed', {
+          currentChatSession: {
             session_id: 'empty-session',
             messages: []
-          }
+          },
+          previousChatSession: null
+        });
+      });
+
+      // Session should be set but messages cleared during loading
+      expect(result.current.currentSessionId).toBe('empty-session');
+      expect(result.current.messages).toHaveLength(0);
+
+      // NEW: Complete loading with empty messages
+      await act(async () => {
+        emitSessionEvent('session-messages-loaded', {
+          sessionId: 'empty-session',
+          messages: []
         });
       });
 
@@ -532,8 +632,30 @@ describe('useChat - Resumed Session Integration Test', () => {
       const { result } = renderHook(() => useChat());
 
       await act(async () => {
-        emitClientEvent('chat_session_changed', {
-          chat_session: testSessionData
+        emitSessionEvent('chat-session-changed', {
+          currentChatSession: testSessionData,
+          previousChatSession: null
+        });
+      });
+
+      // NEW: Complete loading state with test messages
+      await act(async () => {
+        emitSessionEvent('session-messages-loaded', {
+          sessionId: testSessionData.session_id,
+          messages: [
+            {
+              role: 'user',
+              content: 'Test message',
+              timestamp: new Date().toISOString(),
+              format: 'text'
+            },
+            {
+              role: 'assistant',
+              content: 'Test response',
+              timestamp: new Date().toISOString(),
+              format: 'text'
+            }
+          ]
         });
       });
 
@@ -556,8 +678,27 @@ describe('useChat - Resumed Session Integration Test', () => {
       const { result } = renderHook(() => useChat());
 
       await act(async () => {
-        emitClientEvent('chat_session_changed', {
-          chat_session: testSessionData
+        emitSessionEvent('chat-session-changed', {
+          currentChatSession: testSessionData,
+          previousChatSession: null
+        });
+      });
+
+      // NEW: Complete loading and add thought message
+      await act(async () => {
+        emitSessionEvent('session-messages-loaded', {
+          sessionId: testSessionData.session_id,
+          messages: []
+        });
+        
+        emitSessionEvent('message-added', {
+          sessionId: testSessionData.session_id,
+          message: {
+            role: 'assistant (thought)',
+            content: 'thought from agent',
+            timestamp: new Date().toISOString(),
+            format: 'markdown'
+          }
         });
       });
 
@@ -586,13 +727,20 @@ describe('useChat - Resumed Session Integration Test', () => {
       const { result } = renderHook(() => useChat());
 
       await act(async () => {
-        emitClientEvent('chat_session_changed', {
-          chat_session: testSessionData
+        emitSessionEvent('chat-session-changed', {
+          currentChatSession: testSessionData,
+          previousChatSession: null
         });
       });
       
-      // Simulate EventStreamProcessor events for delegation flow
+      // NEW: Complete loading state first
       await act(async () => {
+        emitSessionEvent('session-messages-loaded', {
+          sessionId: testSessionData.session_id,
+          messages: []
+        });
+        
+        // Then simulate EventStreamProcessor events for delegation flow
         // Assistant acknowledgment
         emitSessionEvent('message-added', {
           sessionId: testSessionData.session_id,

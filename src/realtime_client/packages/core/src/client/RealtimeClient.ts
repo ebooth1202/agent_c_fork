@@ -6,13 +6,13 @@ import { EventEmitter } from '../events/EventEmitter';
 import {
     RealtimeEventMap,
     ClientEventMap,
-    ChatSessionChangedEvent,
     ChatSessionNameChangedEvent,
     AgentVoiceChangedEvent,
     TextInputEvent,
     NewChatSessionEvent,
     GetUserSessionsEvent,
-    GetUserSessionsResponseEvent
+    GetUserSessionsResponseEvent,
+    UISessionIDChangedEvent
 } from '../events';
 import { EventStreamProcessor } from '../events/EventStreamProcessor';
 import {
@@ -25,29 +25,36 @@ import {
 import { WebSocketManager } from './WebSocketManager';
 import { ReconnectionManager } from './ReconnectionManager';
 import { AuthManager, TokenPair } from '../auth';
-import { TurnManager, SessionManager } from '../session';
+import { FileUploadManager } from './FileUploadManager';
+import { TurnManager, ChatSessionManager } from '../session';
 import { AudioService, AudioAgentCBridge, AudioOutputService } from '../audio';
 import type { AudioStatus, VoiceModel } from '../audio/types';
 import { VoiceManager } from '../voice';
-import type { Voice, Message, User, Agent, AgentConfiguration, Avatar, Tool } from '../events/types/CommonTypes';
+import type { Voice, Message, User, Agent, AgentConfiguration, Avatar, Tool, UserFileResponse, FileUploadOptions } from '../events/types/CommonTypes';
 import { AvatarManager } from '../avatar';
 
 /**
  * Main client class for connecting to Agent C Realtime API
  */
 export class RealtimeClient extends EventEmitter<RealtimeEventMap> {
-    private config: Required<Omit<RealtimeClientConfig, 'sessionId' | 'headers' | 'protocols' | 'authToken' | 'authManager'>> & Pick<RealtimeClientConfig, 'sessionId' | 'headers' | 'protocols' | 'authToken' | 'authManager'>;
+    private config: Required<Omit<RealtimeClientConfig, 'uiSessionId' | 'headers' | 'protocols' | 'authToken' | 'authManager'>> & Pick<RealtimeClientConfig, 'uiSessionId' | 'headers' | 'protocols' | 'authToken' | 'authManager'>;
     private wsManager: WebSocketManager | null = null;
     private reconnectionManager: ReconnectionManager;
     private connectionState: ConnectionState = ConnectionState.DISCONNECTED;
     private authToken: string | null = null;
-    private sessionId: string | null = null;
+    private uiSessionId: string | null = null;  // UI session ID for WebSocket reconnection
     private authManager: AuthManager | null = null;
     private turnManager: TurnManager | null = null;
     private voiceManager: VoiceManager | null = null;
-    private sessionManager: SessionManager | null = null;
+    private sessionManager: ChatSessionManager | null = null;
     private avatarManager: AvatarManager | null = null;
     private eventStreamProcessor: EventStreamProcessor | null = null;
+    private fileUploadManager: FileUploadManager | null = null;
+    
+    // Runtime state management for agent persistence and session recovery
+    private preferredAgentKey?: string;          // Agent key to use on first connection
+    private isReconnecting: boolean = false;     // Track if we're in a reconnection scenario
+    private currentChatSessionId?: string;       // Current chat session ID for reconnection recovery
     
     // Audio system components
     private audioService: AudioService | null = null;
@@ -68,7 +75,8 @@ export class RealtimeClient extends EventEmitter<RealtimeEventMap> {
         super();
         this.config = mergeConfig(config);
         this.authToken = config.authToken || null;
-        this.sessionId = config.sessionId || null;
+        // Backward compatibility: support legacy sessionId config parameter
+        this.uiSessionId = config.uiSessionId || (config as any).sessionId || null;
 
         // Initialize auth manager if provided
         if (config.authManager) {
@@ -123,13 +131,25 @@ export class RealtimeClient extends EventEmitter<RealtimeEventMap> {
         }
         
         // Initialize session manager
-        this.sessionManager = new SessionManager({
+        this.sessionManager = new ChatSessionManager({
             maxSessions: 50,
             persistSessions: false
         });
         
         // Initialize event stream processor with session manager
         this.eventStreamProcessor = new EventStreamProcessor(this.sessionManager);
+        
+        // Initialize FileUploadManager
+        this.fileUploadManager = new FileUploadManager(
+            this.config.apiUrl,
+            this.authToken || undefined,
+            this.uiSessionId || undefined,
+            {
+                maxUploadSize: this.config.maxUploadSize,
+                allowedMimeTypes: this.config.allowedMimeTypes,
+                maxFilesPerMessage: this.config.maxFilesPerMessage
+            }
+        );
         
         // Setup session manager handlers for fetching sessions
         this.setupSessionFetchingHandlers();
@@ -150,7 +170,7 @@ export class RealtimeClient extends EventEmitter<RealtimeEventMap> {
     private setupSessionFetchingHandlers(): void {
         if (!this.sessionManager) return;
         
-        // Listen for session fetch requests from SessionManager
+        // Listen for session fetch requests from ChatSessionManager
         this.sessionManager.on('request-user-sessions', ({ offset, limit }) => {
             this.fetchUserSessions(offset, limit);
         });
@@ -180,17 +200,9 @@ export class RealtimeClient extends EventEmitter<RealtimeEventMap> {
     private setupSessionManagerHandlers(): void {
         if (!this.sessionManager) return;
         
-        // Handle chat session changes from server
-        this.on('chat_session_changed', (event: ChatSessionChangedEvent) => {
-            if (event.chat_session) {
-                // Set the current session in SessionManager
-                this.sessionManager!.setCurrentSession(event.chat_session);
-                
-                if (this.config.debug) {
-                    console.debug('Session changed:', event.chat_session.session_id, 'with', event.chat_session.messages?.length || 0, 'messages');
-                }
-            }
-        });
+        // Note: chat_session_changed events from the server are processed by EventStreamProcessor
+        // which calls sessionManager.setCurrentSession() directly. The event is not re-emitted
+        // by RealtimeClient, so we don't need a handler here.
         
         // Note: Text delta and completion events are exclusively handled by EventStreamProcessor
         // to prevent duplicate event emission and ensure proper message building
@@ -271,6 +283,46 @@ export class RealtimeClient extends EventEmitter<RealtimeEventMap> {
                 this.checkInitializationComplete();
             }
         });
+        
+        // Handle UI session ID changed event
+        this.on('ui_session_id_changed', (event: UISessionIDChangedEvent) => {
+            console.debug('[RealtimeClient] ui_session_id_changed handler called with:', event);
+            if (event.ui_session_id) {
+                // Update stored UI session ID for reconnection
+                this.uiSessionId = event.ui_session_id;
+                
+                // Sync with file upload manager
+                if (this.fileUploadManager) {
+                    this.fileUploadManager.setUiSessionId(event.ui_session_id);
+                }
+                
+                // Update auth manager's UI session ID if available
+                if (this.authManager) {
+                    (this.authManager as any).updateState({
+                        uiSessionId: event.ui_session_id
+                    });
+                }
+                
+                if (this.config.debug) {
+                    console.debug('UI Session ID updated:', event.ui_session_id);
+                }
+            }
+        });
+        
+        // Listen to ChatSessionManager for chat session changes to update currentChatSessionId
+        if (this.sessionManager) {
+            this.sessionManager.on('chat-session-changed', ({ currentChatSession }) => {
+            console.debug('[RealtimeClient] chat-session-changed handler called with:', currentChatSession);
+            if (currentChatSession && currentChatSession.session_id) {
+                // Update stored chat session ID for reconnection
+                this.currentChatSessionId = currentChatSession.session_id;
+                
+                if (this.config.debug) {
+                    console.debug('Chat Session ID updated for reconnection:', this.currentChatSessionId);
+                }
+            }
+            });
+        }
         
         // Handle avatar list event
         this.on('avatar_list', (event: any) => {
@@ -385,9 +437,40 @@ export class RealtimeClient extends EventEmitter<RealtimeEventMap> {
                 console.debug('Initialization complete - all 6 events received');
             }
             
+            // Handle session recovery or agent preference after initialization
+            this.handlePostInitializationRecovery();
+            
             // Emit a custom event to signal initialization is complete
             this.emit('initialized' as any, undefined);
         }
+    }
+    
+    /**
+     * Handle session recovery or agent preference after initialization completes
+     * This ensures we don't conflict with server initialization events
+     */
+    private handlePostInitializationRecovery(): void {
+        // Defer execution to ensure WebSocket is ready for new messages
+        setTimeout(() => {
+            if (this.isReconnecting) {
+                // We're reconnecting - session recovery is handled by URL parameters
+                // The server will automatically resume the session if chat_session_id was provided
+                // If not, check if we should create a new session with preferred agent
+                if (!this.currentChatSessionId && this.preferredAgentKey) {
+                    if (this.config.debug) {
+                        console.debug('Reconnection: no session to resume, creating new session with preferred agent', this.preferredAgentKey);
+                    }
+                    this.newChatSession(this.preferredAgentKey);
+                }
+                this.isReconnecting = false;  // Clear reconnection flag
+            } else if (this.preferredAgentKey && !this.currentChatSessionId) {
+                // Initial connection with preferred agent (not reconnection)
+                if (this.config.debug) {
+                    console.debug('Initial connection: creating session with preferred agent', this.preferredAgentKey);
+                }
+                this.newChatSession(this.preferredAgentKey);
+            }
+        }, 0);
     }
     
     /**
@@ -462,10 +545,37 @@ export class RealtimeClient extends EventEmitter<RealtimeEventMap> {
         }
 
         // Get UI session ID from auth manager if available
-        if (this.authManager && !this.sessionId) {
+        if (this.authManager && !this.uiSessionId) {
             const uiSessionId = this.authManager.getUiSessionId();
             if (uiSessionId) {
-                this.sessionId = uiSessionId;
+                this.uiSessionId = uiSessionId;
+            }
+        }
+
+        // Check for auth token before connecting
+        if (!this.authToken) {
+            // Try to get token from authManager if available
+            if (this.authManager) {
+                const tokens = this.authManager.getTokens();
+                if (tokens) {
+                    this.authToken = tokens.agentCToken;
+                }
+            }
+            
+            // If still no token, fail with error event and exception
+            if (!this.authToken) {
+                const errorEvent = {
+                    type: 'error' as const,
+                    message: 'Authentication required',
+                    source: 'auth' as const
+                };
+                this.emit('error', errorEvent);
+                
+                const error = new Error('Authentication token is required for connection');
+                if (this.config.debug) {
+                    console.error('[RealtimeClient] Cannot connect: No authentication token available');
+                }
+                throw error;
             }
         }
 
@@ -497,6 +607,9 @@ export class RealtimeClient extends EventEmitter<RealtimeEventMap> {
                             if (this.audioBridge && this.audioConfig?.enableInput) {
                                 this.audioBridge.setClient(this);
                             }
+                            
+                            // Session recovery will happen after initialization completes
+                            // This ensures we don't conflict with server initialization events
                             
                             resolve();
                         },
@@ -542,6 +655,7 @@ export class RealtimeClient extends EventEmitter<RealtimeEventMap> {
      */
     disconnect(): void {
         this.reconnectionManager.stopReconnection();
+        this.isReconnecting = false;  // Clear reconnection flag if disconnect is called
         
         // Stop audio streaming if active
         if (this.audioBridge?.getStatus().isStreaming) {
@@ -754,6 +868,9 @@ export class RealtimeClient extends EventEmitter<RealtimeEventMap> {
      * Create a new chat session
      */
     newChatSession(agentKey?: string): void {
+        // Clear the stored session ID since we're explicitly starting a new session
+        this.currentChatSessionId = undefined;
+        
         // Reset accumulator when creating new session
         if (this.sessionManager) {
             this.sessionManager.resetAccumulator();
@@ -889,6 +1006,34 @@ export class RealtimeClient extends EventEmitter<RealtimeEventMap> {
         }
     }
 
+    /**
+     * Upload a file for use in chat messages
+     * @param file - File object to upload
+     * @param options - Upload options (progress callback, abort signal)
+     * @returns Promise resolving to file metadata (id, filename, mime_type, size)
+     * @throws Error if FileUploadManager not initialized, authentication missing, or upload fails
+     */
+    async uploadFile(file: File, options?: FileUploadOptions): Promise<UserFileResponse> {
+        if (!this.fileUploadManager) {
+            throw new Error('FileUploadManager not initialized');
+        }
+        return this.fileUploadManager.uploadFile(file, options);
+    }
+
+    /**
+     * Upload multiple files for use in chat messages
+     * @param files - Array of File objects to upload
+     * @param options - Upload options (progress callback, abort signal)
+     * @returns Promise resolving to array of file metadata
+     * @throws Error if FileUploadManager not initialized, authentication missing, or upload fails
+     */
+    async uploadFiles(files: File[], options?: FileUploadOptions): Promise<UserFileResponse[]> {
+        if (!this.fileUploadManager) {
+            throw new Error('FileUploadManager not initialized');
+        }
+        return this.fileUploadManager.uploadFiles(files, options);
+    }
+
     // Getters
 
     /**
@@ -929,7 +1074,7 @@ export class RealtimeClient extends EventEmitter<RealtimeEventMap> {
     /**
      * Get the session manager instance
      */
-    getSessionManager(): SessionManager | null {
+    getSessionManager(): ChatSessionManager | null {
         return this.sessionManager;
     }
     
@@ -1148,6 +1293,12 @@ export class RealtimeClient extends EventEmitter<RealtimeEventMap> {
      */
     setAuthToken(token: string): void {
         this.authToken = token;
+        
+        // Sync with file upload manager
+        if (this.fileUploadManager) {
+            this.fileUploadManager.setAuthToken(token);
+        }
+        
         // If connected, we need to reconnect with new token
         if (this.isConnected()) {
             this.disconnect();
@@ -1158,13 +1309,31 @@ export class RealtimeClient extends EventEmitter<RealtimeEventMap> {
     /**
      * Update session ID
      */
-    setSessionId(sessionId: string | null): void {
-        this.sessionId = sessionId;
-        // If connected, we need to reconnect with new session ID
+    setUiSessionId(uiSessionId: string | null): void {
+        this.uiSessionId = uiSessionId;
+        
+        // Sync with file upload manager
+        if (this.fileUploadManager && uiSessionId) {
+            this.fileUploadManager.setUiSessionId(uiSessionId);
+        }
+        
+        // If connected, we need to reconnect with new UI session ID
         if (this.isConnected()) {
             this.disconnect();
             this.connect();
         }
+    }
+
+    /**
+     * Set the preferred agent key to use when creating new chat sessions.
+     * This agent key will be used automatically when:
+     * - Creating a new chat session on initial connection
+     * - Creating a new chat session after reconnection (if no session to resume)
+     * 
+     * @param agentKey - The agent key to use for new sessions, or undefined to clear
+     */
+    public setPreferredAgentKey(agentKey: string | undefined): void {
+        this.preferredAgentKey = agentKey;
     }
 
     // Private methods
@@ -1174,19 +1343,64 @@ export class RealtimeClient extends EventEmitter<RealtimeEventMap> {
      */
     private buildWebSocketUrl(): string {
         if (!this.authToken) {
-            throw new Error('Authentication token is required');
+            // CRITICAL FIX: More descriptive error for missing auth
+            // This helps identify auth issues vs connection issues
+            throw new Error('Authentication token is required to build WebSocket URL. Ensure auth is initialized before connecting.');
         }
 
-        // Build the WebSocket URL with the correct endpoint path
+        // Parse the base URL to handle protocol conversion
         const baseUrl = this.config.apiUrl;
-        const wsUrl = baseUrl.endsWith('/') ? baseUrl + 'api/rt/ws' : baseUrl + '/api/rt/ws';
+        const parsedUrl = new URL(baseUrl);
         
-        const url = new URL(wsUrl);
+        // Convert HTTP(S) to WS(S) protocol
+        let protocol = parsedUrl.protocol;
+        if (protocol === 'http:') {
+            protocol = 'ws:';
+        } else if (protocol === 'https:') {
+            protocol = 'wss:';
+        } else if (protocol !== 'ws:' && protocol !== 'wss:') {
+            throw new Error(`Invalid protocol in apiUrl: ${protocol}. Must be http, https, ws, or wss`);
+        }
+        
+        // Build the WebSocket URL with the correct endpoint path
+        // Always use /api/rt/ws as the path, ignoring any path in the base URL
+        const url = new URL(`${protocol}//${parsedUrl.host}/api/rt/ws`);
         url.searchParams.set('token', this.authToken);
         
-        if (this.sessionId) {
-            url.searchParams.set('session_id', this.sessionId);
+        // CRITICAL: Always send ui_session_id if available (not session_id)
+        // This identifies the client instance for reconnection
+        // Try to get ui_session_id from multiple sources: direct property or AuthManager
+        let effectiveUiSessionId = this.uiSessionId;
+        if (!effectiveUiSessionId && this.authManager) {
+            effectiveUiSessionId = this.authManager.getUiSessionId() || null;
         }
+        
+        console.debug('[RealtimeClient] Building WebSocket URL - uiSessionId:', effectiveUiSessionId);
+        if (effectiveUiSessionId) {
+            url.searchParams.set('ui_session_id', effectiveUiSessionId);
+            console.debug('[RealtimeClient] Added ui_session_id to URL:', effectiveUiSessionId);
+        } else {
+            console.debug('[RealtimeClient] No ui_session_id available for WebSocket connection');
+        }
+
+        // Add connection context parameters
+        // Priority: reconnection parameters take precedence over first connection parameters
+        if (this.isReconnecting && this.currentChatSessionId) {
+            // Add chat_session_id parameter for reconnection recovery
+            url.searchParams.append('chat_session_id', this.currentChatSessionId);
+            
+            if (this.config.debug) {
+                console.debug(`[WebSocket] Adding chat_session_id for reconnection: ${this.currentChatSessionId}`);
+            }
+        } else if (this.preferredAgentKey) {
+            // Add agent_key parameter for first connection with agent preference
+            url.searchParams.append('agent_key', this.preferredAgentKey);
+            
+            if (this.config.debug) {
+                console.debug(`[WebSocket] Adding agent_key for first connection: ${this.preferredAgentKey}`);
+            }
+        }
+        // NEVER send both parameters simultaneously - enforced by else-if structure
 
         return url.toString();
     }
@@ -1200,7 +1414,15 @@ export class RealtimeClient extends EventEmitter<RealtimeEventMap> {
             // JSON message - parse as event
             try {
                 const event = JSON.parse(data);
+                // Log EVERY event received
+                console.debug('[RealtimeClient] Raw event received:', event.type); //, event);
+                
                 if (event && typeof event.type === 'string') {
+                    // Debug logging for ui_session_id_changed
+                    if (event.type === 'ui_session_id_changed') {
+                        console.debug('[RealtimeClient] Received ui_session_id_changed event:', event);
+                    }
+                    
                     // Debug logging for turn and cancel events
                     if (this.config.debug && 
                         (event.type === 'user_turn_start' || 
@@ -1260,6 +1482,10 @@ export class RealtimeClient extends EventEmitter<RealtimeEventMap> {
                     // Only emit events that weren't processed by EventStreamProcessor
                     // EventStreamProcessor handles its own event emission for streaming events
                     if (!processedByEventStream) {
+                        // Debug ui_session_id_changed specifically
+                        if (event.type === 'ui_session_id_changed') {
+                            console.debug('[RealtimeClient] About to emit ui_session_id_changed:', event);
+                        }
                         this.emit(event.type as keyof RealtimeEventMap, event as RealtimeEventMap[keyof RealtimeEventMap]);
                     }
                     
@@ -1312,11 +1538,36 @@ export class RealtimeClient extends EventEmitter<RealtimeEventMap> {
      * Attempt to reconnect to the server
      */
     private attemptReconnection(): void {
+        // Check if we have auth before attempting reconnection
+        if (!this.authToken && (!this.authManager || !this.authManager.getTokens()?.agentCToken)) {
+            if (this.config.debug) {
+                console.error('[RealtimeClient] Cannot reconnect: No authentication token available');
+            }
+            // Emit error event for UI handling
+            const errorEvent = {
+                type: 'error' as const,
+                message: 'Authentication required for reconnection',
+                source: 'auth' as const
+            };
+            this.emit('error', errorEvent);
+            // Don't attempt reconnection without auth
+            return;
+        }
+        
+        this.isReconnecting = true;  // Mark that we're reconnecting
+        // The current chat session ID is already stored and will be used in buildWebSocketUrl
+        
         this.reconnectionManager.startReconnection(async () => {
             await this.connect();
         }).catch((error) => {
+            this.isReconnecting = false;  // Clear reconnection flag on failure
             if (this.config.debug) {
                 console.error('Reconnection failed:', error);
+            }
+            
+            // If it's an auth error, don't keep retrying
+            if (error.message && error.message.includes('Authentication')) {
+                this.reconnectionManager.stopReconnection();
             }
         });
     }

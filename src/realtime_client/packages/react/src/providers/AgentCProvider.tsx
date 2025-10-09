@@ -17,6 +17,7 @@ import {
   ErrorEvent
 } from '@agentc/realtime-core';
 import { AgentCContext, AgentCContextValue, InitializationState } from './AgentCContext';
+import { AgentStorage } from '../utils/agentStorage';
 
 /**
  * Configuration props for the AgentCProvider
@@ -84,9 +85,23 @@ export function AgentCProvider({
     currentSession: null
   });
   
-  // Use ref to track if we've already initialized to prevent double initialization in StrictMode
+  // Use refs to track initialization and cleanup state for StrictMode compatibility
   const initializationRef = useRef(false);
   const clientRef = useRef<RealtimeClient | null>(null);
+  const cleanedUpRef = useRef(false); // Track if we've cleaned up (for StrictMode)
+  
+  // Store event handler references for proper cleanup
+  const handlersRef = useRef<{
+    chatUserData?: (data: ChatUserDataEvent) => void;
+    agentList?: (data: AgentListEvent) => void;
+    avatarList?: (data: AvatarListEvent) => void;
+    voiceList?: (data: VoiceListEvent) => void;
+    toolCatalog?: (data: ToolCatalogEvent) => void;
+    chatSessionChanged?: (data: ChatSessionChangedEvent) => void;
+    connected?: () => void;
+    disconnected?: (data: { code: number; reason: string }) => void;
+    error?: (error: ErrorEvent) => void;
+  }>({});
   
   // Build configuration from props or use provided config
   const clientConfig = useMemo((): RealtimeClientConfig | null => {
@@ -128,9 +143,85 @@ export function AgentCProvider({
   
   // Initialize the client
   useEffect(() => {
+    // Define cleanup function that will always be returned
+    const cleanup = () => {
+      // Skip if already cleaned up (prevents double-cleanup in StrictMode)
+      if (cleanedUpRef.current) {
+        if (debug) {
+          console.warn('AgentCProvider: Skipping cleanup - already cleaned up');
+        }
+        return;
+      }
+      
+      if (clientRef.current) {
+        if (debug) {
+          // console.log('AgentCProvider: Cleaning up RealtimeClient');
+        }
+        
+        // Mark as cleaned up FIRST to prevent re-entry
+        cleanedUpRef.current = true;
+        
+        // Remove all event listeners BEFORE destroying client
+        if (handlersRef.current.chatUserData) {
+          clientRef.current.off('chat_user_data', handlersRef.current.chatUserData);
+        }
+        if (handlersRef.current.agentList) {
+          clientRef.current.off('agent_list', handlersRef.current.agentList);
+        }
+        if (handlersRef.current.avatarList) {
+          clientRef.current.off('avatar_list', handlersRef.current.avatarList);
+        }
+        if (handlersRef.current.voiceList) {
+          clientRef.current.off('voice_list', handlersRef.current.voiceList);
+        }
+        if (handlersRef.current.toolCatalog) {
+          clientRef.current.off('tool_catalog', handlersRef.current.toolCatalog);
+        }
+        if (handlersRef.current.chatSessionChanged) {
+          clientRef.current.off('chat_session_changed', handlersRef.current.chatSessionChanged);
+        }
+        if (handlersRef.current.connected) {
+          clientRef.current.off('connected', handlersRef.current.connected);
+        }
+        if (handlersRef.current.disconnected) {
+          clientRef.current.off('disconnected', handlersRef.current.disconnected);
+        }
+        if (handlersRef.current.error) {
+          clientRef.current.off('error', handlersRef.current.error);
+        }
+        
+        // Disconnect if connected
+        if (clientRef.current.isConnected()) {
+          clientRef.current.disconnect();
+        }
+        
+        // Destroy the client to clean up all resources
+        clientRef.current.destroy();
+        
+        // DON'T null the ref - keep it so we can track state across StrictMode cycles
+        // clientRef.current = null;
+      }
+      
+      // Clear handler references
+      handlersRef.current = {};
+      
+      // CRITICAL FIX: Reset initializationRef for React StrictMode
+      // React StrictMode double-invokes effects (mount → cleanup → remount)
+      // Refs DO persist across this cycle, so we MUST reset the flag
+      // to allow the remount to initialize properly.
+      initializationRef.current = false;
+    };
+    
     // Prevent double initialization in React StrictMode
+    // Once we've initialized once (initializationRef.current = true), skip subsequent runs
+    // This flag persists across StrictMode's cleanup/re-run cycle
     if (initializationRef.current) {
-      return;
+      if (debug) {
+        console.warn('AgentCProvider: Skipping initialization - already initialized (StrictMode protection)');
+      }
+      // Reset cleanup flag so final unmount can clean up
+      cleanedUpRef.current = false;
+      return cleanup; // Still return cleanup function!
     }
     
     if (!clientConfig) {
@@ -138,7 +229,7 @@ export function AgentCProvider({
       setError(error);
       setIsInitializing(false);
       onError?.(error);
-      return;
+      return cleanup; // Return cleanup even on error
     }
     
     initializationRef.current = true;
@@ -214,50 +305,77 @@ export function AgentCProvider({
         });
       };
       
-      // Listen for initialization events
-      newClient.on('chat_user_data', (data: ChatUserDataEvent) => {
+      // Create and store event handlers for proper cleanup
+      handlersRef.current.chatUserData = (data: ChatUserDataEvent) => {
         if (debug) console.warn('AgentCProvider: Received chat_user_data event');
         updateInitialization('chat_user_data', data);
-      });
+      };
       
-      newClient.on('agent_list', (data: AgentListEvent) => {
+      handlersRef.current.agentList = (data: AgentListEvent) => {
         if (debug) console.warn('AgentCProvider: Received agent_list event');
         updateInitialization('agent_list', data);
-      });
+      };
       
-      newClient.on('avatar_list', (data: AvatarListEvent) => {
+      handlersRef.current.avatarList = (data: AvatarListEvent) => {
         if (debug) console.warn('AgentCProvider: Received avatar_list event');
         updateInitialization('avatar_list', data);
-      });
+      };
       
-      newClient.on('voice_list', (data: VoiceListEvent) => {
+      handlersRef.current.voiceList = (data: VoiceListEvent) => {
         if (debug) console.warn('AgentCProvider: Received voice_list event');
         updateInitialization('voice_list', data);
-      });
+      };
       
-      newClient.on('tool_catalog', (data: ToolCatalogEvent) => {
+      handlersRef.current.toolCatalog = (data: ToolCatalogEvent) => {
         if (debug) console.warn('AgentCProvider: Received tool_catalog event');
         updateInitialization('tool_catalog', data);
-      });
+      };
       
-      newClient.on('chat_session_changed', (data: ChatSessionChangedEvent) => {
+      handlersRef.current.chatSessionChanged = (data: ChatSessionChangedEvent) => {
         if (debug) console.warn('AgentCProvider: Received chat_session_changed event');
         updateInitialization('chat_session_changed', data);
-      });
+      };
+      
+      // Register event handlers using stored references
+      newClient.on('chat_user_data', handlersRef.current.chatUserData);
+      newClient.on('agent_list', handlersRef.current.agentList);
+      newClient.on('avatar_list', handlersRef.current.avatarList);
+      newClient.on('voice_list', handlersRef.current.voiceList);
+      newClient.on('tool_catalog', handlersRef.current.toolCatalog);
+      newClient.on('chat_session_changed', handlersRef.current.chatSessionChanged);
       
       // Set up connection state listener for debugging
       if (debug) {
-        newClient.on('connected', () => {
+        handlersRef.current.connected = () => {
           console.warn('AgentCProvider: Client connected');
-        });
+        };
         
-        newClient.on('disconnected', ({ code, reason }: { code: number; reason: string }) => {
+        handlersRef.current.disconnected = ({ code, reason }: { code: number; reason: string }) => {
           console.warn('AgentCProvider: Client disconnected', { code, reason });
-        });
+        };
         
-        newClient.on('error', (error: ErrorEvent) => {
+        handlersRef.current.error = (error: ErrorEvent) => {
           console.error('AgentCProvider: Client error', error);
-        });
+        };
+        
+        newClient.on('connected', handlersRef.current.connected);
+        newClient.on('disconnected', handlersRef.current.disconnected);
+        newClient.on('error', handlersRef.current.error);
+      }
+      
+      // CRITICAL FIX: Load saved agent preference from localStorage
+      // This connects the UI layer's persistence to the Core layer's connection logic
+      try {
+        const savedAgentKey = AgentStorage.getAgentKey();
+        if (savedAgentKey) {
+          newClient.setPreferredAgentKey(savedAgentKey);
+          if (debug) {
+            console.warn('AgentCProvider: Set preferred agent from localStorage:', savedAgentKey);
+          }
+        }
+      } catch (err) {
+        // Don't fail initialization if localStorage access fails
+        console.warn('AgentCProvider: Failed to load agent preference from localStorage:', err);
       }
       
       setClient(newClient);
@@ -284,26 +402,8 @@ export function AgentCProvider({
       initializationRef.current = false;
     }
     
-    // Cleanup function
-    return () => {
-      if (clientRef.current) {
-        if (debug) {
-          // console.log('AgentCProvider: Cleaning up RealtimeClient');
-        }
-        
-        // Disconnect if connected
-        if (clientRef.current.isConnected()) {
-          clientRef.current.disconnect();
-        }
-        
-        // Destroy the client to clean up all resources
-        clientRef.current.destroy();
-        clientRef.current = null;
-      }
-      
-      // Reset initialization flag for potential re-mount
-      initializationRef.current = false;
-    };
+    // Return cleanup function (defined at the top of the effect)
+    return cleanup;
   }, [clientConfig, autoConnect, onInitialized, onInitializationComplete, onError, debug]);
   
   // Update auth token if it changes

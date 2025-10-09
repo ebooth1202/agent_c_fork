@@ -1,4 +1,6 @@
 from typing import Optional, Dict, Any, TYPE_CHECKING
+
+from agent_c_api.models.realtime_session import RealtimeSession
 from fastapi import APIRouter, HTTPException, Depends, WebSocket, Request, Form
 from fastapi.responses import JSONResponse
 
@@ -7,7 +9,7 @@ from agent_c.util import MnemonicSlugs
 from agent_c.util.logging_utils import LoggingManager
 from agent_c_api.api.dependencies import get_auth_service, get_heygen_client
 from agent_c_api.core.util.jwt import validate_request_jwt, create_jwt_token, verify_jwt_token
-from agent_c_api.models.auth_models import UserLoginRequest, RealtimeLoginResponse
+from agent_c_api.models.auth_models import UserLoginRequest, RealtimeLoginResponse, LoginResponse
 
 if TYPE_CHECKING:
     from agent_c.util.heygen_streaming_avatar_client import HeyGenStreamingClient
@@ -27,7 +29,7 @@ async def login(login_request: UserLoginRequest,
     """
     Authenticate user and return config with token.
     """
-    login_response = await auth_service.login(login_request.username, login_request.password)
+    login_response: Optional[LoginResponse] = await auth_service.login(login_request.username, login_request.password)
     
     if not login_response:
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -40,7 +42,7 @@ async def login(login_request: UserLoginRequest,
 
     return RealtimeLoginResponse(agent_c_token=login_response.token,
                                  heygen_token=heygen_token,
-                                 ui_session_id=MnemonicSlugs.generate_slug(3))
+                                 ui_session_id=f"{login_response.user.user_id}-{MnemonicSlugs.generate_slug(2)}")
 
 @router.get("/refresh_token")
 async def refresh_token(request: Request):
@@ -64,16 +66,29 @@ async def initialize_realtime_session(websocket: WebSocket,
                                       chat_session_id: Optional[str] = None,
                                       agent_key: Optional[str] = None):
     """
-    Creates an agent session with the provided parameters.
+    Creates an agent session or reconnects to an existing one.
+    
+    If ui_session_id is provided and exists, reconnects to that session.
+    Otherwise creates a new session.
     """
     try:
         user_info: Dict[str, Any] = verify_jwt_token(token)
         auth_service: 'AuthService' = websocket.app.state.auth_service
         user = await auth_service.auth_repo.get_user_by_id(user_info['user_id'])
         manager = websocket.app.state.realtime_manager
-        ui_session = await manager.create_realtime_session(user, ui_session_id)
+        if agent_key is None:
+            agent_key = "default"
 
-        await ui_session.bridge.run(websocket, chat_session_id, agent_key)
+        # Check if this is a reconnection to an existing session
+        is_reconnection = ui_session_id is not None and ui_session_id in manager.ui_sessions
+        
+        ui_session: RealtimeSession = await manager.create_realtime_session(user, ui_session_id, chat_session_id, agent_key)
+
+        # If reconnecting, use reconnect() method to properly update websocket
+        if is_reconnection:
+            await ui_session.bridge.reconnect(websocket)
+
+        await ui_session.bridge.run(websocket)
 
     except Exception as e:
         logger.exception(f"Error during session initialization: {str(e)}", exc_info=True)

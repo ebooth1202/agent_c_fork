@@ -75,8 +75,8 @@ export interface RealtimeClientConfig {
   /** Optional AuthManager instance for automatic token management */
   authManager?: AuthManager;
   
-  /** Optional session ID to resume */
-  sessionId?: string;
+  /** UI Session ID for WebSocket reconnection (identifies client instance) */
+  uiSessionId?: string;
   
   /** Enable automatic reconnection on disconnect */
   autoReconnect?: boolean;
@@ -116,6 +116,15 @@ export interface RealtimeClientConfig {
   
   /** Audio configuration */
   audioConfig?: AudioConfig;
+  
+  /** Maximum file upload size in bytes (default: 10MB) */
+  maxUploadSize?: number;
+  
+  /** Allowed file MIME types for upload (default: undefined = allow all) */
+  allowedMimeTypes?: string[];
+  
+  /** Maximum number of files per message (default: 10) */
+  maxFilesPerMessage?: number;
 }
 
 /**
@@ -160,7 +169,10 @@ export const defaultConfig: Partial<RealtimeClientConfig> = {
   binaryType: 'arraybuffer',
   enableTurnManager: true,    // Enable turn management by default
   enableAudio: false,         // Audio disabled by default (requires user opt-in)
-  audioConfig: defaultAudioConfig
+  audioConfig: defaultAudioConfig,
+  maxUploadSize: 10 * 1024 * 1024, // 10MB
+  allowedMimeTypes: undefined, // Allow all
+  maxFilesPerMessage: 10
 };
 
 /**
@@ -168,8 +180,8 @@ export const defaultConfig: Partial<RealtimeClientConfig> = {
  */
 export function mergeConfig(
   userConfig: RealtimeClientConfig
-): Required<Omit<RealtimeClientConfig, 'sessionId' | 'headers' | 'protocols' | 'authToken' | 'authManager'>> & 
-  Pick<RealtimeClientConfig, 'sessionId' | 'headers' | 'protocols' | 'authToken' | 'authManager'> {
+): Required<Omit<RealtimeClientConfig, 'uiSessionId' | 'headers' | 'protocols' | 'authToken' | 'authManager'>> & 
+  Pick<RealtimeClientConfig, 'uiSessionId' | 'headers' | 'protocols' | 'authToken' | 'authManager'> {
   
   const config = {
     ...defaultConfig,
@@ -195,11 +207,9 @@ export function mergeConfig(
     throw new Error('apiUrl is required in RealtimeClientConfig');
   }
   
-  // Either authToken or authManager must be provided
-  if (!config.authToken && !config.authManager) {
-    throw new Error('Either authToken or authManager is required in RealtimeClientConfig');
-  }
+  // Note: Auth validation moved to connect() method to allow tests to create
+  // clients and test auth validation behavior
 
-  return config as Required<Omit<RealtimeClientConfig, 'sessionId' | 'headers' | 'protocols' | 'authToken' | 'authManager'>> & 
-    Pick<RealtimeClientConfig, 'sessionId' | 'headers' | 'protocols' | 'authToken' | 'authManager'>;
+  return config as Required<Omit<RealtimeClientConfig, 'uiSessionId' | 'headers' | 'protocols' | 'authToken' | 'authManager'>> & 
+    Pick<RealtimeClientConfig, 'uiSessionId' | 'headers' | 'protocols' | 'authToken' | 'authManager'>;
 }

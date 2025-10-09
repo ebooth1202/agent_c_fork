@@ -96,7 +96,8 @@ class ToolChest:
             # Add schemas and update function name mapping
             for schema in toolset.tool_schemas:
                 self._active_tool_schemas.append(schema)
-                self._tool_name_to_instance_map[schema['function']['name']] = toolset
+                if 'function' in schema and 'name' in schema['function']:
+                    self._tool_name_to_instance_map[schema['function']['name']] = toolset
 
     async def initialize_toolsets(self, toolset_name_or_names: Union[str, List[str]], tool_opts: Optional[Dict[str, any]] = None) -> bool:
         return await self.activate_toolset(toolset_name_or_names, tool_opts, True)
@@ -143,7 +144,7 @@ class ToolChest:
                 # Simply mark as active
                 if not init_only:
                     self.__active_toolset_instances[name] = self.__toolset_instances[name]
-                    self.logger.info(f"Marked existing toolset {name} as active")
+                    self.logger.debug(f"Marked existing toolset {name} as active")
             else:
                 # Find the class for this toolset
                 toolset_class = next((cls for cls in self.__available_toolset_classes 
@@ -159,7 +160,7 @@ class ToolChest:
                 
                 # Log dependencies for debugging
                 if required_tools:
-                    self.logger.info(f"Toolset {name} requires: {', '.join(required_tools)}")
+                    self.logger.debug(f"Toolset {name} requires: {', '.join(required_tools)}")
                     
                     # Recursively activate required tools
                     required_success = await self.activate_toolset(required_tools, tool_opts, init_only)
@@ -224,7 +225,7 @@ class ToolChest:
                 toolset_obj = self.__active_toolset_instances.get(name)
                 if toolset_obj:
                     await toolset_obj.post_init()
-                    self.logger.info(f"Completed post_init for toolset {name}")
+                    self.logger.debug(f"Completed post_init for toolset {name}")
             except Exception as e:
                 self.logger.warning(f"Error in post_init for toolset {name}: {str(e)}")
                 success = False
@@ -259,7 +260,7 @@ class ToolChest:
                 
             # Remove from active toolsets
             del self.__active_toolset_instances[name]
-            self.logger.info(f"Deactivated toolset {name}")
+            self.logger.debug(f"Deactivated toolset {name}")
         
         # Update metadata for active toolsets
         self._update_toolset_metadata()
@@ -413,6 +414,29 @@ class ToolChest:
         self.__tool_opts = local_tool_opts
         await self.activate_toolset(self.__essential_toolsets, local_tool_opts)
 
+    async def call_tool_internal(self, function_id: str, function_args: Dict[str,Any], tool_context: Dict[str,Any]) -> Optional[str]:
+        """
+        Internal method to call a single tool function.
+
+        Args:
+            function_id (str): The function identifier.
+            function_args (Dict[str,Any]): Arguments to pass to the function.
+            tool_context (Dict[str, Any]): Context to pass to the tool, including bridge and session info.
+
+        Returns:
+            Any: The result of the function call.
+        """
+        try:
+            full_args = copy.deepcopy(function_args)
+            full_args['tool_context'] = tool_context
+            return await self._execute_tool_call(function_id, full_args)
+        except Exception as e:
+            self.logger.exception(f"Failed calling {function_id}. {e}", stacklevel=2)
+            await tool_context['bridge'].send_system_message(f"# CRITICAL ERROR\n\nFailed calling {function_id}.\n{e}\n", "error")
+            return None
+
+
+
     async def call_tools(self, tool_calls: List[dict], tool_context: Dict[str,Any], format_type: str = "claude") -> List[dict]:
         """
         Execute multiple tool calls concurrently and return the results.
@@ -520,7 +544,9 @@ class ToolChest:
             return await src_obj.call(function_id, function_args)
         except Exception as e:
             self.logger.exception(f"Failed calling {function_id} on {src_obj.name}. {e}", stacklevel=3)
-            return f"# CRITICAL ERROR!  THIS IS A HALT CONDITION\nImportant! Tell the user an error occurred calling {function_id} on {src_obj.name}. {e}\n\n HALT AND INFORM THE USER!!"
+            await function_args['tool_context']['bridge'].send_system_message(f"# CRITICAL ERROR\n\nFailed calling {function_id} on {src_obj.name}.\n{e}\n", "error")
+            await function_args['tool_context']['bridge'].send_error(f"CRITICAL ERROR: Failed calling {function_id} on {src_obj.name}. {e}")
+            return f"HALT AND INFORM THE USER!!\n# CRITICAL ERROR!  THIS IS A HALT CONDITION\nImportant! Tell the user an error occurred calling {function_id} on {src_obj.name}. {e}\n\nHALT AND INFORM THE USER!!"
 
     def get_inference_data(self, toolset_names: List[str], tool_format: str = "claude") -> Dict[str, Any]:
         """
@@ -557,9 +583,12 @@ class ToolChest:
         if tool_format.lower() == "claude":
             schemas = []
             for schema in openai_schemas:
-                new_schema = copy.deepcopy(schema['function'])
-                new_schema['input_schema'] = new_schema.pop('parameters')
-                schemas.append(new_schema)
+                if "function" in schema:
+                    new_schema = copy.deepcopy(schema['function'])
+                    new_schema['input_schema'] = new_schema.pop('parameters')
+                    schemas.append(new_schema)
+                else:
+                    schemas.append(schema)
         else:  # Default to OpenAI format
             schemas = openai_schemas
         

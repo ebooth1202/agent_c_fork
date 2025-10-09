@@ -176,8 +176,9 @@ describe('useChat - Race Condition Fix for Session Switching', () => {
       ];
 
       // Initial session A
-      emitClientEvent('chat_session_changed', { 
-        chat_session: sessionA 
+      emitSessionEvent('chat-session-changed', { 
+        currentChatSession: sessionA,
+        previousChatSession: null
       });
       // Important: No sessionId in event, simulating EventStreamProcessor behavior
       emitSessionEvent('session-messages-loaded', {
@@ -190,8 +191,9 @@ describe('useChat - Race Condition Fix for Session Switching', () => {
       expect(result.current.messages[1]?.content).toBe('Response from Session A');
 
       // Rapidly switch to Session B
-      emitClientEvent('chat_session_changed', { 
-        chat_session: sessionB 
+      emitSessionEvent('chat-session-changed', { 
+        currentChatSession: sessionB,
+        previousChatSession: sessionA
       });
       
       // CRITICAL: Messages should be cleared immediately
@@ -217,8 +219,9 @@ describe('useChat - Race Condition Fix for Session Switching', () => {
       expect(result.current.messages[1]?.content).toBe('Response from Session B');
 
       // Switch back to Session A
-      emitClientEvent('chat_session_changed', { 
-        chat_session: sessionA 
+      emitSessionEvent('chat-session-changed', { 
+        currentChatSession: sessionA,
+        previousChatSession: sessionB
       });
 
       // Messages should be cleared immediately again
@@ -243,8 +246,9 @@ describe('useChat - Race Condition Fix for Session Switching', () => {
       );
       
       const sessionMany = createTestSession('session-many');
-      emitClientEvent('chat_session_changed', { 
-        chat_session: sessionMany 
+      emitSessionEvent('chat-session-changed', { 
+        currentChatSession: sessionMany,
+        previousChatSession: null
       });
       emitSessionEvent('session-messages-loaded', {
         messages: manyMessages
@@ -261,8 +265,9 @@ describe('useChat - Race Condition Fix for Session Switching', () => {
       ];
       
       const sessionFew = createTestSession('session-few');
-      emitClientEvent('chat_session_changed', { 
-        chat_session: sessionFew 
+      emitSessionEvent('chat-session-changed', { 
+        currentChatSession: sessionFew,
+        previousChatSession: sessionMany
       });
 
       // CRITICAL: All old messages should be cleared immediately
@@ -294,8 +299,9 @@ describe('useChat - Race Condition Fix for Session Switching', () => {
       ];
       
       const sessionWithMessages = createTestSession('session-with-messages');
-      emitClientEvent('chat_session_changed', { 
-        chat_session: sessionWithMessages 
+      emitSessionEvent('chat-session-changed', { 
+        currentChatSession: sessionWithMessages,
+        previousChatSession: null
       });
       emitSessionEvent('session-messages-loaded', {
         messages: messagesInitial
@@ -305,8 +311,9 @@ describe('useChat - Race Condition Fix for Session Switching', () => {
 
       // Switch to empty session
       const emptySession = createTestSession('empty-session');
-      emitClientEvent('chat_session_changed', { 
-        chat_session: emptySession 
+      emitSessionEvent('chat-session-changed', { 
+        currentChatSession: emptySession,
+        previousChatSession: sessionWithMessages
       });
 
       // CRITICAL: Messages should be cleared immediately
@@ -328,8 +335,9 @@ describe('useChat - Race Condition Fix for Session Switching', () => {
 
       // Start with Session A
       const sessionA = createTestSession('session-a');
-      emitClientEvent('chat_session_changed', { 
-        chat_session: sessionA 
+      emitSessionEvent('chat-session-changed', { 
+        currentChatSession: sessionA,
+        previousChatSession: null
       });
       emitSessionEvent('session-messages-loaded', {
         messages: [createMessage('user', 'Session A message')]
@@ -346,8 +354,9 @@ describe('useChat - Race Condition Fix for Session Switching', () => {
 
       // Switch to Session B while streaming is active
       const sessionB = createTestSession('session-b');
-      emitClientEvent('chat_session_changed', { 
-        chat_session: sessionB 
+      emitSessionEvent('chat-session-changed', { 
+        currentChatSession: sessionB,
+        previousChatSession: sessionA
       });
 
       // CRITICAL: Streaming should be cleared immediately
@@ -390,8 +399,9 @@ describe('useChat - Race Condition Fix for Session Switching', () => {
 
       // Switch to new session (triggers loading state)
       const session = createTestSession('test-session');
-      emitClientEvent('chat_session_changed', { 
-        chat_session: session 
+      emitSessionEvent('chat-session-changed', { 
+        currentChatSession: session,
+        previousChatSession: null
       });
 
       // Messages should be cleared
@@ -447,14 +457,16 @@ describe('useChat - Race Condition Fix for Session Switching', () => {
 
       // Switch to Session A
       const sessionA = createTestSession('session-a');
-      emitClientEvent('chat_session_changed', { 
-        chat_session: sessionA 
+      emitSessionEvent('chat-session-changed', { 
+        currentChatSession: sessionA,
+        previousChatSession: null
       });
 
       // Switch to Session B before A finishes loading
       const sessionB = createTestSession('session-b');
-      emitClientEvent('chat_session_changed', { 
-        chat_session: sessionB 
+      emitSessionEvent('chat-session-changed', { 
+        currentChatSession: sessionB,
+        previousChatSession: sessionA
       });
 
       // Late messages from Session A arrive (with sessionId to test validation)
@@ -477,34 +489,46 @@ describe('useChat - Race Condition Fix for Session Switching', () => {
       expect(result.current.messages[0]?.content).toBe('From Session B');
     });
 
-    it('handles session with inline messages (backward compatibility)', () => {
+    it('handles session change with new event pattern', () => {
       const { result } = renderHook(() => useChat());
 
-      // Session with inline messages (old format)
-      const inlineMessages = [
-        createMessage('user', 'Inline message 1'),
-        createMessage('assistant', 'Inline message 2')
+      // Messages for the session
+      const sessionMessages = [
+        createMessage('user', 'Session message 1'),
+        createMessage('assistant', 'Session message 2')
       ];
       
-      const sessionWithInline = createTestSession('inline-session', inlineMessages);
-      emitClientEvent('chat_session_changed', { 
-        chat_session: sessionWithInline 
+      const session = createTestSession('test-session');
+      
+      // NEW: chat-session-changed clears messages and sets loading state
+      emitSessionEvent('chat-session-changed', { 
+        currentChatSession: session,
+        previousChatSession: null
       });
 
-      // Messages should be loaded immediately from inline data
-      expect(result.current.messages).toHaveLength(2);
-      expect(result.current.messages[0]?.content).toBe('Inline message 1');
-      expect(result.current.messages[1]?.content).toBe('Inline message 2');
+      // Messages should be cleared during loading
+      expect(result.current.messages).toHaveLength(0);
+      expect(result.current.currentSessionId).toBe('test-session');
 
-      // session-messages-loaded should not be expected in this case
-      // Try to send a duplicate load event
+      // NEW: session-messages-loaded delivers the messages
       emitSessionEvent('session-messages-loaded', {
-        messages: [createMessage('user', 'Should be ignored')]
+        messages: sessionMessages
       });
 
-      // Messages should not change (loading state was already cleared)
+      // Now messages should be loaded
       expect(result.current.messages).toHaveLength(2);
-      expect(result.current.messages[0]?.content).toBe('Inline message 1');
+      expect(result.current.messages[0]?.content).toBe('Session message 1');
+      expect(result.current.messages[1]?.content).toBe('Session message 2');
+
+      // Try to send another load event (should be accepted as loading is complete)
+      emitSessionEvent('message-added', {
+        sessionId: 'msg-1',
+        message: createMessage('user', 'New message')
+      });
+
+      // New message should be added
+      expect(result.current.messages).toHaveLength(3);
+      expect(result.current.messages[2]?.content).toBe('New message');
     });
   });
 
@@ -515,8 +539,10 @@ describe('useChat - Race Condition Fix for Session Switching', () => {
       // Rapidly switch between multiple sessions
       for (let i = 0; i < 10; i++) {
         const session = createTestSession(`session-${i}`, []);
-        emitClientEvent('chat_session_changed', { 
-          chat_session: session 
+        const prevSession = i > 0 ? createTestSession(`session-${i-1}`, []) : null;
+        emitSessionEvent('chat-session-changed', { 
+          currentChatSession: session,
+          previousChatSession: prevSession
         });
       }
 
@@ -548,14 +574,16 @@ describe('useChat - Race Condition Fix for Session Switching', () => {
 
       // Start switching to a session
       const session1 = createTestSession('session-1');
-      emitClientEvent('chat_session_changed', { 
-        chat_session: session1 
+      emitSessionEvent('chat-session-changed', { 
+        currentChatSession: session1,
+        previousChatSession: null
       });
 
       // Interrupt with another session switch
       const session2 = createTestSession('session-2');
-      emitClientEvent('chat_session_changed', { 
-        chat_session: session2 
+      emitSessionEvent('chat-session-changed', { 
+        currentChatSession: session2,
+        previousChatSession: session1
       });
 
       // Complete the second session loading
@@ -581,8 +609,9 @@ describe('useChat - Race Condition Fix for Session Switching', () => {
 
       // Load initial session
       const session1 = createTestSession('session-1');
-      emitClientEvent('chat_session_changed', { 
-        chat_session: session1 
+      emitSessionEvent('chat-session-changed', { 
+        currentChatSession: session1,
+        previousChatSession: null
       });
       emitSessionEvent('session-messages-loaded', {
         messages: [createMessage('user', 'Initial')]
@@ -598,8 +627,9 @@ describe('useChat - Race Condition Fix for Session Switching', () => {
 
       // Switch session during agent's turn
       const session2 = createTestSession('session-2');
-      emitClientEvent('chat_session_changed', { 
-        chat_session: session2 
+      emitSessionEvent('chat-session-changed', { 
+        currentChatSession: session2,
+        previousChatSession: session1
       });
 
       // Typing indicator should be cleared
@@ -625,8 +655,9 @@ describe('useChat - Race Condition Fix for Session Switching', () => {
       );
       
       const session1 = createTestSession('session-1');
-      emitClientEvent('chat_session_changed', { 
-        chat_session: session1 
+      emitSessionEvent('chat-session-changed', { 
+        currentChatSession: session1,
+        previousChatSession: null
       });
       emitSessionEvent('session-messages-loaded', {
         messages: manyMessages
@@ -639,8 +670,9 @@ describe('useChat - Race Condition Fix for Session Switching', () => {
 
       // Switch to new session
       const session2 = createTestSession('session-2');
-      emitClientEvent('chat_session_changed', { 
-        chat_session: session2 
+      emitSessionEvent('chat-session-changed', { 
+        currentChatSession: session2,
+        previousChatSession: session1
       });
 
       // Should clear immediately
@@ -668,8 +700,10 @@ describe('useChat - Race Condition Fix for Session Switching', () => {
       // Simulate many session switches with messages
       for (let sessionNum = 0; sessionNum < 5; sessionNum++) {
         const session = createTestSession(`session-${sessionNum}`);
-        emitClientEvent('chat_session_changed', { 
-          chat_session: session 
+        const prevSession = sessionNum > 0 ? createTestSession(`session-${sessionNum-1}`) : null;
+        emitSessionEvent('chat-session-changed', { 
+          currentChatSession: session,
+          previousChatSession: prevSession
         });
 
         const messages = Array.from({ length: 50 }, (_, i) =>
@@ -701,8 +735,9 @@ describe('useChat - Race Condition Fix for Session Switching', () => {
       );
 
       const session = createTestSession('large-session');
-      emitClientEvent('chat_session_changed', { 
-        chat_session: session 
+      emitSessionEvent('chat-session-changed', { 
+        currentChatSession: session,
+        previousChatSession: null
       });
 
       emitSessionEvent('session-messages-loaded', {
@@ -716,8 +751,9 @@ describe('useChat - Race Condition Fix for Session Switching', () => {
 
       // Switch to empty session
       const emptySession = createTestSession('empty');
-      emitClientEvent('chat_session_changed', { 
-        chat_session: emptySession 
+      emitSessionEvent('chat-session-changed', { 
+        currentChatSession: emptySession,
+        previousChatSession: session
       });
 
       // Should clear immediately despite large previous history

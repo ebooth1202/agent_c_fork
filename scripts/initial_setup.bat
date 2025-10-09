@@ -61,6 +61,25 @@ echo Upgrading Pip to the latest version.
 python -m pip install --upgrade pip
 pip install tomli
 
+echo "Installing pnpm version 9 and lerna globally..."
+CALL npm install -g pnpm@9 lerna
+
+if errorlevel 1 (
+    echo Failed to install pnpm and lerna.
+    exit /b 1
+)
+
+echo "Fetching initial client dependencies with pnpm..."
+cd src\realtime_client
+pnpm install
+
+if errorlevel 1 (
+    echo Failed to install client dependencies with pnpm.
+    exit /b 1
+)
+
+cd ..\..
+
 :: Install the requirements
 echo Installing dependencies.
 call scripts/install_deps.bat

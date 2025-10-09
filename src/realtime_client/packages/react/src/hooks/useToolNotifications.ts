@@ -138,6 +138,10 @@ export function useToolNotifications(
           toRemove.forEach(([id]) => next.delete(id));
         }
         
+        // ADD EVE'S LOGGING:
+        console.log('[useToolNotifications] Updated notifications Map size:', next.size);
+        console.log('[useToolNotifications] Updated notifications array:', Array.from(next.values()));
+        
         return next;
       });
       
@@ -164,8 +168,10 @@ export function useToolNotifications(
     };
     
     // Handle tool notification removal events
-    const handleToolNotificationRemoved = (toolId: string) => {
-      Logger.debug('[useToolNotifications] Tool notification removed:', toolId);
+    const handleToolNotificationRemoved = (event: { sessionId: string; toolCallId: string }) => {
+      Logger.debug('[useToolNotifications] Tool notification removed:', event);
+      
+      const toolId = event.toolCallId;
       
       // Clear any pending removal timer
       const timer = removalTimersRef.current.get(toolId);
@@ -174,35 +180,34 @@ export function useToolNotifications(
         removalTimersRef.current.delete(toolId);
       }
       
-      // Get the notification before removing it
-      const notification = notifications.get(toolId);
-      
-      // Remove the notification
+      // Remove the notification and get it for potential completed list addition
       setNotifications(prev => {
         const next = new Map(prev);
+        const notification = prev.get(toolId);
         next.delete(toolId);
+        
+        // If it was a completed notification with arguments, add to completed list
+        if (notification && notification.status === 'complete' && notification.arguments) {
+          const toolCallResult: ToolCallResult = {
+            id: notification.id,
+            toolName: notification.toolName,
+            arguments: notification.arguments,
+            result: '', // Will be populated from tool_call event
+            timestamp: notification.timestamp
+          };
+          
+          setCompletedToolCalls(prev => {
+            const next = [...prev, toolCallResult];
+            // Limit completed calls if needed
+            if (maxNotifications && next.length > maxNotifications) {
+              return next.slice(-maxNotifications);
+            }
+            return next;
+          });
+        }
+        
         return next;
       });
-      
-      // If it was a completed notification with arguments, add to completed list
-      if (notification && notification.status === 'complete' && notification.arguments) {
-        const toolCallResult: ToolCallResult = {
-          id: notification.id,
-          toolName: notification.toolName,
-          arguments: notification.arguments,
-          result: '', // Will be populated from tool_call event
-          timestamp: notification.timestamp
-        };
-        
-        setCompletedToolCalls(prev => {
-          const next = [...prev, toolCallResult];
-          // Limit completed calls if needed
-          if (maxNotifications && next.length > maxNotifications) {
-            return next.slice(-maxNotifications);
-          }
-          return next;
-        });
-      }
     };
     
     // Handle tool call complete events (with results)
@@ -241,10 +246,17 @@ export function useToolNotifications(
       });
     };
     
+    // Handle nuclear cleanup (user turn start)
+    const handleAllNotificationsCleared = () => {
+      Logger.debug('[useToolNotifications] All notifications cleared (user turn start)');
+      clearNotifications();
+    };
+    
     // Subscribe to events
     sessionManager.on('tool-notification', handleToolNotification);
     sessionManager.on('tool-notification-removed', handleToolNotificationRemoved);
     sessionManager.on('tool-call-complete', handleToolCallComplete);
+    sessionManager.on('all-notifications-cleared', handleAllNotificationsCleared);
     
     return () => {
       // Clear all timers
@@ -257,9 +269,10 @@ export function useToolNotifications(
         cleanupSessionManager.off('tool-notification', handleToolNotification);
         cleanupSessionManager.off('tool-notification-removed', handleToolNotificationRemoved);
         cleanupSessionManager.off('tool-call-complete', handleToolCallComplete);
+        cleanupSessionManager.off('all-notifications-cleared', handleAllNotificationsCleared);
       }
     };
-  }, [client, maxNotifications, autoRemoveCompleted, autoRemoveDelay, notifications]);
+  }, [client, maxNotifications, autoRemoveCompleted, autoRemoveDelay]); // Removed notifications to prevent re-registration
   
   // Computed properties
   const notificationsArray = Array.from(notifications.values());

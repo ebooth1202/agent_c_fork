@@ -16,7 +16,13 @@ from agent_c.models.chat_history.user import ChatUser
 from agent_c_api.config.database import get_database_config
 from agent_c_api.core.repositories.auth_repository import AuthRepository
 from agent_c_api.core.util.jwt import create_jwt_token, verify_jwt_token
-from agent_c_api.models.auth_models import UserCreateRequest, ChatUserResponse, LoginResponse
+from agent_c_api.models.auth_models import (
+    UserCreateRequest,
+    UserUpdateRequest,
+    PasswordChangeRequest,
+    ChatUserResponse,
+    LoginResponse
+)
 
 
 class AuthService:
@@ -403,3 +409,157 @@ class AuthService:
             self.logger.warning("auth_user_delete_not_found", user_id=user_id)
         
         return result
+    
+    async def update_user(self, update_request: UserUpdateRequest) -> Optional[ChatUserResponse]:
+        """
+        Update user profile information.
+        
+        Args:
+            update_request: User update request with fields to change
+            
+        Returns:
+            Optional[ChatUserResponse]: Updated user data if found, None if user doesn't exist
+        """
+        self._ensure_initialized()
+        start_time = time.time()
+        
+        try:
+            self.logger.info(
+                "auth_user_updating",
+                user_id=update_request.user_id,
+                has_email=update_request.email is not None,
+                has_first_name=update_request.first_name is not None,
+                has_last_name=update_request.last_name is not None,
+                has_roles=update_request.roles is not None,
+                has_is_active=update_request.is_active is not None
+            )
+            
+            # Update user in database
+            user = await self.auth_repo.update_user(
+                user_id=update_request.user_id,
+                email=update_request.email,
+                first_name=update_request.first_name,
+                last_name=update_request.last_name,
+                roles=update_request.roles,
+                is_active=update_request.is_active
+            )
+            
+            if not user:
+                duration = time.time() - start_time
+                self.logger.warning(
+                    "auth_user_update_not_found",
+                    user_id=update_request.user_id,
+                    duration_ms=round(duration * 1000, 2)
+                )
+                return None
+            
+            duration = time.time() - start_time
+            self.logger.info(
+                "auth_user_updated",
+                user_id=update_request.user_id,
+                duration_ms=round(duration * 1000, 2)
+            )
+            
+            return ChatUserResponse.from_chat_user(user)
+            
+        except Exception as e:
+            duration = time.time() - start_time
+            self.logger.error(
+                "auth_user_update_failed",
+                user_id=update_request.user_id,
+                error=str(e),
+                duration_ms=round(duration * 1000, 2)
+            )
+            raise
+    
+    async def change_password(self, password_request: PasswordChangeRequest) -> bool:
+        """
+        Change a user's password.
+        
+        Supports two modes:
+        - Admin mode: No old_password provided, allows changing any user's password
+        - User mode: old_password provided, verifies current password before changing
+        
+        Args:
+            password_request: Password change request with user_id and new password
+            
+        Returns:
+            bool: True if password was changed successfully, False if user not found
+            
+        Raises:
+            ValueError: If old_password verification fails (user mode)
+        """
+        self._ensure_initialized()
+        start_time = time.time()
+        
+        try:
+            user_mode = password_request.old_password is not None
+            
+            self.logger.info(
+                "auth_password_changing",
+                user_id=password_request.user_id,
+                mode="user" if user_mode else "admin"
+            )
+            
+            # If user mode, verify old password
+            if user_mode:
+                user = await self.auth_repo.get_user_by_id(password_request.user_id)
+                if not user:
+                    duration = time.time() - start_time
+                    self.logger.warning(
+                        "auth_password_change_user_not_found",
+                        user_id=password_request.user_id,
+                        duration_ms=round(duration * 1000, 2)
+                    )
+                    return False
+                
+                # Verify old password
+                if not self._verify_password(password_request.old_password, user.password_hash):
+                    duration = time.time() - start_time
+                    self.logger.warning(
+                        "auth_password_change_verification_failed",
+                        user_id=password_request.user_id,
+                        duration_ms=round(duration * 1000, 2)
+                    )
+                    raise ValueError("Current password is incorrect")
+            
+            # Hash new password
+            new_password_hash = self._hash_password(password_request.new_password)
+            
+            # Update password in database
+            result = await self.auth_repo.update_password(
+                user_id=password_request.user_id,
+                password_hash=new_password_hash
+            )
+            
+            if not result:
+                duration = time.time() - start_time
+                self.logger.warning(
+                    "auth_password_change_user_not_found",
+                    user_id=password_request.user_id,
+                    duration_ms=round(duration * 1000, 2)
+                )
+                return False
+            
+            duration = time.time() - start_time
+            self.logger.info(
+                "auth_password_changed",
+                user_id=password_request.user_id,
+                mode="user" if user_mode else "admin",
+                duration_ms=round(duration * 1000, 2)
+            )
+            
+            return True
+            
+        except ValueError:
+            # Re-raise ValueError for password verification failure
+            raise
+        except Exception as e:
+            duration = time.time() - start_time
+            self.logger.error(
+                "auth_password_change_failed",
+                user_id=password_request.user_id,
+                error=str(e),
+                duration_ms=round(duration * 1000, 2)
+            )
+            raise
