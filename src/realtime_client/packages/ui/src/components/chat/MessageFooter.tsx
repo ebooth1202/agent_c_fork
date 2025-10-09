@@ -42,6 +42,20 @@ const ToolCallDisplay: React.FC<ToolCallDisplayProps> = ({
   toolResults = [],
   className
 }) => {
+  // DIAGNOSTIC: Log when ToolCallDisplay renders
+  const renderCount = React.useRef(0);
+  renderCount.current++;
+  
+  if (DEBUG_MESSAGE_FOOTER) {
+    console.log('[ToolCallDisplay] 🛠️ RENDERING:', {
+      renderNumber: renderCount.current,
+      toolCallsCount: toolCalls.length,
+      toolResultsCount: toolResults?.length || 0,
+      toolNames: toolCalls.map(tc => tc.name),
+      toolIds: toolCalls.map(tc => tc.id),
+    });
+  }
+  
   const [expandedTools, setExpandedTools] = React.useState<Set<string>>(new Set())
   const [copiedInputs, setCopiedInputs] = React.useState<Set<string>>(new Set())
   const [copiedResults, setCopiedResults] = React.useState<Set<string>>(new Set())
@@ -278,10 +292,17 @@ const ToolCallDisplay: React.FC<ToolCallDisplayProps> = ({
   )
 }
 
+// Debug flag for diagnostic logging
+const DEBUG_MESSAGE_FOOTER = false;
+
 export const MessageFooter = React.forwardRef<HTMLDivElement, MessageFooterProps>(
   ({ className, message, onEdit, onRegenerate, showTimestamp = true, ...props }, ref) => {
     const [copied, setCopied] = React.useState(false)
     const [showToolCalls, setShowToolCalls] = React.useState(false)
+    
+    // DIAGNOSTIC: Render counter
+    const renderCount = React.useRef(0);
+    renderCount.current++;
     
     const handleCopy = React.useCallback(() => {
       // Extract text content for copying
@@ -307,6 +328,20 @@ export const MessageFooter = React.forwardRef<HTMLDivElement, MessageFooterProps
     const hasTokenCounts = message.metadata?.inputTokens || message.metadata?.outputTokens
     const isUserMessage = message.role === 'user'
     const isAssistantMessage = message.role === 'assistant' || message.role === 'assistant (thought)'
+    
+    // DIAGNOSTIC: Log render state
+    if (DEBUG_MESSAGE_FOOTER) {
+      console.log('[MessageFooter] 👣 RENDERING:', {
+        renderNumber: renderCount.current,
+        messageId: message.id,
+        hasToolCalls,
+        showToolCalls,
+        toolCallsCount: message.toolCalls?.length || 0,
+        toolResultsCount: message.toolResults?.length || 0,
+        toolCallsArray: message.toolCalls,
+        toolResultsArray: message.toolResults,
+      });
+    }
     
     // Format timestamp
     const formattedTime = React.useMemo(() => {
@@ -378,7 +413,12 @@ export const MessageFooter = React.forwardRef<HTMLDivElement, MessageFooterProps
               variant="ghost"
               size="sm"
               className="h-6 px-2 gap-1 -ml-2"
-              onClick={() => setShowToolCalls(!showToolCalls)}
+              onClick={() => {
+                if (DEBUG_MESSAGE_FOOTER) {
+                  console.log('[MessageFooter] 🖘️ TOGGLING tool calls display:', !showToolCalls);
+                }
+                setShowToolCalls(!showToolCalls);
+              }}
               aria-label={`${showToolCalls ? 'Hide' : 'Show'} tool calls`}
             >
               <Wrench className="h-3 w-3" />
@@ -460,11 +500,18 @@ export const MessageFooter = React.forwardRef<HTMLDivElement, MessageFooterProps
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.15 }}
             >
-              <ToolCallDisplay 
-                toolCalls={message.toolCalls!}
-                toolResults={message.toolResults}
-                className="mt-2"
-              />
+              {(() => {
+                if (DEBUG_MESSAGE_FOOTER) {
+                  console.log('[MessageFooter] 🎁 RENDERING ToolCallDisplay');
+                }
+                return (
+                  <ToolCallDisplay 
+                    toolCalls={message.toolCalls!}
+                    toolResults={message.toolResults}
+                    className="mt-2"
+                  />
+                );
+              })()}
             </motion.div>
           )}
         </AnimatePresence>

@@ -731,19 +731,15 @@ export class EventStreamProcessor {
       targetMessage.metadata = {};
     }
     
-    // Initialize tool arrays if needed
-    if (!targetMessage.metadata.toolCalls) {
-      targetMessage.metadata.toolCalls = [];
-    }
-    if (!targetMessage.metadata.toolResults) {
-      targetMessage.metadata.toolResults = [];
-    }
+    // Create NEW arrays with existing + new tools (don't mutate existing arrays)
+    // This ensures React detects the reference change and re-renders components
+    const existingToolCalls = targetMessage.metadata.toolCalls || [];
+    const existingToolResults = targetMessage.metadata.toolResults || [];
     
-    // Append NEW tools to existing arrays
-    targetMessage.metadata.toolCalls.push(...newToolCalls);
-    targetMessage.metadata.toolResults.push(...newToolResults);
+    targetMessage.metadata.toolCalls = [...existingToolCalls, ...newToolCalls];
+    targetMessage.metadata.toolResults = [...existingToolResults, ...newToolResults];
     
-    // Sync top-level fields (reference the metadata arrays)
+    // Sync top-level fields (create new references)
     targetMessage.toolCalls = targetMessage.metadata.toolCalls;
     targetMessage.toolResults = targetMessage.metadata.toolResults;
     
