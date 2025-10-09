@@ -64,6 +64,12 @@ pip install tomli
 echo "Installing pnpm version 9 and lerna globally..."
 CALL npm install -g pnpm@9 lerna
 
+echo "Fetching initial client dependencies with pnpm..."
+cd src\realtime_client
+pnpm install
+cd ..\..
+
+
 :: Install the requirements
 echo Installing dependencies.
 call scripts/install_deps.bat
