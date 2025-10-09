@@ -246,8 +246,11 @@ class ClaudeChatAgent(BaseAgent):
                         opts["completion_opts"]["system"] = new_system_prompt
                         await self._raise_system_prompt(new_system_prompt, **callback_opts)
 
-                    tool_params = tool_chest.get_inference_data(chat_session.agent_config.tools, self.tool_format)
-                    opts["completion_opts"]['tools'] = chat_session.agent_config.filter_allowed_tools(tool_params['schemas'])
+                    # Get agent config from chat_session or tool_context (for one-shot scenarios)
+                    agent_config = chat_session.agent_config if chat_session else opts['tool_context'].get('active_agent') or opts['tool_context'].get('agent_config')
+                    if agent_config:
+                        tool_params = tool_chest.get_inference_data(agent_config.tools, self.tool_format)
+                        opts["completion_opts"]['tools'] = agent_config.filter_allowed_tools(tool_params['schemas'])
 
 
                     delay = 3
