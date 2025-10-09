@@ -43,6 +43,7 @@ __all__ = [
     'MemoryTools',
     'ThinkTools',
     'MarkdownToHtmlReportTools',
+    'ToolbeltTools',
 
     # Code Exploring Tools
     'CssExplorerTools',

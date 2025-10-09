@@ -22,3 +22,5 @@ from .youtube import YoutubeTranscriptTools, YoutubeCommentsTools, YoutubeSearch
 from .sars import SarsTools
 from .insurance_demo import InsuranceDemoTools
 from .workspace import DynamicCommandTools
+from .toolbelt.tool import ToolbeltTools
+from .microsoft_stream.tool import MicrosoftStreamTools
