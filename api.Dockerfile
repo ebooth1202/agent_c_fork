@@ -49,4 +49,4 @@ EXPOSE 8000
 
 #ENTRYPOINT ["/entrypoint.sh"]
 #CMD ["python", "-m", "uvicorn", "agent_c_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "info"]
-CMD["/app/api_entrypoint.sh"]
+CMD ["/app/api_entrypoint.sh"]
