@@ -10,7 +10,6 @@ tools:
   - WorkspacePlanningTools
   - AgentAssistTools
   - AgentCloneTools
-  - ToolbeltTools
   - MarkdownToHtmlReportTools
 agent_params:
   budget_tokens: 20000
