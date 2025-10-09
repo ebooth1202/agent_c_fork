@@ -60,6 +60,9 @@ const MessageList = React.forwardRef<HTMLDivElement, MessageListProps>(
     emptyStateComponent,
     ...props 
   }, ref) => {
+    // Debug flag for diagnostic logging
+    const DEBUG_MESSAGE_LIST = false;
+    
     const { messages, isAgentTyping, streamingMessage, currentSessionId } = useChat()
     const { notifications: toolNotifications } = useToolNotifications({
       autoRemoveCompleted: true, // Auto-remove completed notifications to prevent memory leaks
@@ -68,8 +71,10 @@ const MessageList = React.forwardRef<HTMLDivElement, MessageListProps>(
     })
     
     // ADD EVE'S LOGGING:
-    console.log('[MessageList] toolNotifications.length:', toolNotifications.length);
-    console.log('[MessageList] toolNotifications array:', toolNotifications);
+    if (DEBUG_MESSAGE_LIST) {
+      console.log('[MessageList] toolNotifications.length:', toolNotifications.length);
+      console.log('[MessageList] toolNotifications array:', toolNotifications);
+    }
     
     const { errors, dismissError } = useErrors()
     
@@ -342,12 +347,18 @@ const MessageList = React.forwardRef<HTMLDivElement, MessageListProps>(
     
     // Virtual scrolling logic (simplified for now - can be enhanced with react-window)
     const visibleItems = React.useMemo(() => {
-      //Logger.debug('[MessageList] Computing visible items');
-      //Logger.debug('[MessageList] enableVirtualScroll:', enableVirtualScroll);
-      //Logger.debug('[MessageList] messages length:', messages.length);
+      if (DEBUG_MESSAGE_LIST) {
+        console.log('[MessageList] 📦 Computing visible items:', {
+          messagesLength: messages.length,
+          messageIds: messages.map(m => ({ id: m.id, type: m.type })),
+          enableVirtualScroll,
+        });
+      }
       
       if (!enableVirtualScroll) {
-        //Logger.debug('[MessageList] Returning all items (no virtual scroll)');
+        if (DEBUG_MESSAGE_LIST) {
+          console.log('[MessageList] ✅ Returning all items (no virtual scroll)');
+        }
         return messages
       }
       // For now, return all messages - in production, implement windowing

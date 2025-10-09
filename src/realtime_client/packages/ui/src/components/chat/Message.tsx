@@ -217,6 +217,9 @@ const ThoughtMessage: React.FC<ThoughtMessageProps> = ({
 // Import MessageFooter from separate file
 import { MessageFooter } from './MessageFooter'
 
+// Debug flag for diagnostic logging
+const DEBUG_MESSAGE_RENDERING = false;
+
 const MessageComponent = React.forwardRef<HTMLDivElement, MessageProps>(
   ({ 
     className, 
@@ -229,8 +232,37 @@ const MessageComponent = React.forwardRef<HTMLDivElement, MessageProps>(
     showFooter = true,
     ...props 
   }, ref) => {
+    // DIAGNOSTIC: Render counter
+    const renderCount = React.useRef(0);
+    renderCount.current++;
+    
+    if (DEBUG_MESSAGE_RENDERING) {
+      console.log('[Message] 🎨 RENDERING:', {
+        renderNumber: renderCount.current,
+        messageId: message.id,
+        role: message.role,
+        toolCallsCount: message.toolCalls?.length || 0,
+        toolResultsCount: message.toolResults?.length || 0,
+        isStreaming,
+        contentType: typeof message.content,
+      });
+    }
+    
     const [isEditing, setIsEditing] = React.useState(false)
     const [editContent, setEditContent] = React.useState(extractTextContent(message.content) || '')
+    
+    // DIAGNOSTIC: Track when tool data changes
+    React.useEffect(() => {
+      if (DEBUG_MESSAGE_RENDERING) {
+        console.log('[Message] 🔄 Tool data changed:', {
+          messageId: message.id,
+          toolCallsCount: message.toolCalls?.length || 0,
+          toolResultsCount: message.toolResults?.length || 0,
+          toolCalls: message.toolCalls,
+          toolResults: message.toolResults,
+        });
+      }
+    }, [message.id, message.toolCalls, message.toolResults]);
     
     // Check if message has attachments (images)
     const hasAttachments = React.useMemo(() => {
@@ -454,16 +486,59 @@ MessageComponent.displayName = 'Message'
 
 // Memoize the Message component to prevent unnecessary re-renders
 const Message = React.memo(MessageComponent, (prevProps, nextProps) => {
+  // DIAGNOSTIC: Log memo comparison
+  if (DEBUG_MESSAGE_RENDERING) {
+    console.log('[Message MEMO] 🔍 Comparing props:', {
+      messageId: nextProps.message.id,
+      prevToolCallsRef: prevProps.message.toolCalls,
+      nextToolCallsRef: nextProps.message.toolCalls,
+      prevToolResultsRef: prevProps.message.toolResults,
+      nextToolResultsRef: nextProps.message.toolResults,
+      prevContentRef: typeof prevProps.message.content,
+      nextContentRef: typeof nextProps.message.content,
+      prevIsStreaming: prevProps.isStreaming,
+      nextIsStreaming: nextProps.isStreaming,
+    });
+  }
+  
   // Custom comparison to prevent re-renders when not needed
-  if (prevProps.message.id !== nextProps.message.id) return false;
-  if (prevProps.message.content !== nextProps.message.content) return false;
-  if (prevProps.isStreaming !== nextProps.isStreaming) return false;
-  if (prevProps.isSubSession !== nextProps.isSubSession) return false;
-  if (prevProps.showTimestamp !== nextProps.showTimestamp) return false;
-  if (prevProps.showFooter !== nextProps.showFooter) return false;
-  if (prevProps.message.toolCalls?.length !== nextProps.message.toolCalls?.length) return false;
-  if (prevProps.message.toolResults?.length !== nextProps.message.toolResults?.length) return false;
+  if (prevProps.message.id !== nextProps.message.id) {
+    if (DEBUG_MESSAGE_RENDERING) console.log('[Message MEMO] ✅ ID changed - WILL RE-RENDER');
+    return false;
+  }
+  if (prevProps.message.content !== nextProps.message.content) {
+    if (DEBUG_MESSAGE_RENDERING) console.log('[Message MEMO] ✅ Content changed - WILL RE-RENDER');
+    return false;
+  }
+  if (prevProps.isStreaming !== nextProps.isStreaming) {
+    if (DEBUG_MESSAGE_RENDERING) console.log('[Message MEMO] ✅ Streaming state changed - WILL RE-RENDER');
+    return false;
+  }
+  if (prevProps.isSubSession !== nextProps.isSubSession) {
+    if (DEBUG_MESSAGE_RENDERING) console.log('[Message MEMO] ✅ SubSession changed - WILL RE-RENDER');
+    return false;
+  }
+  if (prevProps.showTimestamp !== nextProps.showTimestamp) {
+    if (DEBUG_MESSAGE_RENDERING) console.log('[Message MEMO] ✅ ShowTimestamp changed - WILL RE-RENDER');
+    return false;
+  }
+  if (prevProps.showFooter !== nextProps.showFooter) {
+    if (DEBUG_MESSAGE_RENDERING) console.log('[Message MEMO] ✅ ShowFooter changed - WILL RE-RENDER');
+    return false;
+  }
+  
+  // Compare tool arrays by REFERENCE, not length
+  // This detects when arrays are added (undefined → array) or replaced (new reference)
+  if (prevProps.message.toolCalls !== nextProps.message.toolCalls) {
+    if (DEBUG_MESSAGE_RENDERING) console.log('[Message MEMO] ✅ ToolCalls reference changed - WILL RE-RENDER');
+    return false;
+  }
+  if (prevProps.message.toolResults !== nextProps.message.toolResults) {
+    if (DEBUG_MESSAGE_RENDERING) console.log('[Message MEMO] ✅ ToolResults reference changed - WILL RE-RENDER');
+    return false;
+  }
 
+  if (DEBUG_MESSAGE_RENDERING) console.log('[Message MEMO] ⏭️  Props equal - SKIPPING RE-RENDER');
   // Props are equal, skip re-render
   return true;
 });
