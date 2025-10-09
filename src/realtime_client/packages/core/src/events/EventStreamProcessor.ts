@@ -600,7 +600,18 @@ export class EventStreamProcessor {
       });
     } else {
       // Tool completed - Phase 3: Backward attachment
+      Logger.info('[EventStreamProcessor] handleToolCall: Tool completed (active=false)', {
+        sessionId: event.session_id,
+        toolCount: event.tool_calls.length,
+        toolNames: event.tool_calls.map(tc => tc.name)
+      });
+      
       const completedToolCalls = this.toolCallManager.onToolCallComplete(event);
+      
+      Logger.info('[EventStreamProcessor] ToolCallManager returned completed tools', {
+        completedCount: completedToolCalls.length,
+        completedTools: completedToolCalls.map(tc => tc.name)
+      });
       
       // Emit tool-call-complete event for UI to track results
       this.sessionManager.emit('tool-call-complete', {
@@ -618,7 +629,16 @@ export class EventStreamProcessor {
       
       // Phase 3: Attach completed tools to previous message (backward attachment)
       if (completedToolCalls.length > 0) {
+        Logger.info('[EventStreamProcessor] Calling attachToolCallsToPreviousMessage', {
+          sessionId: event.session_id,
+          toolCount: completedToolCalls.length
+        });
         this.attachToolCallsToPreviousMessage(event.session_id, completedToolCalls);
+      } else {
+        Logger.warn('[EventStreamProcessor] No completed tool calls to attach!', {
+          sessionId: event.session_id,
+          originalToolCount: event.tool_calls.length
+        });
       }
     }
   }
@@ -634,6 +654,12 @@ export class EventStreamProcessor {
     sessionId: string,
     completedToolCalls: Array<{ id: string; type: 'tool_use'; name: string; input: Record<string, unknown>; result?: any }>
   ): void {
+    Logger.info('[EventStreamProcessor] attachToolCallsToPreviousMessage CALLED', {
+      sessionId,
+      toolCount: completedToolCalls.length,
+      toolNames: completedToolCalls.map(tc => tc.name)
+    });
+    
     const session = this.sessionManager.getSession(sessionId);
     if (!session || !session.messages || !session.messages.length) {
       // No session or no messages yet - buffer for next message (1% case)
