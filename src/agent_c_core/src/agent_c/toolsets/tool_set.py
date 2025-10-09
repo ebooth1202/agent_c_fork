@@ -251,14 +251,11 @@ class Toolset:
             kwargs: The arguments to be passed to the render media event.
         """
         kwargs['role'] = kwargs.get('role', self.tool_role)
-        streaming_callback = kwargs.pop('streaming_callback', self.streaming_callback)
 
-        # Format markdown content if content_type is text/markdown
-        content_type = kwargs.get('content_type')
-        #if content_type == 'text/markdown' and 'content' in kwargs:
-        #    kwargs['content'] = self._format_markdown(kwargs['content'])
+        tool_context = kwargs.pop('tool_context', {})
+        streaming_callback = tool_context.get('streaming_callback', self.streaming_callback)
 
-        tool_context = kwargs.pop('tool_context')
+        # tool_context = kwargs.pop('tool_context')
         kwargs['session_id'] = kwargs.get('session_id', tool_context.get('user_session_id', tool_context['session_id']))
 
         # Create the event object
@@ -278,8 +275,9 @@ class Toolset:
         kwargs['role'] = kwargs.get('role', self.tool_role)
         kwargs['format'] = kwargs.get('format', self.output_format)
         tool_context = kwargs.pop('tool_context')
+        streaming_callback = tool_context.get('streaming_callback', self.streaming_callback)
         kwargs['session_id'] = kwargs.get('session_id', tool_context.get('user_session_id', tool_context['session_id']))
-        await self.streaming_callback(MessageEvent(**kwargs))
+        await streaming_callback(MessageEvent(**kwargs))
 
     async def _raise_text_delta_event(self, **kwargs: Any) -> None:
         """
@@ -291,9 +289,10 @@ class Toolset:
         kwargs['role'] = kwargs.get('role', self.tool_role)
         kwargs['format'] = kwargs.get('format', self.output_format)
         tool_context = kwargs.pop('tool_context')
+        streaming_callback = tool_context.get('streaming_callback', self.streaming_callback)
         kwargs['session_id'] = kwargs.get('session_id', tool_context.get('user_session_id', tool_context['session_id']))
 
-        await self.streaming_callback(TextDeltaEvent(**kwargs))
+        await streaming_callback(TextDeltaEvent(**kwargs))
 
     @staticmethod
     async def send_event(event: BaseEvent, tool_context: dict) -> None:
