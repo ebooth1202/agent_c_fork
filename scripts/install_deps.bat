@@ -17,7 +17,7 @@ pip install -e agent_c_api_ui/agent_c_api[dev]
 pip install -e ..\test\unit\agent_c_tools
 
 echo Installing dependencies for realtime client and performing a clean build...
-cd ..\..\realtime_client
+cd realtime_client
 call scripts\rebuild.bat
 if errorlevel 1 (
     echo Failed to install the packages.
