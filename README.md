@@ -126,7 +126,7 @@ An easy was to add additional wones without building your own container is on th
 
 ## Logging in
 
-There is one user, `admin` with the password `changeme`,  Except as of this writing tha ability to actualy change it if you're a user doesn't exist.. Hence preview status.
+There is one user, `admin` with the password `changeme`,  Except as of this writing tha ability to actually change it if you're a user doesn't exist.. Hence preview status.
 
 ### 💻 Developer Setup
 
