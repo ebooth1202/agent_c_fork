@@ -50,5 +50,4 @@ if [ "$(uname -m)" = "arm64" ]; then
 fi
 
 # Run in docker compose with any supplied arguments
-COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose -f docker-compose.yml -p agent_c build
-docker-compose -f docker-compose.yml -p agent_c "$@"
+COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose -f docker-compose.yml -p agent_c "$@""
