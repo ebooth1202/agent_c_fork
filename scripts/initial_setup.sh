@@ -23,8 +23,8 @@ source .venv/bin/activate
 echo "Upgrading pip to the latest version"
 pip install --upgrade pip
 
-echo "Installing pnpm version 9..."
-npm install -g pnpm@9
+echo "Installing pnpm version 9 and lerna globally"
+npm install -g pnpm@9 lerna
 
 # Install the requirements
 echo "Installing deps"
