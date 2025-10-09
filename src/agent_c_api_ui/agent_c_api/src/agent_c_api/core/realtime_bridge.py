@@ -318,9 +318,10 @@ class RealtimeBridge(ClientEventHandler):
 
         if 'BridgeTools' not in self.chat_session.agent_config.tools:
             self.chat_session.agent_config.tools.append('BridgeTools')
+        self.logger.debug(f"Resuming session with {self.chat_session.agent_config.tools}")
 
         await self.tool_chest.activate_toolset(self.chat_session.agent_config.tools)
-        self.logger.info(f"RealtimeBridge resumed chat session {self.chat_session.session_id}")
+        self.logger.info(f"RealtimeBridge resumed chat session {self.chat_session.session_id} with {len(self.chat_session.agent_config.tools)} tools")
         await self.send_chat_session()
         await self.send_event(SystemMessageEvent(content=F"Welcome back! **Session ID:** {self.chat_session.session_id}", session_id=self.chat_session.session_id,
                                                  severity="info", role="system"))
@@ -672,10 +673,12 @@ class RealtimeBridge(ClientEventHandler):
         message = ("# Welcome to Agent C\n\n:::TIP\n- **First time here?** Send *Hello Domo* to get started!\n"
                    "- Send `!help` for information on available chat commands.\n\n:::\n\n")
 
-
-
         if len(self.chat_session.messages) > 0:
             message = "# Welcome back Agent C\n\nYour previous session has been restored."
+            # Activate tools for the restored session
+            if len(self.chat_session.agent_config.tools) > 0:
+                await self.tool_chest.activate_toolset(self.chat_session.agent_config.tools)
+                self.logger.debug(f"Activated tools for restored session: {self.chat_session.agent_config.tools}")
 
         await self.raise_render_media_markdown(message)
 
