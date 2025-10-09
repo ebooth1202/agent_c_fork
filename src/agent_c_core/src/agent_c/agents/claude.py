@@ -208,6 +208,8 @@ class ClaudeChatAgent(BaseAgent):
         messages = opts["completion_opts"]["messages"]
         interaction_id = await self._raise_interaction_start(**callback_opts)
         await self._raise_system_prompt(opts["completion_opts"]["system"], **callback_opts)
+        chat_session = kwargs.get("chat_session")
+
         delay = 3  # Initial delay between retries
         async with (self.semaphore):
             while delay <= self.max_delay:
@@ -248,6 +250,10 @@ class ClaudeChatAgent(BaseAgent):
                         self.logger.debug(f"Updating system prompt for interaction {interaction_id}")
                         opts["completion_opts"]["system"] = new_system_prompt
                         await self._raise_system_prompt(new_system_prompt, **callback_opts)
+
+                    tool_params = tool_chest.get_inference_data(chat_session.agent_config.tools, self.tool_format)
+                    opts["completion_opts"]['tools'] = chat_session.agent_config.filter_allowed_tools(tool_params['schemas'])
+
 
                     delay = 3
                     messages = result
