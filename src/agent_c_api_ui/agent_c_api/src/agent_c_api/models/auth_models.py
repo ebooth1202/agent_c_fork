@@ -99,6 +99,23 @@ class UserCreateRequest(BaseModel):
     user_id: Optional[str] = None  # Allow specifying user_id, else generated
 
 
+class UserUpdateRequest(BaseModel):
+    """Request model for updating user information."""
+    user_id: str = Field(..., description="User ID to update")
+    email: Optional[EmailStr] = Field(None, description="New email address")
+    first_name: Optional[str] = Field(None, max_length=50, description="New first name")
+    last_name: Optional[str] = Field(None, max_length=50, description="New last name")
+    roles: Optional[List[str]] = Field(None, description="New roles list")
+    is_active: Optional[bool] = Field(None, description="Active status")
+
+
+class PasswordChangeRequest(BaseModel):
+    """Request model for changing user password."""
+    user_id: str = Field(..., description="User ID whose password to change")
+    new_password: str = Field(..., min_length=6, max_length=100, description="New password")
+    old_password: Optional[str] = Field(None, min_length=6, max_length=100, description="Current password (required for user mode)")
+
+
 class UserLoginRequest(BaseModel):
     """Request model for user login."""
     username: str = Field(..., min_length=3, max_length=50)
