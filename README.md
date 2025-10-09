@@ -95,7 +95,7 @@ The `agentc` script allows you to run the Agent C API and web client behind an H
 
 ### New users
 
-1. **Build the containers** - Run `scripts/build_containers.(bat/sh)` and wait a bit.
+1. **Build the containers** - Run `ci/build_containers.(bat/sh)` and wait a bit.
 2. **Initialize your local storage** - Run `agentc up`.
    - This will create a `.agent_c` folder under your home folder where it will store:
      - The configuration file
@@ -108,7 +108,7 @@ The `agentc` script allows you to run the Agent C API and web client behind an H
 
 ### Users of the old client
 
-1. **Build the containers** - Run `scripts/build_containers.(bat/sh)` and wait a bit.
+1. **Build the containers** - Run `ci/build_containers.(bat/sh)` and wait a bit.
 2. **Copy the databases** - Copy the two databases in the `data` subfolder to yout `.agent_c` subfolder of your user folder.
 3. **Rname your personas folder** - Rename this it `agents` and your old agents will be there. 
 4. **Run Agent C** - Run `agentc up` it will see that you have a config file and launch the compose file. 
