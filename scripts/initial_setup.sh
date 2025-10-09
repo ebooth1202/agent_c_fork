@@ -23,6 +23,9 @@ source .venv/bin/activate
 echo "Upgrading pip to the latest version"
 pip install --upgrade pip
 
+echo "Installing pnpm version 9..."
+npm install -g pnpm@9
+
 # Install the requirements
 echo "Installing deps"
 chmod a+x scripts/install_deps.sh

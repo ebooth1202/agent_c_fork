@@ -61,6 +61,9 @@ echo Upgrading Pip to the latest version.
 python -m pip install --upgrade pip
 pip install tomli
 
+echo "Installing pnpm version 9..."
+npm install -g pnpm@9
+
 :: Install the requirements
 echo Installing dependencies.
 call scripts/install_deps.bat
