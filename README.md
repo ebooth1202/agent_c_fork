@@ -57,7 +57,7 @@ The sophistication here might seem overwhelming—delegation rules, handoff proc
 
 ### Meet Bobb: Your Expert Agent Designer
 
-Remember how we said Agent C is instruction-first? If you can express something in a system prompt, an agent can create that system prompt. **Bobb the Agent Builder** is a specialized agent who designs other agents—from simple task executors to sophisticated orchestration systems with comprehensive coordination patterns, quality frameworks, and recovery mechanisms.
+Agent C is instruction-first. If you can express something in a system prompt, an agent can create that system prompt. **Bobb the Agent Builder** is a specialized agent who designs other agents—from simple task executors to sophisticated orchestration systems with comprehensive coordination patterns, quality frameworks, and recovery mechanisms.
 
 When you need a coding assistant for a new project, Bobb:
 
@@ -86,9 +86,8 @@ The compose files here allow Docker/Rancher users to get up in running using a l
 
 ## Getting started
 
-In the `scripts` folder are Windows batch files and *nix shell scripts to allow you to run the Agent C AOI and web client behind an HTTPS proxy using self-signed certs.  Once started you will be able to access Agent C at https://localhost:5173/chat *If you forget the port and have nothing listening on 443 you will be redirected.*
+The `agentc` script allows you to run the Agent C API and web client behind an HTTPS proxy using self-signed certs.  Once started you will be able to access Agent C at https://localhost:5173/chat *If you forget the port and have nothing listening on 443 you will be redirected.*
 
-These *should* be able to be double-clicked in Explorer.  Mac/Linux users will need to `chmod a+x scripts/*.sh` first.
 
 > [!IMPORTANT]
 > The container images are not yet being built and pushed on GitHub.  That will change soon but for now you must build the containers locally.
