@@ -34,10 +34,45 @@ The default interaction patterns in Agent C are modeled after many of the patter
 
 As agents follow a plan the user is kept informed not only by the agent but by the tools as well. As plans are built and updated, the UI reports it.  When an agent completes a task, the UI shows the completion report it filed for the task.  With our enhanced Markdown support agents can and will include Mermaid digrams, SVGs etc in their reports.
 
+- Rich context management: technical, business, implementation, and risk context
+- Hierarchical task organization with parent-child relationships
+- Human oversight integration with required sign-offs and audit trails
+- Knowledge capture and automated report generation (without consuming agent context!)
+
 ### Delegation
 
-The delegation tools in Agent C are where it stands out...  WIP 
+The delegation tools in Agent C are where single-agent limitations transform into multi-agent possibilities and allow for large volumes of work to be reliably preformed without suffering from and overloaded context window.
 
+**Three Delegation Patterns**:
+
+- **Agent Clone Tools**: Perfect self-delegation for routine tasks. Your agent can create exact copies of itself to handle focused work while preserving its context for strategic thinking and user interaction. Each clone gets specific process context that transforms generic capability into specialized execution.
+  
+- **Agent Assist Tools**: Collaboration with specialized agents from a broader ecosystem. Need expert analysis, creative writing, or domain-specific capabilities? Agents can consult specialists without you managing the coordination.
+  
+- **Agent Team Tools**: Structured collaboration with predefined teams of specialists. For complex projects, orchestrator agents coordinate teams of focused experts, each handling specific aspects while maintaining clear handoff procedures and quality gates.
+
+Traditional single-agent approaches hit a wall: either your agent tries to do everything and burns through its context window, or you manually manage multiple agents and their coordination. Agent C's delegation tools enable sophisticated multi-agent workflows through natural language instructions rather than code.
+
+The sophistication here might seem overwhelming—delegation rules, handoff procedures, recovery protocols, quality gates—but here's the thing: **you don't design these coordination patterns alone**.
+
+### Meet Bobb: Your Expert Agent Designer
+
+Remember how we said Agent C is instruction-first? If you can express something in a system prompt, an agent can create that system prompt. **Bobb the Agent Builder** is a specialized agent who designs other agents—from simple task executors to sophisticated orchestration systems with comprehensive coordination patterns, quality frameworks, and recovery mechanisms.
+
+When you need a coding assistant for a new project, Bobb:
+
+- Analyzes your project structure to understand technical requirements
+- Identifies appropriate tools and guides you to equip them
+- Extracts domain guidelines from your documentation
+- Composes instruction patterns from proven quality frameworks
+- Designs coordination protocols if multi-agent workflows are needed
+- Implements appropriate safeguards based on complexity
+
+Bobb has access to our comprehensive agent delegation design bible—all those complex coordination patterns, context management strategies, and quality assurance frameworks. You explain what you want to accomplish; Bobb handles the intricate technical details.
+
+
+> [!IMPORTANT]
+>  **Agent C Agents are something you've never worked with before.** The hardest thing for most people to do is to change their mindset from "thinking about software" to *thinking about interns*.  "Driving" agents is a skill it takes time to develop.
 
 ## Agent C "Quick" Install (Preview) 
 
