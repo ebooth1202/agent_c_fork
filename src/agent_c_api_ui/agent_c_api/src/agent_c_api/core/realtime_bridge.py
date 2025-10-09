@@ -378,7 +378,10 @@ class RealtimeBridge(ClientEventHandler):
         self.logger.info(f"Requesting new tool list for agent {self.chat_session.agent_config.key} to: {new_tools}")
         equipped: bool = False
         try:
-            equipped = await self.tool_chest.activate_toolset(self.chat_session.agent_config.tools)
+            # old code
+            # equipped = await self.tool_chest.activate_toolset(self.chat_session.agent_config.tools)
+            # Use new_tools parameter (not agent_config.tools) to activate the updated tool list
+            equipped = await self.tool_chest.activate_toolset(new_tools)
         except Exception as e:
             self.logger.error(f"Error updating tools: {e}\n{traceback.format_exc()}")
             await self.send_system_message(f"Error updating tools: {e}", severity="error")
@@ -873,7 +876,8 @@ class RealtimeBridge(ClientEventHandler):
                 "client_wants_cancel": self.client_wants_cancel,
                 "env_name": os.getenv('ENV_NAME', 'development'),
                 "streaming_callback": on_event if on_event is not None else self.runtime_callback,
-                "prompt_metadata": prompt_metadata}
+                "prompt_metadata": prompt_metadata,
+                'agent_runtime': self.runtime_cache.runtime_for_agent(self.chat_session.agent_config)}
 
     async def interact(self, user_message: str, file_ids: Optional[List[str]] = None, on_event: Optional[callable] = None) -> None:
         """
