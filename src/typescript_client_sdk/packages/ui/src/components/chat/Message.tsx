@@ -207,6 +207,7 @@ const ThoughtMessage: React.FC<ThoughtMessageProps> = ({
           <MessageFooter 
             message={message}
             showTimestamp={showTimestamp}
+            role="assistant (thought)"
           />
         )}
       </div>
@@ -451,6 +452,7 @@ const MessageComponent = React.forwardRef<HTMLDivElement, MessageProps>(
             <MessageFooter 
               message={message}
               showTimestamp={showTimestamp}
+              role="assistant"
             />
           )}
           
@@ -460,6 +462,7 @@ const MessageComponent = React.forwardRef<HTMLDivElement, MessageProps>(
               message={message}
               onEdit={() => setIsEditing(true)}
               showTimestamp={showTimestamp}
+              role="user"
             />
           )}
           
