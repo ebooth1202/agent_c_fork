@@ -59,7 +59,7 @@ class DataframeTools(Toolset):
 
         return json.dumps(result)
 
-    def _is_dataframe_too_big(self, dataframe: str, tool_context: {}) -> bool:
+    def _is_dataframe_too_big(self, dataframe: str, tool_context: None) -> bool:
         # dataframe should be passed in as a string for counting tokens - however you plan to pass it back to the LLM
         if tool_context is None and not hasattr(tool_context, 'agent_runtime') :
             return True  # if no tool context, we can't count tokens, so assume it's too big
@@ -521,6 +521,7 @@ class DataframeTools(Toolset):
         # this will copy the main dataframe and filter it.  If it can return the filtered dataframe, it will, otherwise it will store it in cache
         # this leaves teh original class dataframe untouched
         condition = kwargs.get('condition')
+        tool_context = kwargs.get('tool_context', None)
 
         if self.dataframe is None:
             return 'No DataFrame is loaded. Please load data file first.'
@@ -534,7 +535,7 @@ class DataframeTools(Toolset):
 
             # check size and return dataframe or store to cache
             result = await self.store_dataframe_to_cache(dataframe=self.temp_dataframe)
-            if self._is_dataframe_too_big(self.temp_dataframe.to_json(orient='records')):
+            if self._is_dataframe_too_big(self.temp_dataframe.to_json(orient='records'), tool_context):
                 return f"The resulting filtered dataframe is too big and was stored to cache. Load from cache if performing sequential dependent actions on a dataframe. {result}"
             else:
                 return f"{result}. Here is the data for the user: {self.temp_dataframe.to_json(orient='records')}"
@@ -606,6 +607,7 @@ class DataframeTools(Toolset):
         # this leaves teh original class dataframe untouched
         by = kwargs.get('group_by')
         aggregations = kwargs.get('aggregations', None)
+        tool_context = kwargs.get('tool_context', None)
 
         if aggregations is None:
             return "You must supply aggregations"
@@ -628,7 +630,7 @@ class DataframeTools(Toolset):
 
             # check size and return dataframe or store to cache
             result = await self.store_dataframe_to_cache(dataframe=self.temp_dataframe)
-            if self._is_dataframe_too_big(self.temp_dataframe.to_json(orient='records')):
+            if self._is_dataframe_too_big(self.temp_dataframe.to_json(orient='records'), tool_context):
                 return f"The resulting grouped and aggregated dataframe is too big and was stored to cache. Load from cache if performing sequential dependent actions on a dataframe. {result}"
             else:
                 return f"{result}. Here is the data for the user: {self.temp_dataframe.to_json(orient='records')}"
@@ -693,6 +695,7 @@ class DataframeTools(Toolset):
         # If it can return the modified dataframe, it will, otherwise it will store it in cache
         # this leaves teh original class dataframe untouched
         aggregations = kwargs.get('aggregations', None)
+        tool_context = kwargs.get('tool_context', None)
 
         if aggregations is None:
             return "You must supply aggregations"
@@ -721,7 +724,7 @@ class DataframeTools(Toolset):
 
             # check size and return dataframe or store to cache
             result = await self.store_dataframe_to_cache(dataframe=self.temp_dataframe)
-            if self._is_dataframe_too_big(self.temp_dataframe.to_json(orient='records')):
+            if self._is_dataframe_too_big(self.temp_dataframe.to_json(orient='records'), tool_context):
                 return f"The resulting aggregated dataframe is too big and was stored to cache. Load from cache if performing sequential dependent actions on a dataframe. {result}"
             else:
                 return f"{result}. Here is the data for the user: {self.temp_dataframe.to_json(orient='records')}"
@@ -915,6 +918,7 @@ class DataframeTools(Toolset):
         # this allows a user to return records for either the main dataframe or a temp dataframe via a hidden kwarg
         limit = kwargs.get('limit', None)
         dataframe = kwargs.get('dataframe', self.dataframe)
+        tool_context = kwargs.get('tool_context', None)
 
         if self.dataframe is None:
             return 'No DataFrame is loaded. Please load data file first.'
@@ -925,7 +929,7 @@ class DataframeTools(Toolset):
             df_to_display = dataframe.head(limit)
 
         result = await self.store_dataframe_to_cache(dataframe=df_to_display)
-        if self._is_dataframe_too_big(df_to_display.to_json(orient='records')):
+        if self._is_dataframe_too_big(df_to_display.to_json(orient='records'), tool_context):
             # okay, so the request is too big to display
             return f"The requested display records dataframe is too big and was stored to cache. Load from cache if performing sequential dependent actions on a dataframe. {result}"
         else:
