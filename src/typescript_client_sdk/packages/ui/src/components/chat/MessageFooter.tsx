@@ -29,6 +29,10 @@ export interface MessageFooterProps extends React.HTMLAttributes<HTMLDivElement>
    * Whether to show timestamp
    */
   showTimestamp?: boolean
+  /**
+   * Message role for styling
+   */
+  role?: 'user' | 'assistant' | 'assistant (thought)' | 'system'
 }
 
 interface ToolCallDisplayProps {
@@ -116,7 +120,7 @@ const ToolCallDisplay: React.FC<ToolCallDisplayProps> = ({
   
   return (
     <div className={cn(
-      "rounded-lg border border-border/50 bg-card/50 space-y-2",
+      "rounded-lg border-2 border-primary/20 bg-gradient-to-br from-card/80 to-muted/30 shadow-sm space-y-2 mt-2",
       className
     )}>
       {visibleToolCalls.map((tool) => {
@@ -149,13 +153,13 @@ const ToolCallDisplay: React.FC<ToolCallDisplayProps> = ({
         }, [toolResult])
         
         return (
-          <div key={tool.id} className="rounded-lg hover:bg-muted/10 transition-all duration-200">
+          <div key={tool.id} className="rounded-md border border-border/50 bg-card/50 hover:bg-muted/20 transition-all duration-200">
             {/* Header - Always visible */}
             <button
               className={cn(
                 "group/tool flex w-full items-center justify-between",
-                "gap-4 rounded-t-lg px-4 py-3",
-                "text-foreground hover:bg-muted/30",
+                "gap-4 rounded-t-md px-4 py-3",
+                "text-foreground hover:bg-primary/5",
                 "transition-colors duration-200 cursor-pointer",
                 "focus-visible:outline-none focus-visible:ring-2",
                 "focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -296,7 +300,7 @@ const ToolCallDisplay: React.FC<ToolCallDisplayProps> = ({
 const DEBUG_MESSAGE_FOOTER = false;
 
 export const MessageFooter = React.forwardRef<HTMLDivElement, MessageFooterProps>(
-  ({ className, message, onEdit, onRegenerate, showTimestamp = true, ...props }, ref) => {
+  ({ className, message, onEdit, onRegenerate, showTimestamp = true, role, ...props }, ref) => {
     const [copied, setCopied] = React.useState(false)
     const [showToolCalls, setShowToolCalls] = React.useState(false)
     
@@ -326,8 +330,9 @@ export const MessageFooter = React.forwardRef<HTMLDivElement, MessageFooterProps
     
     const hasToolCalls = message.toolCalls && message.toolCalls.length > 0
     const hasTokenCounts = message.metadata?.inputTokens || message.metadata?.outputTokens
-    const isUserMessage = message.role === 'user'
-    const isAssistantMessage = message.role === 'assistant' || message.role === 'assistant (thought)'
+    const isUserMessage = (role || message.role) === 'user'
+    const isAssistantMessage = (role || message.role) === 'assistant' || (role || message.role) === 'assistant (thought)'
+    const isThoughtMessage = (role || message.role) === 'assistant (thought)'
     
     // DIAGNOSTIC: Log render state
     if (DEBUG_MESSAGE_FOOTER) {
@@ -368,11 +373,24 @@ export const MessageFooter = React.forwardRef<HTMLDivElement, MessageFooterProps
     return (
       <div 
         ref={ref}
-        className={cn("space-y-2", className)}
+        className={cn(
+          "space-y-2",
+          // Apply width constraints to match the message bubble
+          isUserMessage && "max-w-[85%]",
+          isThoughtMessage && "max-w-[85%]",
+          // No max-width for regular assistant messages
+          className
+        )}
         {...props}
       >
         {/* Primary Footer Row */}
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <div className={cn(
+          "flex items-center gap-3 text-xs rounded-lg px-3 py-1.5 transition-colors",
+          // Subtle background that complements the message bubble
+          isUserMessage && "bg-card-user/30 text-muted-foreground",
+          isThoughtMessage && "bg-card-thought/20 border border-border/30 text-muted-foreground",
+          isAssistantMessage && !isThoughtMessage && "bg-card-assistant/30 border border-border/30 text-muted-foreground"
+        )}>
           {/* Token Counts */}
           {hasTokenCounts && (
             <>
@@ -395,7 +413,7 @@ export const MessageFooter = React.forwardRef<HTMLDivElement, MessageFooterProps
               {/* Total Tokens */}
               {(message.metadata?.inputTokens !== undefined || message.metadata?.outputTokens !== undefined) && (
                 <div className="flex items-center gap-1" title="Total tokens">
-                  <Equal className="h-3 w-3" />
+                  <Equal className="h-3 w-3 fg-card" />
                   <span>
                     {(
                       (message.metadata?.inputTokens || 0) + 
@@ -412,7 +430,7 @@ export const MessageFooter = React.forwardRef<HTMLDivElement, MessageFooterProps
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 px-2 gap-1 -ml-2"
+              className="h-6 px-2 gap-1 -ml-2 text-foreground"
               onClick={() => {
                 if (DEBUG_MESSAGE_FOOTER) {
                   console.log('[MessageFooter] 🖘️ TOGGLING tool calls display:', !showToolCalls);

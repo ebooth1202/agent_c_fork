@@ -23,7 +23,7 @@ services:
     environment:
       - PORT=5173
       - NEXT_PUBLIC_APP_URL=https://localhost:5173
-      - AGENT_C_API_URL=http://host.docker.internal:8000
+      - AGENT_C_API_URL=https://host.docker.internal:8000
       - NEXT_PUBLIC_AGENTC_API_URL=wss://localhost:8000
     restart: unless-stopped
     networks:

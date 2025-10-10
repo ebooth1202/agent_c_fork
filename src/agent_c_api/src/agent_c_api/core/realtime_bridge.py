@@ -227,8 +227,9 @@ class RealtimeBridge(ClientEventHandler):
         await self.send_to_all_user_sessions(DeleteChatSessionEvent(session_id=session_id))
 
         if session_id == self.chat_session.session_id:
+            agent_key = self.chat_session.agent_key
             self.chat_session = None
-            await self.new_chat_session()
+            await self.new_chat_session(agent_key)
 
         await self.send_event(SystemMessageEvent(content=f"Chat Session {session_id} deleted", session_id=self.chat_session.session_id,
                                                  severity="info", role="system"))
