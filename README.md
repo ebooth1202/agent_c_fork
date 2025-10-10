@@ -89,39 +89,32 @@ The compose files here allow Docker/Rancher users to get up in running using a l
 The `agentc` script allows you to run the Agent C API and web client behind an HTTPS proxy using self-signed certs.  Once started you will be able to access Agent C at https://localhost:5173/chat *If you forget the port and have nothing listening on 443 you will be redirected.*
 
 
-> [!IMPORTANT]
-> The container images are not yet being built and pushed on GitHub.  That will change soon but for now you must build the containers locally.
->  
 
 ### New users
-
-1. **Build the containers** - Run `ci/build_containers.(bat/sh)` and wait a bit.
-2. **Initialize your local storage** - Run `agentc up`.
+1. **Initialize your local storage** - Run `agentc up`. 
    - This will create a `.agent_c` folder under your home folder where it will store:
      - The configuration file
      - The user database
      - The chat session index.
      - Your saved chat files
      - Any agents you create
-   - It will then open a text editor so that you can supply the various API keys for the LLMs / tools you want to use.
-3. **Run Agent C** - Run `agentc up` again and it will see that you have a config file and launch the compose file.
+   - It will then open a text editor so that you can supply the various API keys for the LLMs / tools you want to use. 
+2. **Run Agent C** - Run `agentc up` again and it will see that you have a config file and launch the compose file.
 
 ### Users of the old client
-
-1. **Build the containers** - Run `ci/build_containers.(bat/sh)` and wait a bit.
-2. **Copy the databases** - Copy the two databases in the `data` subfolder to yout `.agent_c` subfolder of your user folder.
-3. **Rname your personas folder** - Rename this it `agents` and your old agents will be there. 
-4. **Run Agent C** - Run `agentc up` it will see that you have a config file and launch the compose file. 
+1. **Copy the databases** - Copy the two databases in the `data` subfolder to yout `.agent_c` subfolder of your user folder.
+2. **Rname your personas folder** - Rename this it `agents` and your old agents will be there. 
+3. **Run Agent C** - Run `agentc up` it will see that you have a config file and launch the compose file. 
 
 ### All users
 
-The purpose of using these scripts over a simple `docker-compose up` (Which works for the fronend only compose file) is to map several well known folders to workspaces in Agent C. Docker users will have the following workspaces available for agents to access the local file system and run commands:
+The purpose of using these scripts over a simple `docker-compose up` (Which works for the client only compose file) is to map several well known folders to workspaces in Agent C. Docker users will have the following workspaces available for agents to access the local file system and run commands:
 
 - documents
 - desktop
 - downloads
 
-An easy was to add additional wones without building your own container is on the list.
+An easy was to add additional ones without building your own container is on the list.
 
 
 ## Logging in
