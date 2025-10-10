@@ -3,7 +3,6 @@ FROM ghcr.io/centricconsulting/agent_c_python_base
 # Set working directory and create required directories
 WORKDIR /app
 RUN mkdir -p /app/images
-RUN mkdir -p /app/src/agent_c_api_ui
 RUN mkdir -p /app/workspaces/desktop
 RUN mkdir -p /app/workspaces/downloads
 RUN mkdir -p /app/workspaces/documents
@@ -11,7 +10,7 @@ RUN mkdir -p /app/workspaces/documents
 # Copy source code first
 COPY src/agent_c_core ./src/agent_c_core
 COPY src/agent_c_tools ./src/agent_c_tools
-COPY src/agent_c_api_ui/agent_c_api ./src/agent_c_api_ui/agent_c_api
+COPY src/agent_c_api ./src/agent_c_api
 COPY compose_workspaces.json /app/.local_workspaces.json
 COPY .agentcignore /app/.agentcignore
 COPY docs /app/docs
@@ -33,7 +32,7 @@ WORKDIR /app/src
 #RUN pip install ace_proto/ts_tool-0.1.0-py3-none-any.whl
 RUN pip install  -e agent_c_core \
     && pip install -e agent_c_tools \
-    && pip install -e agent_c_api_ui/agent_c_api
+    && pip install -e agent_c_api
 
 # Return to the app's root
 WORKDIR /app

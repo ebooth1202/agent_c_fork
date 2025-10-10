@@ -27,7 +27,7 @@ echo "Installing pnpm version 9 and lerna globally"
 npm install -g pnpm@9 lerna
 
 echo "Fetching initial client dependencies with pnpm..."
-cd src/realtime_client
+cd src/typescript_client_sdk
 pnpm install
 cd ../..
 

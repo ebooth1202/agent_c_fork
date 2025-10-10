@@ -25,7 +25,7 @@ if errorlevel 1 (
 )
 
 playwright install
-pip install -e agent_c_api_ui/agent_c_api[dev]
+pip install -e agent_c_api[dev]
 
 if errorlevel 1 (
     echo Failed to install agent_c_api.
