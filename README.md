@@ -86,8 +86,11 @@ The compose files here allow Docker/Rancher users to get up in running using a l
 
 ## Getting started
 
-The `agentc` script allows you to run the Agent C API and web client behind an HTTPS proxy using self-signed certs.  Once started you will be able to access Agent C at https://localhost:5173/chat *If you forget the port and have nothing listening on 443 you will be redirected.*
+The `agentc` shell script or `agent_c.bat` script allows you to run the Agent C API and web client behind an HTTPS proxy using self-signed certs.  
 
+Once started you will be able to access Agent C at https://localhost:5173/chat *If you forget the port and have nothing listening on 443 you will be redirected.*
+
+Getting started is a two step process:
 
 
 ### New users
@@ -105,6 +108,9 @@ The `agentc` script allows you to run the Agent C API and web client behind an H
 1. **Copy the databases** - Copy the two databases in the `data` subfolder to yout `.agent_c` subfolder of your user folder.
 2. **Rname your personas folder** - Rename this it `agents` and your old agents will be there. 
 3. **Run Agent C** - Run `agentc up` it will see that you have a config file and launch the compose file. 
+   - Alternately run `agentc up -d` or `agent_c.bat up -d` to run in detached mode.
+
+**NOTE:** Some users when running `agent_c.bat` may notice it creates a folder called `chat_chat_user_auth.db` or `chat_chat_sessions.db` These are invalid folders and must be deleted. 
 
 ### All users
 
@@ -120,6 +126,45 @@ An easy was to add additional ones without building your own container is on the
 ## Logging in
 
 There is one user, `admin` with the password `changeme`,  Except as of this writing tha ability to actually change it if you're a user doesn't exist.. Hence preview status.
+
+
+```mermaid
+flowchart TD
+    Start([Start: Getting Started with Agent C]) --> ScriptNote[Note: Use 'agentc.sh' for POSIX systems<br/>Use 'agent_c.bat' for Windows]
+    
+    ScriptNote --> Type{New User or<br/>Old Client User?}
+    
+    Type -->|New User| Init[Run 'agentc up'<br/>Initialize local storage]
+    Init --> Storage[Creates .agent_c folder with:<br/>- Configuration file<br/>- User database<br/>- Chat session index<br/>- Saved chat files<br/>- Agents]
+    Storage --> Config[Text editor opens<br/>Supply API keys for LLMs/tools]
+    Config --> RunNew[Run 'agentc up' again]
+    
+    Type -->|Old Client User| Copy[Copy databases from<br/>data subfolder to .agent_c]
+    Copy --> Rename[Rename 'personas' folder<br/>to 'agents']
+    Rename --> RunOld[Run 'agentc up'<br/>or 'agentc up -d' for detached mode]
+    
+    RunNew --> Launch[Docker Compose launches]
+    RunOld --> Launch
+    
+    Launch --> Note{Warning: Check for<br/>invalid folders?}
+    Note -->|If exists| Delete[Delete invalid folders:<br/>chat_chat_user_auth.db<br/>chat_chat_sessions.db]
+    Note -->|None found| Access
+    Delete --> Access
+    
+    Access[Access Agent C at<br/>https://localhost:5173/chat]
+    
+    Access --> Workspaces[Workspaces Available:<br/>- documents<br/>- desktop<br/>- downloads]
+    
+    Workspaces --> Login[Login<br/>User: admin<br/>Password: changeme]
+    
+    Login --> End([Ready to Use])
+    
+    style Start fill:#e1f5ff
+    style End fill:#d4edda
+    style Note fill:#fff3cd
+    style Delete fill:#f8d7da
+    style Login fill:#d1ecf1
+```
 
 ### 💻 Developer Setup
 
@@ -225,6 +270,76 @@ Follow the [Get Started With Claude](https://docs.anthropic.com/en/docs/get-star
    ```
    OPENAI_API_KEY=your-api-key-here
    ```
+
+```mermaid
+flowchart TD
+    Start([Developer Setup]) --> PyVersion[CRITICAL: Must use Python 3.12.x<br/>NOT 3.13, NOT 3.10]
+    
+    PyVersion --> IDENote[Recommended IDE: PyCharm<br/>Especially if new to Python virtual environments]
+    
+    IDENote --> OS{Select Your OS}
+    
+    OS -->|Windows| WinPrereq[Install Prerequisites:<br/>- Git<br/>- Python 3.12+<br/>- PyCharm Community Edition<br/>- MS Visual C++ Build Tools<br/>- Rust<br/>- Node.js<br/>- ffmpeg<br/>- Optional: pyenv]
+    
+    OS -->|Mac/Linux| MacPrereq[Install Prerequisites:<br/>1. Xcode command line tools<br/>2. Homebrew<br/>3. python@3.12, pyenv, rust, node, ffmpeg<br/>4. Optional: VSCode, PyCharm]
+    
+    WinPrereq --> Clone[Step 1: Clone Repository<br/>git clone https://github.com/centricconsulting/agent_c_framework.git]
+    MacPrereq --> Clone
+    
+    Clone --> Setup{Step 2: Setup Python Environment}
+    
+    Setup -->|Windows| WinSetup[Run: .\scripts\initial_setup.bat]
+    Setup -->|Mac/Linux| MacSetup[Run: ./scripts/initial_setup.sh]
+    
+    WinSetup --> APIKey[Step 3: Get Vendor API Key]
+    MacSetup --> APIKey
+    
+    APIKey --> Vendor{Choose Primary Vendor<br/>Recommendation: Anthropic for Agentic work}
+    
+    Vendor -->|Anthropic| Anthropic[Get Anthropic API Key<br/>Follow 'Get Started With Claude' guide<br/><br/>WARNING: Tier 2 or below will have<br/>rate limit delays up to 32 seconds]
+    
+    Vendor -->|OpenAI| OpenAI[Get OpenAI API Key<br/>1. Sign up at OpenAI Platform<br/>2. Create API key<br/>3. Prepay credits minimum $20<br/><br/>NOTE: ChatGPT Plus NOT sufficient]
+    
+    Anthropic --> EnvSetup[Step 4: Configure Environment<br/>1. Copy example.env to .env<br/>2. Add API keys]
+    OpenAI --> EnvSetup
+    
+    EnvSetup --> ConfigFile[First Run Creates Config File:<br/>Windows: %USERPROFILE%\.agent_c\agent_c.config<br/>Mac/Linux: ~/.agent_c/agent_c.config]
+    
+    ConfigFile --> Essential[Essential Configuration:<br/>ANTHROPIC_API_KEY=your-key]
+    
+    Essential --> Optional[Optional Configuration:<br/>- OPENAI_API_KEY<br/>- Azure OpenAI settings<br/>- AWS Storage<br/>- Tool APIs: SERPAPI, SEC_API,<br/>  TAVILI, NEWSAPI]
+    
+    Optional --> RunMode{Choose Run Mode}
+    
+    RunMode -->|Docker| Docker[Use agentc.sh POSIX or agent_c.bat Windows<br/>See Getting Started diagram]
+    
+    RunMode -->|Native Professional| Native{Select Platform <br/> and run from<br/>project root}
+    
+    Native -->|Windows| WinNative[start scripts\start_api.bat<br/>start scripts\start_client.bat]
+    
+    Native -->|Mac/Linux| MacNative[scripts/start_api.sh &<br/>scripts/start_client.sh &]
+    
+    Docker --> End([Setup Complete])
+    WinNative --> End
+    MacNative --> End
+    
+    style Start fill:#e1f5ff
+    style PyVersion fill:#f8d7da
+    style IDENote fill:#fff3cd
+    style Vendor fill:#d1ecf1
+    style Anthropic fill:#d4edda
+    style Essential fill:#d4edda
+    style End fill:#d4edda
+```
+
+### Special Note for Debugging the API in Pycharm
+Debugging in PyCharm is challenging due to the self-signed certs.  However, there is a way to run the backend via PyCharm in debug mode.  Fair warning, it is a bit slow.  Here are the configuration settings you need.
+1. Open PyCharm and go to "Run" > "Edit Configurations".
+2. Click the "+" icon to add a new configuration and select "Python".
+3. Name the configuration (e.g., "Backend").
+4. Application File Path: Set this to the path of `main.py`, example`C:\%USER%\PyCharmProjects\agent_c_framework\src\agent_c_api\src\agent_c_api\main.py` folder.
+5. Working Directory: Set this to the `agent_c_framework` folder.
+6. Uvicorn Options: `--ssl-keyfile .\agent_c_config\certs\key.pem --ssl-certfile .\agent_c_config\certs\cert.pem`
 
 
 ## Configuration File
