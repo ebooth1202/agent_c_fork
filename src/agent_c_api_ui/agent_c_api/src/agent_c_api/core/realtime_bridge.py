@@ -9,7 +9,6 @@ from functools import singledispatchmethod
 from operator import truediv
 from typing import List, Optional, Any, Dict, AsyncIterator, Union, TYPE_CHECKING
 
-from sympy import false
 
 from agent_c.config import locate_config_path
 from agent_c.prompting.basic_sections.markdown import MarkdownFormatting
