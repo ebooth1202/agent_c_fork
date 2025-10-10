@@ -127,6 +127,7 @@ class DynamicsCrmTools(Toolset):
                 'type': 'integer',
                 'description': 'The maximum number of entities to return',
                 'required': False,
+                'default': 10
             },
             'workspace_name': {
                 'type': 'string',
@@ -173,12 +174,20 @@ class DynamicsCrmTools(Toolset):
         entity_id = kwargs.get('entity_id', None)
         workspace_name = kwargs.get('workspace_name', 'project')
         query_params = kwargs.get('query_params', '')
-        limit = kwargs.get('limit', 0)
         entity_type = kwargs.get('entity_type', 'opportunities')
         statecode_filter = "statecode eq 0"  # we only want active entities
         force_save = kwargs.get('force_save', False)
         file_path = kwargs.get('file_path', '').strip()
-        _OVERSIZE_ENTITY_CAP = 5
+        _OVERSIZE_ENTITY_CAP = 10
+        tool_context = kwargs.get('tool_context', {})
+
+        limit = kwargs.get('limit', None)
+        if limit is None:
+            limit = 10
+            bridge = tool_context.get('bridge')
+            if bridge:
+                message = f":::NOTE\nLimit parameter not provided, defaulting to {limit} records.\nPlease ask for number of records you want if you need more. Asking for 0 records returns all records.:::"
+                bridge.raise_render_media_markdown(message, "MicrosoftStreamTools")
 
         # Allow specifying additional fields
         additional_fields = kwargs.get('additional_fields', None)
@@ -381,7 +390,7 @@ class DynamicsCrmTools(Toolset):
         description="Force re-logging into Dynamics at user request only.",
         params={}
     )
-    async def force_login(self):
+    async def force_login(self, **kwargs):
         """force re-login on dynamics"""
         try:
             self.dynamics_object.access_token = None
@@ -394,7 +403,7 @@ class DynamicsCrmTools(Toolset):
         description="Get the Dynamics ID for the user making the request.",
         params={}
     )
-    async def dynamics_user_id(self):
+    async def dynamics_user_id(self, **kwargs):
         """Get the whoami Dyanmics ID, if not available, re-authorize"""
         if self.dynamics_object.whoami_id is None:
             await self.dynamics_object.authorize_dynamics()
