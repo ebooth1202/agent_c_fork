@@ -8,13 +8,13 @@ import pandas as pd
 from bs4 import BeautifulSoup
 
 from agent_c.toolsets import json_schema, Toolset
-from agent_c_tools.tools.dynamics.prompt import DynamicsCRMPrompt
-from agent_c_tools.tools.dynamics.util.dynamics_api import DynamicsAPI, InvalidODataQueryError
+from agent_c_tools.tools.dynamics_crm.prompt import DynamicsCRMPrompt
+from agent_c_tools.tools.dynamics_crm.util.dynamics_api import DynamicsAPI, InvalidODataQueryError
 # Using workspace tool directly via UNC paths now instead of casting
 from agent_c_tools.helpers.dataframe_in_memory import create_excel_in_memory
 
 
-class DynamicsTools(Toolset):
+class DynamicsCrmTools(Toolset):
     """
     Microsoft Dynamics 365 CRM integration toolset.
     
@@ -241,7 +241,14 @@ class DynamicsTools(Toolset):
                     entity[field] = self.clean_html_xml(entity[field], parser)
 
         # deal with overly large datasets.
-        response_size = self.tool_chest.agent.count_tokens(json.dumps(entities))
+        tool_context = kwargs.get('tool_context', {})
+        agent_runtime = tool_context.get('agent_runtime')
+        if agent_runtime and hasattr(agent_runtime, 'count_tokens'):
+            response_size = agent_runtime.count_tokens(json.dumps(entities))
+        else:
+            # Fallback for debug environments or missing agent_runtime
+            response_size = len(json.dumps(entities)) // 10  # Rough approximation
+
         if response_size > 25000 or len(entities) > _OVERSIZE_ENTITY_CAP or force_save:
             # Response is too large, user requested save, or the response is too many records to deal with save it.
             self.logger.info(f"User requested local save: ({force_save})")
@@ -432,4 +439,4 @@ class DynamicsTools(Toolset):
             return json.dumps({"error": "Failed to create entity"})
 
 
-Toolset.register(DynamicsTools, required_tools=['WorkspaceTools'])
+Toolset.register(DynamicsCrmTools, required_tools=['WorkspaceTools'])

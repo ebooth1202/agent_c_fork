@@ -9,7 +9,7 @@ import pandas as pd
 from datetime import datetime, timedelta, date
 from dateutil import parser
 
-from agent_c_tools.tools.dynamics.util import get_oauth_token, DEFAULT_FIELDS, ENTITY_MAP, \
+from agent_c_tools.tools.dynamics_crm.util import get_oauth_token, DEFAULT_FIELDS, ENTITY_MAP, \
     GUID_STRING_TO_ENTITY_RESOLUTION_MAP, LOOKUPS_ID_TO_COMMON_NAME_MAPPING, COMMON_DATE_FIELDS, \
     validate_odata_query
 
