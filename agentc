@@ -15,7 +15,7 @@ source build_support/posix.env.sh
 # Create directories if they don't exist
 mkdir -p "$AGENT_C_CONFIG_PATH"
 mkdir -p "$AGENT_C_IMAGES_PATH"
-mkdir -p "$AGENT_C_PERSONAS_PATH"
+mkdir -p "$AGENT_C_AGENTS_PATH"
 mkdir -p "$AGENT_C_SAVED_CHAT_FOLDER"
 
 # Check if config file exists and set up AI keys
@@ -50,4 +50,4 @@ if [ "$(uname -m)" = "arm64" ]; then
 fi
 
 # Run in docker compose with any supplied arguments
-COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose -f docker-compose.yml -p agent_c "$@""
+COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose -f docker-compose.yml -p agent_c "$@"
