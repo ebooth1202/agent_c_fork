@@ -59,11 +59,14 @@ class DataframeTools(Toolset):
 
         return json.dumps(result)
 
-    def _is_dataframe_too_big(self, dataframe: str) -> bool:
+    def _is_dataframe_too_big(self, dataframe: str, tool_context: {}) -> bool:
         # dataframe should be passed in as a string for counting tokens - however you plan to pass it back to the LLM
-        _response_count = self.tool_chest.agent.count_tokens(dataframe)
-        # self.logger.info(f"DataFrame token count: {_response_count}")
-        return True if _response_count > self.MAX_DATAFRAME_TOKEN_SIZE else False
+        if tool_context is None and not hasattr(tool_context, 'agent_runtime') :
+            return True  # if no tool context, we can't count tokens, so assume it's too big
+        else:
+            _response_count = tool_context['agent_runtime'].count_tokens(dataframe)
+            # self.logger.info(f"DataFrame token count: {_response_count}")
+            return True if _response_count > self.MAX_DATAFRAME_TOKEN_SIZE else False
 
 
     def _generate_unique_key(self, base_key: str = None) -> str:
