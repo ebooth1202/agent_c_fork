@@ -575,8 +575,12 @@ class MariadbTools(Toolset):
             if force_save:
                 try:
                     df = pd.DataFrame(result)
-                    response_size = self.tool_chest.agent.count_tokens(df.to_json())
-                    force_save = True if response_size > 25000 else force_save
+                    if tool_context is None and not hasattr(tool_context, 'agent_runtime'):
+                        self.logger.debug("No tool_context or agent_runtime available, cannot check token count for response size.")
+                        force_save = True
+                    else:
+                        response_size = tool_context['agent_runtime'].count_tokens(df.to_json())
+                        force_save = True if response_size > 25000 else force_save
 
                     if force_save:
                         file_path = ensure_file_extension(file_path, 'xlsx')
