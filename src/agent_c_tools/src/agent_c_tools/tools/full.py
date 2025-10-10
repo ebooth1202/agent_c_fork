@@ -13,7 +13,7 @@ from .web import WebTools
 from .weather import Weather
 from .random_number import RandomNumberTools
 from .think import ThinkTools
-from .dynamics import DynamicsTools
+from .dynamics_crm import DynamicsCrmTools
 from .markdown_to_html_report import MarkdownToHtmlReportTools
 from .css_explorer import CssExplorerTools
 from .mariadb import MariadbTools
@@ -78,7 +78,7 @@ __all__ = [
     'YoutubeSearchViaWebTools',
 
     # CRM Tools
-    "DynamicsTools",
+    "DynamicsCrmTools",
     "SalesforceTools",
 
     # User preference tools

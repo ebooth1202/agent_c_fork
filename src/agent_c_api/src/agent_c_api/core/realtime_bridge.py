@@ -386,7 +386,7 @@ class RealtimeBridge(ClientEventHandler):
         except Exception as e:
             self.logger.error(f"Error updating tools: {e}\n{traceback.format_exc()}")
             await self.send_system_message(f"Error updating tools: {e}", severity="error")
-            return false
+            return False
 
         if not equipped:
             self.logger.warning(f"Tool update failed. Current Active tools: "
