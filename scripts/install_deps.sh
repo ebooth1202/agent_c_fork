@@ -12,8 +12,8 @@ playwright install
 pip install -e agent_c_api[dev]
 
 
-echo "Performing a clean build of the realtime client..."
-cd  realtime_client
+echo "Performing a clean build of the Typescript client SDK and demo..."
+cd  typescript_client_sdk
 scripts/rebuild.sh
 
 echo "Initial setup completed successfully."
