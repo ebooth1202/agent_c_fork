@@ -575,7 +575,7 @@ class MariadbTools(Toolset):
             if force_save:
                 try:
                     df = pd.DataFrame(result)
-                    if tool_context is None and not hasattr(tool_context, 'agent_runtime'):
+                    if tool_context is None or 'agent_runtime' not in tool_context:
                         self.logger.debug("No tool_context or agent_runtime available, cannot check token count for response size.")
                         force_save = True
                     else:
