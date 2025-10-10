@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -e
+source .venv/bin/activate
 # Install the requirements
 echo "Installing agent_c_packages"
 python -m pip install --upgrade pip
