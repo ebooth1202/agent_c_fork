@@ -180,14 +180,14 @@ class DynamicsCrmTools(Toolset):
         file_path = kwargs.get('file_path', '').strip()
         _OVERSIZE_ENTITY_CAP = 10
         tool_context = kwargs.get('tool_context', {})
+        bridge = tool_context.get('bridge', None)
 
         limit = kwargs.get('limit', None)
         if limit is None:
             limit = 10
-            bridge = tool_context.get('bridge')
-            if bridge:
+            if bridge is not None:
                 message = f":::NOTE\nLimit parameter not provided, defaulting to {limit} records.\nPlease ask for number of records you want if you need more. Asking for 0 records returns all records.:::"
-                bridge.raise_render_media_markdown(message, "MicrosoftStreamTools")
+                await bridge.raise_render_media_markdown(message, "MicrosoftStreamTools")
 
         # Allow specifying additional fields
         additional_fields = kwargs.get('additional_fields', None)
@@ -293,10 +293,6 @@ class DynamicsCrmTools(Toolset):
             self.logger.debug(result)
             self.logger.info(f'Saved data to workspace: {workspace_name} with file name: {file_name}')
 
-            # Create HTML content for the media event
-            # Determine display path for the UI
-            display_path = file_path if file_path else '(root)'
-
             # Get the actual OS-level filepath using the workspace's full_path method
             _, workspace_obj, rel_path = self.tool_chest.available_tools['WorkspaceTools']._parse_unc_path(unc_path)
             file_system_path = None
@@ -305,12 +301,15 @@ class DynamicsCrmTools(Toolset):
                 # Set mkdirs=False since we're just getting the path for a URL, not writing
                 file_system_path = workspace_obj.full_path(rel_path, mkdirs=False)
 
-            # Create a file:// URL from the system path
+            # Create markdown notification using bridge pattern
+            path_info = f' in {file_path}/' if file_path else ' in the root directory'
+            display_path = file_system_path if file_system_path else unc_path
+
+            # Create a file:// URL from the system path for markdown link
             file_url = None
             if file_system_path:
                 # Convert backslashes to forward slashes for URL
                 url_path = file_system_path.replace('\\', '/')
-
                 # Ensure correct URL format (need 3 slashes for file:// URLs with absolute paths)
                 if url_path.startswith('/'):
                     file_url = f"file://{url_path}"
@@ -320,45 +319,22 @@ class DynamicsCrmTools(Toolset):
                 # Fallback if we couldn't get the actual path
                 file_url = f"file:///{unc_path.replace('//', '').replace('\\', '/')}"
 
-            # Determine open command based on path (Windows vs Mac/Linux)
-            open_command = ""
-            if file_system_path:
-                if ':\\' in file_system_path or ':/' in file_system_path:  # Windows path
-                    open_command = f'start "" "{file_system_path}"'
-                else:  # Mac/Linux
-                    open_command = f'open "{file_system_path}"'
+            markdown_message = f""":::IMPORTANT
+📁 **File Saved Successfully**
 
-            html_content = f"""
-<div style="padding: 20px; font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; background-color: #f8fafc;">
-    <h2 style="color: #334155; margin-top: 0;">File Saved Successfully</h2>
-     
-    <div style="background-color: #fff7ed; border-left: 4px solid #f97316; padding: 16px; margin-bottom: 20px;">
-        <p style="margin: 0; font-weight: 500; color: #9a3412;">Browser Security Notice</p>
-        <p style="margin: 8px 0 0 0;">Due to browser security restrictions, you'll need to manually open the file:</p>
-    </div>
+**File:** `{file_name}`  
+**Location:** [{display_path}]({file_url})  
+**Contents:** {len(entities)} records saved  
+**Token Size:** {response_size:,} tokens
 
-    <div style="margin-bottom: 16px;">
-        <p><strong>File path:</strong> <br/>
-        <code style="background: #e2e8f0; padding: 8px; border-radius: 4px; display: block; margin-top: 8px; word-break: break-all;">{file_system_path if file_system_path else unc_path}</code>
-        <p style="margin: 0;"><strong>Contents:</strong> {len(entities)} records saved.</p>
-        </p>
-    </div>
+⚠️ **Browser Security Notice:**  
+Due to browser security restrictions, you may need to manually navigate to the file location to open it.
 
-    <div style="margin-top: 16px;">
-        <a href="{file_url}" target="_blank" style="display: inline-block; background-color: #3b82f6; color: white; text-decoration: none; padding: 10px 16px; border-radius: 6px; font-weight: 500;">Try Direct Link</a>
-        <span style="margin-left: 8px; color: #6b7280;">(may not work due to browser restrictions)</span>
-    </div>
-</div>
-            """
+**Path to copy:** `{display_path}`
+:::"""
 
-            # Raise the media event
-            await self._raise_render_media(
-                sent_by_class=self.__class__.__name__,
-                sent_by_function='get_entities',
-                content_type="text/html",
-                content=html_content,
-                tool_context=kwargs.get('tool_context'),
-            )
+            if bridge is not None:
+                await bridge.raise_render_media_markdown(markdown_message, self.__class__.__name__)
 
             if entity_id is None:
                 if len(entities) > _OVERSIZE_ENTITY_CAP:
