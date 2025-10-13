@@ -12,6 +12,7 @@ from dateutil import parser
 from agent_c_tools.tools.dynamics_crm.util import get_oauth_token, DEFAULT_FIELDS, ENTITY_MAP, \
     GUID_STRING_TO_ENTITY_RESOLUTION_MAP, LOOKUPS_ID_TO_COMMON_NAME_MAPPING, COMMON_DATE_FIELDS, \
     validate_odata_query
+from agent_c_tools.tools.dynamics_crm.util.option_set_mappings import OPTION_SET_MAPPINGS, resolve_option_set
 
 
 # Consider this approach in future
@@ -137,6 +138,26 @@ class DynamicsAPI:
                     name_field = LOOKUPS_ID_TO_COMMON_NAME_MAPPING[lookup_entity]['name_field']
                     resolved_field = f"{field}_resolved"
                     df[resolved_field] = df[field].map(lookup_df[name_field])
+        return df
+    
+    def resolve_option_sets(self, df):
+        """
+        Resolve option set numeric values to text labels.
+        
+        For fields that are option sets, add a _resolved field with the text value.
+        
+        Args:
+            df: DataFrame with entity data
+            
+        Returns:
+            DataFrame with resolved option set fields
+        """
+        for field_name in OPTION_SET_MAPPINGS.keys():
+            if field_name in df.columns:
+                resolved_field = f"{field_name}_resolved"
+                df[resolved_field] = df[field_name].apply(
+                    lambda x: resolve_option_set(field_name, x) if pd.notna(x) else None
+                )
         return df
 
     def add_web_client_url_to_dataset(self, entity_type, df):
@@ -353,6 +374,7 @@ class DynamicsAPI:
 
         df = pd.DataFrame(all_entities)
         df = self.resolve_guids(entity_type, df)
+        df = self.resolve_option_sets(df)  # Add option set resolution
         df = self.add_web_client_url_to_dataset(entity_type, df)
         self.clean_date_fields(df)
 

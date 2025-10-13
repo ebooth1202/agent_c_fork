@@ -13,7 +13,9 @@ from typing import List, Dict, Any, Optional, Literal
 SUMMARY_FIELDS = {
     'opportunities': [
         'opportunityid', 'name', 'estimatedvalue', 'estimatedclosedate',
-        'statecode', 'statuscode', 'cen_weightedrevenue', 'cen_ai',
+        'statecode', 'statecode_resolved', 'statuscode', 'statuscode_resolved',
+        'cen_weightedrevenue', 'cen_airelated', 'cen_airelated_resolved',
+        'cen_opportunitystage', 'cen_opportunitystage_resolved',
         '_parentaccountid_value', '_parentaccountid_value_resolved',  # Client/Account
         '_owningbusinessunit_value', '_owningbusinessunit_value_resolved',
         '_cen_serviceofferingcapabiity1_value_resolved',
@@ -28,8 +30,10 @@ SUMMARY_FIELDS = {
         'statecode', 'webclienturl'
     ],
     'leads': [
-        'leadid', 'fullname', 'companyname', 'statuscode', 'statecode',
-        'estimatedamount', 'cen_ai', 'telephone1', 'emailaddress1',
+        'leadid', 'fullname', 'companyname', 
+        'statuscode', 'statuscode_resolved', 'statecode', 'statecode_resolved',
+        'estimatedamount', 'cen_airelated', 'cen_airelated_resolved', 
+        'telephone1', 'emailaddress1',
         '_owningbusinessunit_value', '_owningbusinessunit_value_resolved',
         'webclienturl'
     ],

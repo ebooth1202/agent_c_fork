@@ -58,7 +58,7 @@ DEFAULT_FIELDS = {
     'leads': {
         'select': ['leadid', 'fullname', 'companyname', 'jobtitle', 'emailaddress1', 'telephone1', 'mobilephone',
                    'address1_composite', 'leadsourcecode', 'industrycode', 'revenue', 'numberofemployees',
-                   'createdon', 'modifiedon', 'statecode', 'statuscode', 'cen_ai', 'estimatedamount',
+                   'createdon', 'modifiedon', 'statecode', 'statuscode', 'cen_airelated', 'estimatedamount',
                    'cen_customerpain', 'revenue', '_owningbusinessunit_value'],
         'expand': {
             'ownerid': ['*'],
@@ -74,7 +74,7 @@ DEFAULT_FIELDS = {
                    '_cen_serviceofferingcapabiity1_value', '_cen_serviceofferingcapability2_value',
                    '_cen_serviceofferingcapability3_value',
                    'cen_opportunitystagepercentage', '_cen_centricivcapability_value', '_cen_solutionpartner_value',
-                   'cen_ai', 'cen_customerpain', 'customerpainpoints', 'cen_centricswinprobability',
+                   'cen_airelated', 'cen_customerpain', 'customerpainpoints', 'cen_centricswinprobability',
                    '_owningbusinessunit_value',
                    '_cen_centricindustryvertical_value', 'cen_highrisk', 'budgetamount'],
         'expand': {

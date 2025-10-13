@@ -61,7 +61,7 @@ class DynamicsCrmTools(Toolset):
         - Custom entities include service offerings, industry verticals, and business units
     """
     def __init__(self, **kwargs):
-        super().__init__(**kwargs, name='dynamics_crm2',
+        super().__init__(**kwargs, name='dynamics_crm',
                          needed_keys=['DYNAMICS_ENDPOINT', 'DYNAMICS_CLIENT_ID', 'DYNAMICS_SCOPE',
                                       'REDIRECT_URI', 'TOKEN_ENDPOINT', 'CENTRIC_ID', 'CENTRIC_PW'])
         if not self.tool_valid:
@@ -402,10 +402,11 @@ class DynamicsCrmTools(Toolset):
         
         if should_save:
             # Save to file but still return summary/data
-            await self._save_to_file(entities, config, presentation, tool_context)
+            file_info = await self._save_to_file(entities, config, presentation, tool_context)
             # Add file save notification to presentation
             presentation['file_saved'] = True
-            presentation['note'] = presentation.get('note', '') + ' Full dataset saved to Excel file.'
+            presentation['file_unc_path'] = file_info['unc_path']
+            presentation['note'] = presentation.get('note', '') + f' Full dataset saved to Excel file at {file_info["unc_path"]}.'
         
         # Return YAML format (with summary or full data, plus file notification if saved)
         return yaml.dump(presentation, default_flow_style=False, sort_keys=False, allow_unicode=True)
@@ -416,7 +417,7 @@ class DynamicsCrmTools(Toolset):
         config: QueryConfig,
         presentation: dict,
         tool_context: dict
-    ) -> None:
+    ) -> dict:
         """
         Save entities to Excel file and send notification.
         
@@ -425,6 +426,9 @@ class DynamicsCrmTools(Toolset):
             config: Query configuration
             presentation: Presentation dictionary from DataPresenter
             tool_context: Tool context with bridge and runtime
+            
+        Returns:
+            Dictionary with file_name, unc_path, workspace_name
         """
         bridge = tool_context.get('bridge', None)
         
@@ -464,6 +468,14 @@ class DynamicsCrmTools(Toolset):
             bridge, file_name, display_path, file_url,
             len(entities), presentation['estimated_tokens'], config.file_path
         )
+        
+        # Return file info for agent to use later
+        return {
+            'file_name': file_name,
+            'unc_path': unc_path,
+            'workspace_name': config.workspace_name,
+            'file_path': config.file_path if config.file_path else None
+        }
     
     def _build_unc_path(self, workspace_name: str, file_path: str, file_name: str) -> str:
         """Construct UNC path from components."""
@@ -525,6 +537,7 @@ Due to browser security restrictions, you may need to manually navigate to the f
                     "cen_industryverticalsubs are sub-categories of service offerings Software Quality Assurance and Testing, Agile, "
                     "businessunits are geographic city office locations like Boston, Columbus, Chicago,  "
                     "cen_industryverticals are industry verticals like Healthcare, Financial Services, Retail.\n"
+                    "cen_airelated is an option set field to denote if an entity is AI related or not.\n"
                     "The function is optimized to return only necessary fields by default to improve efficiency and reduce token usage.",
         params={
             'entity_type': {
@@ -548,9 +561,9 @@ Due to browser security restrictions, you may need to manually navigate to the f
             },
             'limit': {
                 'type': 'integer',
-                'description': 'The maximum number of entities to return',
+                'description': "The maximum number of entities to return.  '0' means return all records. Default is all records.",
                 'required': False,
-                'default': 10
+                'default': 0
             },
             'workspace_name': {
                 'type': 'string',
@@ -628,15 +641,13 @@ Due to browser security restrictions, you may need to manually navigate to the f
         bridge = tool_context.get('bridge', None)
         
         # Handle default limit with user notification
-        limit = kwargs.get('limit', None)
-        if limit is None:
-            limit = 10
-            kwargs['limit'] = limit
+        limit = kwargs.get('limit', 0)
+        if limit > 0:
             if bridge is not None:
                 message = (
                     ":::NOTE\n"
-                    f"Limit parameter not provided, defaulting to {limit} records.\n"
-                    "Please ask for number of records you want if you need more. "
+                    f"Limit parameter was provided, only returning {limit} records.\n"
+                    "Please ask for a specific number of records you want if you need fewer. "
                     "Asking for 0 records returns all records."
                     ":::"
                 )

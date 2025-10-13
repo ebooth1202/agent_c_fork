@@ -27,10 +27,12 @@ async def run_example():
     # Run a tool call, pass in parameters.  Format of the tool name is <toolset_name>_<function_name>
     # if tool requires prefix, don't forget to include before function name.
     result = await tester.run_tool_test(
-        tool_name='dynamics_crm2_get_entities',
+        tool_name='dynamics_crm_get_entities',
         tool_params={
-            "entity_type": "tasks",
-            "limit": 10,
+            "entity_type": "opportunities",
+            "query_params": "$filter=cen_airelated eq 279120000 and statecode eq 0",
+            "limit": 2,
+            "force_save": False
         },
         )
 
