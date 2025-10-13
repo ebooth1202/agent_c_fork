@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import sys
+import threading
 import time
 import types
 from pathlib import Path
@@ -39,6 +40,40 @@ class MockTokenCounter:
         # Simple mock that returns a token count based on text length
         # This avoids the "NoneType has no attribute 'count_tokens'" error when using Workspaces without an agent
         return len(text) // 10  # Rough approximation (10 chars per token)
+
+# Add a mock Event class that's pickleable (unlike threading.Event)
+class MockEvent:
+    """Mock Event class that's pickleable and provides threading.Event interface"""
+
+    def __init__(self):
+        self._is_set = False
+
+    def is_set(self) -> bool:
+        """Return True if the internal flag is set, False otherwise."""
+        return self._is_set
+
+    def set(self) -> None:
+        """Set the internal flag to True."""
+        self._is_set = True
+
+    def clear(self) -> None:
+        """Reset the internal flag to False."""
+        self._is_set = False
+
+    def wait(self, timeout=None) -> bool:
+        """Mock wait - in debug mode, just return the current state.
+        In a real scenario, this would block until set() is called or timeout occurs.
+        For testing purposes, we just return the current state immediately.
+        """
+        return self._is_set
+
+    def __getstate__(self):
+        """Support for pickling"""
+        return {'_is_set': self._is_set}
+
+    def __setstate__(self, state):
+        """Support for unpickling"""
+        self._is_set = state['_is_set']
 
 # Add a mock AgentRuntime for tool_context
 class MockAgentRuntime:
@@ -378,7 +413,8 @@ class ToolDebugger:
                 "user_id": "debug_user",
                 "workspace_id": "debug_workspace",
                 "debug_mode": True,
-                "agent_runtime": MockAgentRuntime()
+                "agent_runtime": MockAgentRuntime(),
+                "client_wants_cancel": MockEvent()
             }
 
         # Add bridge to tool_context - use provided bridge or default to MockBridge
