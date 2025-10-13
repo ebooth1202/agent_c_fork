@@ -167,7 +167,7 @@ class DynamicsAPI:
             try:
                 # Look up whoami ID
                 response = await self.get_entities(entity_type='WhoAmI')
-                self.whoami_id = response[0].get('UserId')
+                self.whoami_id = response[0]['UserId']
             except Exception as e:
                 self.logger.info(f"Failed to get WhoAmI info: {str(e)}")
                 pass
