@@ -4,12 +4,23 @@ import re
 import logging
 import datetime
 import pandas as pd
+import yaml
+from typing import Optional
 
 from bs4 import BeautifulSoup
 
 from agent_c.toolsets import json_schema, Toolset
 from agent_c_tools.tools.dynamics_crm.prompt import DynamicsCRMPrompt
 from agent_c_tools.tools.dynamics_crm.util.dynamics_api import DynamicsAPI, InvalidODataQueryError
+from agent_c_tools.tools.dynamics_crm.query_config import QueryConfig
+from agent_c_tools.tools.dynamics_crm.data_presenter import DataPresenter
+from agent_c_tools.tools.dynamics_crm.error_handler import (
+    format_invalid_odata_error,
+    format_lookup_not_found_error,
+    format_multiple_matches_error,
+    format_api_error,
+    format_excel_creation_error
+)
 # Using workspace tool directly via UNC paths now instead of casting
 from agent_c_tools.helpers.dataframe_in_memory import create_excel_in_memory
 
@@ -91,6 +102,430 @@ class DynamicsCrmTools(Toolset):
             return ''.join(soup.findAll(text=True))
         else:
             return soup.get_text()
+    
+    @staticmethod
+    def _is_guid(value: str) -> bool:
+        """
+        Check if a string matches GUID pattern.
+        
+        Args:
+            value: String to check
+            
+        Returns:
+            True if value matches GUID pattern
+        """
+        guid_pattern = re.compile(
+            r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+        )
+        return bool(guid_pattern.match(value))
+    
+    def _resolve_lookup_filter(self, value: str, lookup_entity: str) -> str:
+        """
+        Convert name to GUID using cached lookups.
+        
+        If value is already a GUID, return it unchanged.
+        If value is a name, look it up in common_lookups cache.
+        
+        Args:
+            value: Name or GUID to resolve
+            lookup_entity: Entity type to look in (e.g., 'businessunits')
+            
+        Returns:
+            GUID string
+            
+        Raises:
+            ValueError: If no match found or multiple matches (with formatted error)
+        """
+        # If already a GUID, return it
+        if self._is_guid(value):
+            return value
+        
+        # Look up in common_lookups
+        lookups = self.dynamics_object.common_lookups.get(lookup_entity, {})
+        if not lookups:
+            available = list(self.dynamics_object.common_lookups.keys())
+            raise ValueError(
+                format_lookup_not_found_error(lookup_entity, value, available)
+            )
+        
+        # Case-insensitive partial matching
+        value_lower = value.lower()
+        matches = []
+        
+        for guid, name in lookups.items():
+            if value_lower in name.lower():
+                matches.append((guid, name))
+        
+        # Handle match results
+        if len(matches) == 0:
+            available_options = list(lookups.values())
+            raise ValueError(
+                format_lookup_not_found_error(lookup_entity, value, available_options)
+            )
+        elif len(matches) > 1:
+            # Check for exact match
+            exact_matches = [(g, n) for g, n in matches if n.lower() == value_lower]
+            if len(exact_matches) == 1:
+                return exact_matches[0][0]
+            
+            match_names = [n for _, n in matches]
+            raise ValueError(
+                format_multiple_matches_error(lookup_entity, value, match_names)
+            )
+        
+        return matches[0][0]
+    
+    def _build_named_filters(self, config: QueryConfig) -> Optional[str]:
+        """
+        Build OData filter strings from named filter parameters.
+        
+        Args:
+            config: Query configuration with named filter fields
+            
+        Returns:
+            OData filter string or None if no named filters
+        """
+        filter_parts = []
+        
+        # Service offering filter (checks 3 fields)
+        if config.filter_by_service_offering:
+            so_guids = []
+            for so_name in config.filter_by_service_offering:
+                try:
+                    guid = self._resolve_lookup_filter(so_name, 'serviceofferings')
+                    so_guids.append(guid)
+                except ValueError as e:
+                    self.logger.warning(f"Service offering lookup failed: {e}")
+                    raise
+            
+            # Build filter for all 3 service offering fields
+            so_conditions = []
+            for guid in so_guids:
+                so_conditions.extend([
+                    f"_cen_serviceofferingcapabiity1_value eq '{guid}'",
+                    f"_cen_serviceofferingcapability2_value eq '{guid}'",
+                    f"_cen_serviceofferingcapability3_value eq '{guid}'"
+                ])
+            filter_parts.append(f"({' or '.join(so_conditions)})")
+        
+        # Business unit filter
+        if config.filter_by_business_unit:
+            bu_conditions = []
+            for bu_name in config.filter_by_business_unit:
+                try:
+                    guid = self._resolve_lookup_filter(bu_name, 'businessunits')
+                    bu_conditions.append(f"_owningbusinessunit_value eq '{guid}'")
+                except ValueError as e:
+                    self.logger.warning(f"Business unit lookup failed: {e}")
+                    raise
+            filter_parts.append(f"({' or '.join(bu_conditions)})")
+        
+        # Industry vertical filter
+        if config.filter_by_industry_vertical:
+            iv_conditions = []
+            for iv_name in config.filter_by_industry_vertical:
+                try:
+                    guid = self._resolve_lookup_filter(iv_name, 'industryverticals')
+                    iv_conditions.append(f"_cen_centricindustryvertical_value eq '{guid}'")
+                except ValueError as e:
+                    self.logger.warning(f"Industry vertical lookup failed: {e}")
+                    raise
+            filter_parts.append(f"({' or '.join(iv_conditions)})")
+        
+        if not filter_parts:
+            return None
+        
+        # Combine all filter parts with 'and'
+        return ' and '.join(filter_parts)
+
+    def _build_query_config(self, **kwargs) -> QueryConfig:
+        """
+        Build and validate query configuration from kwargs.
+        
+        Args:
+            **kwargs: Raw parameters from tool invocation
+            
+        Returns:
+            QueryConfig: Validated configuration object
+        """
+        config = QueryConfig(
+            entity_type=kwargs.get('entity_type', 'opportunities'),
+            entity_id=kwargs.get('entity_id', None),
+            query_params=kwargs.get('query_params', ''),
+            limit=kwargs.get('limit', 10),
+            additional_fields=kwargs.get('additional_fields', None),
+            override_fields=kwargs.get('override_fields', None),
+            additional_expand=kwargs.get('additional_expand', None),
+            workspace_name=kwargs.get('workspace_name', 'project'),
+            file_path=kwargs.get('file_path', '').strip(),
+            force_save=kwargs.get('force_save', False),
+            filter_by_service_offering=kwargs.get('filter_by_service_offering', None),
+            filter_by_business_unit=kwargs.get('filter_by_business_unit', None),
+            filter_by_industry_vertical=kwargs.get('filter_by_industry_vertical', None)
+        )
+        
+        # Build named filters if any are specified
+        named_filter = self._build_named_filters(config)
+        
+        # Integrate named filters into query_params
+        if named_filter:
+            if "$filter" in config.query_params:
+                # Extract existing filter
+                filter_match = re.search(r'\$filter=([^&]*)', config.query_params)
+                if filter_match:
+                    existing_filter = filter_match.group(1)
+                    # Combine with named filter
+                    combined_filter = f"({existing_filter}) and ({named_filter})"
+                    config.query_params = config.query_params.replace(
+                        filter_match.group(0), f"$filter={combined_filter}"
+                    )
+            else:
+                # Add named filter as new $filter
+                separator = "&" if config.query_params else ""
+                config.query_params += f"{separator}$filter={named_filter}"
+        
+        # Handle statecode filter for accounts
+        if config.entity_type == 'accounts':
+            if "$filter" in config.query_params:
+                filter_part = re.search(r'\$filter=([^&]*)', config.query_params)
+                if filter_part:
+                    filter_content = filter_part.group(1)
+                    if 'statecode' not in filter_content:
+                        statecode_filter = "statecode eq 0"
+                        new_filter = f"({statecode_filter}) and ({filter_content})"
+                        config.query_params = config.query_params.replace(
+                            filter_part.group(0), f"$filter={new_filter}"
+                        )
+        
+        # Add $top if not present and limit is specified
+        if "$top" not in config.query_params and config.limit > 0:
+            config.query_params += f"&$top={config.limit}"
+        
+        return config
+
+    async def _fetch_entities(self, config: QueryConfig):
+        """
+        Fetch entities from Dynamics API based on configuration.
+        
+        Args:
+            config: Query configuration
+            
+        Returns:
+            List of entity dictionaries or None
+            
+        Raises:
+            InvalidODataQueryError: If the OData query is malformed
+            Exception: For other API errors
+        """
+        # Ensure common lookups are loaded
+        if self.dynamics_object.common_lookups is None:
+            await self.dynamics_object.one_time_lookups()
+        
+        # Fetch entities based on whether we have a specific ID or not
+        if config.entity_id:
+            return await self.dynamics_object.get_entities(
+                entity_type=config.entity_type,
+                entity_id=config.entity_id,
+                additional_fields=config.additional_fields,
+                override_fields=config.override_fields,
+                additional_expand=config.additional_expand
+            )
+        else:
+            return await self.dynamics_object.get_entities(
+                entity_type=config.entity_type,
+                query_params=config.query_params,
+                additional_fields=config.additional_fields,
+                override_fields=config.override_fields,
+                additional_expand=config.additional_expand
+            )
+
+    def _clean_entity_data(self, entities, entity_type: str):
+        """
+        Clean HTML/XML content from entity fields.
+        
+        Args:
+            entities: List of entity dictionaries or single entity
+            entity_type: Type of entities being cleaned
+            
+        Returns:
+            Cleaned entities (same structure as input)
+        """
+        if entities is None or entity_type not in self.ENTITY_CLEAN_FIELDS:
+            return entities
+        
+        field, parser = self.ENTITY_CLEAN_FIELDS[entity_type]
+        
+        # Handle both single entity and list of entities
+        entities_list = entities if isinstance(entities, list) else [entities]
+        
+        for entity in entities_list:
+            if field in entity:
+                entity[field] = self.clean_html_xml(entity[field], parser)
+        
+        return entities
+
+    async def _present_results(self, entities, config: QueryConfig, **kwargs) -> str:
+        """
+        Present query results to the user using DataPresenter.
+        
+        Delegates to DataPresenter for smart presentation mode selection.
+        Handles file saving for large datasets.
+        
+        Args:
+            entities: List of entity dictionaries
+            config: Query configuration
+            **kwargs: Additional context (tool_context, etc.)
+            
+        Returns:
+            YAML string containing results or file information
+        """
+        tool_context = kwargs.get('tool_context', {})
+        bridge = tool_context.get('bridge', None)
+        agent_runtime = tool_context.get('agent_runtime')
+        
+        # Create presenter
+        presenter = DataPresenter(agent_runtime=agent_runtime)
+        
+        # Get presentation with automatic mode selection
+        presentation = presenter.present(
+            entities=entities,
+            entity_type=config.entity_type,
+            mode='auto'
+        )
+        
+        # Check if we need to save to file (> 15 records)
+        should_save = (
+            config.force_save or 
+            len(entities) > 15 or
+            presentation['estimated_tokens'] > 25000
+        )
+        
+        if should_save:
+            # Save to file but still return summary/data
+            file_info = await self._save_to_file(entities, config, presentation, tool_context)
+            # Add file save notification to presentation
+            presentation['file_saved'] = True
+            presentation['file_unc_path'] = file_info['unc_path']
+            presentation['note'] = presentation.get('note', '') + f' Full dataset saved to Excel file at {file_info["unc_path"]}.'
+        
+        # Return YAML format (with summary or full data, plus file notification if saved)
+        return yaml.dump(presentation, default_flow_style=False, sort_keys=False, allow_unicode=True)
+    
+    async def _save_to_file(
+        self,
+        entities: list,
+        config: QueryConfig,
+        presentation: dict,
+        tool_context: dict
+    ) -> dict:
+        """
+        Save entities to Excel file and send notification.
+        
+        Args:
+            entities: List of entity dictionaries
+            config: Query configuration
+            presentation: Presentation dictionary from DataPresenter
+            tool_context: Tool context with bridge and runtime
+            
+        Returns:
+            Dictionary with file_name, unc_path, workspace_name
+        """
+        bridge = tool_context.get('bridge', None)
+        
+        self.logger.info(
+            f"Saving large dataset: force_save={config.force_save}, "
+            f"tokens={presentation['estimated_tokens']}, records={len(entities)}"
+        )
+        
+        # Create file name
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_name = f'{config.entity_type}_{timestamp}.xlsx'
+        
+        # Construct UNC path
+        unc_path = self._build_unc_path(config.workspace_name, config.file_path, file_name)
+        
+        # Create Excel file
+        try:
+            excel_buffer = create_excel_in_memory(pd.DataFrame(entities))
+        except Exception as e:
+            return format_excel_creation_error(str(e))
+        
+        # Write file
+        await self.tool_chest.available_tools['WorkspaceTools'].internal_write_bytes(
+            path=unc_path,
+            mode='write',
+            data=excel_buffer.getvalue()
+        )
+        self.logger.info(f'Saved to {config.workspace_name}: {file_name}')
+        
+        # Get file system path
+        file_system_path = self._get_file_system_path(unc_path)
+        display_path = file_system_path if file_system_path else unc_path
+        file_url = self._create_file_url(file_system_path, unc_path)
+        
+        # Send markdown notification
+        await self._send_file_notification(
+            bridge, file_name, display_path, file_url,
+            len(entities), presentation['estimated_tokens'], config.file_path
+        )
+        
+        # Return file info for agent to use later
+        return {
+            'file_name': file_name,
+            'unc_path': unc_path,
+            'workspace_name': config.workspace_name,
+            'file_path': config.file_path if config.file_path else None
+        }
+    
+    def _build_unc_path(self, workspace_name: str, file_path: str, file_name: str) -> str:
+        """Construct UNC path from components."""
+        if file_path:
+            return f"//{workspace_name}/{file_path}/{file_name}"
+        else:
+            return f"//{workspace_name}/{file_name}"
+    
+    def _get_file_system_path(self, unc_path: str) -> Optional[str]:
+        """Get OS file system path from UNC path."""
+        _, workspace_obj, rel_path = self.tool_chest.available_tools[
+            'WorkspaceTools'
+        ]._parse_unc_path(unc_path)
+        
+        if workspace_obj and hasattr(workspace_obj, 'full_path'):
+            return workspace_obj.full_path(rel_path, mkdirs=False)
+        return None
+    
+    def _create_file_url(self, file_system_path: Optional[str], unc_path: str) -> str:
+        """Create file:// URL from paths."""
+        if file_system_path:
+            url_path = file_system_path.replace('\\', '/')
+            return f"file://{url_path}" if url_path.startswith('/') else f"file:///{url_path}"
+        else:
+            return f"file:///{unc_path.replace('//', '').replace('\\', '/')}"
+    
+    async def _send_file_notification(
+        self, bridge, file_name: str, display_path: str,
+        file_url: str, record_count: int, token_count: int, file_path: str
+    ):
+        """Send markdown notification about saved file."""
+        if bridge is None:
+            return
+        
+        path_info = f' in {file_path}/' if file_path else ' in the root directory'
+        markdown_message = f""":::IMPORTANT
+📁 **File Saved Successfully**
+
+**File:** `{file_name}`  
+**Location:** [{display_path}]({file_url})  
+**Contents:** {record_count} records saved  
+**Token Size:** {token_count:,} tokens
+
+⚠️ **Browser Security Notice:**  
+Due to browser security restrictions, you may need to manually navigate to the file location to open it.
+
+**Path to copy:** `{display_path}`
+:::"""
+        
+        await bridge.raise_render_media_markdown(markdown_message, self.__class__.__name__)
 
     @json_schema(
         description="Get one or more entities from Dynamics CRM.  "
@@ -102,6 +537,7 @@ class DynamicsCrmTools(Toolset):
                     "cen_industryverticalsubs are sub-categories of service offerings Software Quality Assurance and Testing, Agile, "
                     "businessunits are geographic city office locations like Boston, Columbus, Chicago,  "
                     "cen_industryverticals are industry verticals like Healthcare, Financial Services, Retail.\n"
+                    "cen_airelated is an option set field to denote if an entity is AI related or not.\n"
                     "The function is optimized to return only necessary fields by default to improve efficiency and reduce token usage.",
         params={
             'entity_type': {
@@ -125,9 +561,9 @@ class DynamicsCrmTools(Toolset):
             },
             'limit': {
                 'type': 'integer',
-                'description': 'The maximum number of entities to return',
+                'description': "The maximum number of entities to return.  '0' means return all records. Default is all records.",
                 'required': False,
-                'default': 10
+                'default': 0
             },
             'workspace_name': {
                 'type': 'string',
@@ -168,199 +604,74 @@ class DynamicsCrmTools(Toolset):
                 'description': 'List of specific fields to return for the entity. This will override the default fields returned. Do not use unless you absolutely must.',
                 'required': False
             },
+            'filter_by_service_offering': {
+                'type': 'array',
+                'items': {
+                    'type': 'string'
+                },
+                'description': 'Filter by service offering name(s) or GUID(s). Examples: ["Data & Analytics", "Cybersecurity"]. Accepts friendly names or GUIDs.',
+                'required': False
+            },
+            'filter_by_business_unit': {
+                'type': 'array',
+                'items': {
+                    'type': 'string'
+                },
+                'description': 'Filter by business unit name(s) or GUID(s). Examples: ["Columbus", "Chicago"]. Accepts friendly names or GUIDs.',
+                'required': False
+            },
+            'filter_by_industry_vertical': {
+                'type': 'array',
+                'items': {
+                    'type': 'string'
+                },
+                'description': 'Filter by industry vertical name(s) or GUID(s). Examples: ["Healthcare", "Financial Services"]. Accepts friendly names or GUIDs.',
+                'required': False
+            },
         }
     )
     async def get_entities(self, **kwargs):
-        entity_id = kwargs.get('entity_id', None)
-        workspace_name = kwargs.get('workspace_name', 'project')
-        query_params = kwargs.get('query_params', '')
-        entity_type = kwargs.get('entity_type', 'opportunities')
-        statecode_filter = "statecode eq 0"  # we only want active entities
-        force_save = kwargs.get('force_save', False)
-        file_path = kwargs.get('file_path', '').strip()
-        _OVERSIZE_ENTITY_CAP = 10
+        """
+        Get one or more entities from Dynamics CRM.
+        
+        This method orchestrates the entity retrieval process by delegating
+        to specialized helper methods for each step.
+        """
         tool_context = kwargs.get('tool_context', {})
         bridge = tool_context.get('bridge', None)
-
-        limit = kwargs.get('limit', None)
-        if limit is None:
-            limit = 10
+        
+        # Handle default limit with user notification
+        limit = kwargs.get('limit', 0)
+        if limit > 0:
             if bridge is not None:
-                message = f":::NOTE\nLimit parameter not provided, defaulting to {limit} records.\nPlease ask for number of records you want if you need more. Asking for 0 records returns all records.:::"
-                await bridge.raise_render_media_markdown(message, "MicrosoftStreamTools")
-
-        # Allow specifying additional fields
-        additional_fields = kwargs.get('additional_fields', None)
-        # Allow specifying fields that completely override the defaults
-        override_fields = kwargs.get('override_fields', None)
-        # Allow specifying additional expand relationships
-        additional_expand = kwargs.get('additional_expand', None)
-
-        # get core lookups
-        if self.dynamics_object.common_lookups is None:
-            await self.dynamics_object.one_time_lookups()
-
-        if query_params:
-            # I don't love this, but we have a ton of closed accounts that nearly mirrors our open accounts in our CRM
-            if "$filter" in query_params and ("accounts" in query_params):
-                # Regex for checking if statecode is already in the filter.
-                # Statecode determines if record is active or not
-                filter_part = re.search(r'\$filter=([^&]*)', query_params)
-
-                if filter_part:
-                    filter_content = filter_part.group(1)
-                    if 'statecode' not in filter_content:
-                        # Add statecode filter if it's not already there
-                        new_filter = f"({statecode_filter}) and ({filter_content})"
-                        query_params = query_params.replace(filter_part.group(0), f"$filter={new_filter}")
-                else:
-                    # if no query params were passed, at least only pull the active entities
-                    query_params += f"&$filter={statecode_filter}"
-
-        if "$top" not in query_params and limit > 0:
-            query_params += f"&$top={limit}"
-
+                message = (
+                    ":::NOTE\n"
+                    f"Limit parameter was provided, only returning {limit} records.\n"
+                    "Please ask for a specific number of records you want if you need fewer. "
+                    "Asking for 0 records returns all records."
+                    ":::"
+                )
+                await bridge.raise_render_media_markdown(message, self.__class__.__name__)
+        
+        # Step 1: Build and validate query configuration
+        config = self._build_query_config(**kwargs)
+        
+        # Step 2: Fetch entities from Dynamics API
         try:
-            if entity_id:
-                entities = await self.dynamics_object.get_entities(
-                    entity_type=entity_type,
-                    entity_id=entity_id,
-                    additional_fields=additional_fields,
-                    override_fields=override_fields,
-                    additional_expand=additional_expand
-                )
-            else:
-                entities = await self.dynamics_object.get_entities(
-                    entity_type=entity_type,
-                    query_params=query_params,
-                    additional_fields=additional_fields,
-                    override_fields=override_fields,
-                    additional_expand=additional_expand
-                )
+            entities = await self._fetch_entities(config)
         except InvalidODataQueryError as e:
-            return json.dumps({"error": f"Invalid OData query: {str(e)}"})
+            return format_invalid_odata_error(config.query_params, str(e))
+        except ValueError as e:
+            # ValueError is raised by lookup resolution with formatted errors
+            return str(e)
         except Exception as e:
-            return json.dumps({"error": f"Error fetching entities: {str(e)}"})
-
-        # this is to clean fields like notes, annotations that contain either html or xml, reduce token consumption
-        if entities is not None and entity_type in self.ENTITY_CLEAN_FIELDS:
-            field, parser = self.ENTITY_CLEAN_FIELDS[entity_type]
-            for entity in entities:
-                if field in entity:
-                    entity[field] = self.clean_html_xml(entity[field], parser)
-
-        # deal with overly large datasets.
-        tool_context = kwargs.get('tool_context', {})
-        agent_runtime = tool_context.get('agent_runtime')
-        if agent_runtime and hasattr(agent_runtime, 'count_tokens'):
-            response_size = agent_runtime.count_tokens(json.dumps(entities))
-        else:
-            # Fallback for debug environments or missing agent_runtime
-            response_size = len(json.dumps(entities)) // 10  # Rough approximation
-
-        if response_size > 25000 or len(entities) > _OVERSIZE_ENTITY_CAP or force_save:
-            # Response is too large, user requested save, or the response is too many records to deal with save it.
-            self.logger.info(f"User requested local save: ({force_save})")
-            self.logger.info(f"Dataset token size: ({response_size})")
-            self.logger.info(f"Number of records: ({len(entities)})")
-
-            # Create unique file name based on date/time
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            file_name = f'{entity_type}_{timestamp}.xlsx'
-
-            # Construct the UNC path, incorporating the file_path if provided
-            if file_path:
-                # Normalize the path (remove leading/trailing slashes)
-                normalized_path = file_path.strip('/')
-                unc_path = f"//{workspace_name}/{normalized_path}/{file_name}"
-            else:
-                unc_path = f"//{workspace_name}/{file_name}"
-
-            # Create the Excel file in memory
-            try:
-                # if the entities are not a list of dictionaries, this will fail, usually because dynamics returns
-                # an error message, but a 200 status code like query has unbalanced brackets
-                excel_buffer = create_excel_in_memory(pd.DataFrame(entities))
-            except Exception as e:
-                return json.dumps({"error": f"Error creating excel buffer bytes: {str(e)}\n\n{entities}"})
-
-            # Write the file using the UNC path
-            result = await self.tool_chest.available_tools['WorkspaceTools'].internal_write_bytes(
-                path=unc_path,
-                mode='write',
-                data=excel_buffer.getvalue()
-            )
-            self.logger.debug(result)
-            self.logger.info(f'Saved data to workspace: {workspace_name} with file name: {file_name}')
-
-            # Get the actual OS-level filepath using the workspace's full_path method
-            _, workspace_obj, rel_path = self.tool_chest.available_tools['WorkspaceTools']._parse_unc_path(unc_path)
-            file_system_path = None
-            if workspace_obj and hasattr(workspace_obj, 'full_path'):
-                # The full_path method handles path normalization and joining with workspace root
-                # Set mkdirs=False since we're just getting the path for a URL, not writing
-                file_system_path = workspace_obj.full_path(rel_path, mkdirs=False)
-
-            # Create markdown notification using bridge pattern
-            path_info = f' in {file_path}/' if file_path else ' in the root directory'
-            display_path = file_system_path if file_system_path else unc_path
-
-            # Create a file:// URL from the system path for markdown link
-            file_url = None
-            if file_system_path:
-                # Convert backslashes to forward slashes for URL
-                url_path = file_system_path.replace('\\', '/')
-                # Ensure correct URL format (need 3 slashes for file:// URLs with absolute paths)
-                if url_path.startswith('/'):
-                    file_url = f"file://{url_path}"
-                else:
-                    file_url = f"file:///{url_path}"
-            else:
-                # Fallback if we couldn't get the actual path
-                file_url = f"file:///{unc_path.replace('//', '').replace('\\', '/')}"
-
-            markdown_message = f""":::IMPORTANT
-📁 **File Saved Successfully**
-
-**File:** `{file_name}`  
-**Location:** [{display_path}]({file_url})  
-**Contents:** {len(entities)} records saved  
-**Token Size:** {response_size:,} tokens
-
-⚠️ **Browser Security Notice:**  
-Due to browser security restrictions, you may need to manually navigate to the file location to open it.
-
-**Path to copy:** `{display_path}`
-:::"""
-
-            if bridge is not None:
-                await bridge.raise_render_media_markdown(markdown_message, self.__class__.__name__)
-
-            if entity_id is None:
-                if len(entities) > _OVERSIZE_ENTITY_CAP:
-                    entity_data = entities[_OVERSIZE_ENTITY_CAP]
-                else:
-                    entity_data = entities
-            else:
-                entity_data = entities[0]
-
-            # Create a more informative user message that includes path information
-            path_info = f' in {file_path}/' if file_path else ' in the root directory'
-
-            return json.dumps({
-                'user_message': f"Display this message to the user. The response was saved to a file {file_name}{path_info} of the {workspace_name} workspace. "
-                                f"Here are the first {_OVERSIZE_ENTITY_CAP} of {len(entities)} entities. The dataset size is {response_size} tokens. "
-                                f"The query_params used was: {query_params}"
-                                f"{'The $top query_param limited records' if '$top' in query_params else ''}",
-                'file_name': file_name,
-                'workspace_name': workspace_name,
-                'file_path': file_path,
-                'unc_path': unc_path,
-                'entity_data': entity_data,
-                'entity_count': len(entities)
-            })
-        else:
-            return json.dumps(entities)
+            return format_api_error('fetching entities', str(e))
+        
+        # Step 3: Clean HTML/XML content from entity data
+        entities = self._clean_entity_data(entities, config.entity_type)
+        
+        # Step 4: Present results to user (handles formatting and file saving)
+        return await self._present_results(entities, config, **kwargs)
 
     @json_schema(
         description="Force re-logging into Dynamics at user request only.",
