@@ -37,6 +37,8 @@ from .insurance_demo import InsuranceDemoTools
 from .workspace import DynamicCommandTools
 from .toolbelt.tool import ToolbeltTools
 from .microsoft_stream.tool import MicrosoftStreamTools
+from .plsql_reverse_engineering.tool import PlsqlReverseEngineeringTools
+from .reverse_engineering import ReverseEngineeringTools
 
 __all__ = [
     # Essential Tools for good agents
@@ -48,6 +50,9 @@ __all__ = [
     # Code Exploring Tools
     'CssExplorerTools',
     'XmlExplorerTools',
+    'PlsqlReverseEngineeringTools',
+    'ReverseEngineeringTools',
+
 
     # Workspace tools
     'WorkspaceTools',
