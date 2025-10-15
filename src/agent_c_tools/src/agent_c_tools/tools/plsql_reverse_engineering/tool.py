@@ -22,6 +22,7 @@ from agent_c_tools.tools.plsql_reverse_engineering.plsql_parser import (
     get_unit_source,
     PlSqlUnit
 )
+from agent_c_tools.tools.workspace.base import BaseWorkspace
 from agent_c_tools.tools.workspace.tool import WorkspaceTools
 
 
@@ -49,6 +50,30 @@ class PlsqlReverseEngineeringTools(AgentAssistToolBase):
         self.recon_oneshot = self.agent_loader.catalog['recon_oneshot']
         self.recon_revise_oneshot = self.agent_loader.catalog['recon_revise_oneshot']
         self.recon_answers_oneshot = self.agent_loader.catalog['recon_answers_oneshot']
+        
+        # Maximum file size in tokens before using chunked reading (conservative estimate)
+        self.max_file_tokens = 40000  # Stay under 50k limit with buffer
+
+    def _get_safe_tool_context_values(self, tool_context: Dict[str, Any]) -> tuple:
+        """
+        Safely extract required values from tool_context with defaults.
+        
+        Returns:
+            tuple: (client_wants_cancel, session_id)
+        """
+        # Get client_wants_cancel with a default Event if missing
+        client_wants_cancel = tool_context.get('client_wants_cancel')
+        if client_wants_cancel is None:
+            self.logger.warning("client_wants_cancel not found in tool_context, creating default Event")
+            client_wants_cancel = threading.Event()
+        
+        # Get session_id with a default if missing
+        session_id = tool_context.get('session_id')
+        if session_id is None:
+            self.logger.warning("session_id not found in tool_context, using 'unknown-session'")
+            session_id = 'unknown-session'
+        
+        return client_wants_cancel, session_id
 
     async def _parallel_agent_oneshots(
         self,
@@ -59,6 +84,10 @@ class PlsqlReverseEngineeringTools(AgentAssistToolBase):
         client_wants_cancel: threading.Event
     ) -> List[Optional[List[Dict[str, Any]]]]:
         """Run multiple agent oneshots in parallel using asyncio.gather."""
+        # Get the calling agent config for prime_agent_key
+        calling_agent_config = tool_context.get('agent_config', tool_context.get('active_agent'))
+        prime_agent_key = calling_agent_config.key if calling_agent_config else "unknown"
+        
         tasks = [
             self.agent_oneshot(
                 user_message=msg,
@@ -66,11 +95,39 @@ class PlsqlReverseEngineeringTools(AgentAssistToolBase):
                 parent_session_id=user_session_id,
                 user_session_id=user_session_id,
                 parent_tool_context=tool_context,
-                client_wants_cancel=client_wants_cancel
+                client_wants_cancel=client_wants_cancel,
+                sub_agent_type="tool",
+                prime_agent_key=prime_agent_key
             )
             for msg in messages
         ]
         return await asyncio.gather(*tasks)
+
+    async def _read_large_file(self, workspace: BaseWorkspace, file_path: str) -> str:
+        """
+        Read a potentially large file, handling token limits gracefully.
+        
+        workspace.read_internal() bypasses token limits, so we use that directly.
+        This allows us to read files of any size for parsing, then we only send
+        individual units (which are smaller) to the AI agents.
+        
+        Args:
+            workspace: The workspace containing the file
+            file_path: Relative path to the file within the workspace
+            
+        Returns:
+            Full file contents as a string
+            
+        Raises:
+            Exception if the file cannot be read
+        """
+        try:
+            # read_internal bypasses the token limit checks in the workspace.read() tool method
+            content = await workspace.read_internal(file_path, encoding='utf-8')
+            return content
+        except Exception as e:
+            self.logger.error(f"Failed to read file {file_path}: {str(e)}")
+            raise Exception(f"Unable to read file {file_path}: {str(e)}")
 
     async def _prepare_unit_for_analysis(self, workspace_name: str, file_path: str, unit: PlSqlUnit, full_source: str) -> str:
         """
@@ -168,7 +225,7 @@ class PlsqlReverseEngineeringTools(AgentAssistToolBase):
     async def plsql_analyze_source(self, **kwargs) -> str:
         """Analyze PL/SQL source files matching a glob pattern."""
         tool_context: Dict[str, Any] = kwargs['tool_context']
-        client_wants_cancel: threading.Event = tool_context["client_wants_cancel"]
+        client_wants_cancel, _ = self._get_safe_tool_context_values(tool_context)
         glob_pattern: str = kwargs.get('glob')
         batch_size: int = kwargs.get('batch_size', 2)
         
@@ -199,7 +256,9 @@ class PlsqlReverseEngineeringTools(AgentAssistToolBase):
                 return f"Analysis cancelled. Processed {len(all_analysis_items)} units before cancellation."
 
             try:
-                source = await workspace.read(file_path)
+                # Use read_internal to bypass token limits for parsing
+                # (we only send small units to agents, not the full file)
+                source = await self._read_large_file(workspace, file_path)
                 items = await self._analyze_plsql_file(workspace.name, file_path, source, tool_context)
                 all_analysis_items.extend(items)
             except Exception as e:
@@ -254,7 +313,7 @@ class PlsqlReverseEngineeringTools(AgentAssistToolBase):
     async def plsql_analyze_tree(self, **kwargs) -> str:
         """Analyze all PL/SQL files in a directory tree."""
         tool_context: Dict[str, Any] = kwargs['tool_context']
-        client_wants_cancel: threading.Event = tool_context["client_wants_cancel"]
+        client_wants_cancel, _ = self._get_safe_tool_context_values(tool_context)
         start_path: str = kwargs.get('start_path')
         batch_size: int = kwargs.get('batch_size', 2)
         extensions: List[str] = kwargs.get('extensions', self.default_extensions)
@@ -288,7 +347,9 @@ class PlsqlReverseEngineeringTools(AgentAssistToolBase):
                 return f"Analysis cancelled. Processed {len(all_analysis_items)} units before cancellation."
 
             try:
-                source = await workspace.read(file_path)
+                # Use read_internal to bypass token limits for parsing
+                # (we only send small units to agents, not the full file)
+                source = await self._read_large_file(workspace, file_path)
                 items = await self._analyze_plsql_file(workspace.name, file_path, source, tool_context)
                 all_analysis_items.extend(items)
             except Exception as e:
@@ -333,9 +394,14 @@ class PlsqlReverseEngineeringTools(AgentAssistToolBase):
     async def plsql_query_analysis(self, **kwargs) -> str:
         """Query an expert about the analyzed PL/SQL codebase."""
         tool_context: Dict[str, Any] = kwargs['tool_context']
-        client_wants_cancel: threading.Event = tool_context["client_wants_cancel"]
+        client_wants_cancel, session_id = self._get_safe_tool_context_values(tool_context)
         request: str = kwargs.get('request')
         workspace_name: str = kwargs.get('workspace')
+        
+        # Get the calling agent config for prime_agent_key
+        calling_agent_config = tool_context.get('agent_config', tool_context.get('active_agent'))
+        if calling_agent_config is None:
+            return "ERROR: No agent configuration found in tool context. This tool requires an active agent configuration to function."
 
         workspace = self.workspace_tool.find_workspace_by_name(workspace_name)
         if not workspace:
@@ -364,10 +430,12 @@ class PlsqlReverseEngineeringTools(AgentAssistToolBase):
         messages = await self.agent_oneshot(
             user_message=request,
             agent=agent,
-            parent_session_id=tool_context['session_id'],
-            user_session_id=tool_context['session_id'],
+            parent_session_id=session_id,
+            user_session_id=session_id,
             parent_tool_context=tool_context,
-            client_wants_cancel=client_wants_cancel
+            client_wants_cancel=client_wants_cancel,
+            sub_agent_type="tool",
+            prime_agent_key=calling_agent_config.key
         )
         
         last_message = messages[-1] if messages else None
@@ -388,6 +456,7 @@ class PlsqlReverseEngineeringTools(AgentAssistToolBase):
         """
         pass_one_results = []
         parallel = batch_size > 1
+        session_id = tool_context.get('session_id', 'unknown-session')
 
         await self._render_media_markdown(
             f"\n### Pass 1: Initial Analysis\n\nProcessing {len(analysis_items)} units...\n",
@@ -419,7 +488,7 @@ class PlsqlReverseEngineeringTools(AgentAssistToolBase):
                 results = await self._parallel_agent_oneshots(
                     messages=contexts,
                     persona=self.recon_oneshot,
-                    user_session_id=tool_context['session_id'],
+                    user_session_id=session_id,
                     tool_context=tool_context,
                     client_wants_cancel=client_wants_cancel
                 )
@@ -446,13 +515,18 @@ class PlsqlReverseEngineeringTools(AgentAssistToolBase):
                     tool_context=tool_context
                 )
 
+                # Get the calling agent config for prime_agent_key
+                calling_agent_config = tool_context.get('agent_config', tool_context.get('active_agent'))
+                
                 result = await self.agent_oneshot(
                     user_message=item['context'],
                     agent=self.recon_oneshot,
-                    parent_session_id=tool_context['session_id'],
-                    user_session_id=tool_context['session_id'],
+                    parent_session_id=session_id,
+                    user_session_id=session_id,
                     parent_tool_context=tool_context,
-                    client_wants_cancel=client_wants_cancel
+                    client_wants_cancel=client_wants_cancel,
+                    sub_agent_type="tool",
+                    prime_agent_key=calling_agent_config.key if calling_agent_config else "unknown"
                 )
                 
                 pass_one_results.append(result)
@@ -477,6 +551,7 @@ class PlsqlReverseEngineeringTools(AgentAssistToolBase):
         Sequential processing to ensure quality and depth.
         """
         pass_two_results = []
+        session_id = tool_context.get('session_id', 'unknown-session')
 
         await self._render_media_markdown(
             f"\n### Pass 2: Refinement & Enhancement\n\nProcessing {len(analysis_items)} units...\n",
@@ -499,13 +574,18 @@ class PlsqlReverseEngineeringTools(AgentAssistToolBase):
                 tool_context=tool_context
             )
 
+            # Get the calling agent config for prime_agent_key
+            calling_agent_config = tool_context.get('agent_config', tool_context.get('active_agent'))
+            
             result = await self.agent_oneshot(
                 user_message=item['context'],
                 agent=self.recon_revise_oneshot,
-                parent_session_id=tool_context['session_id'],
-                user_session_id=tool_context['session_id'],
+                parent_session_id=session_id,
+                user_session_id=session_id,
                 parent_tool_context=tool_context,
-                client_wants_cancel=client_wants_cancel
+                client_wants_cancel=client_wants_cancel,
+                sub_agent_type="tool",
+                prime_agent_key=calling_agent_config.key if calling_agent_config else "unknown"
             )
             
             pass_two_results.append(result)
