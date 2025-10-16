@@ -135,7 +135,7 @@ class OfficeToMarkdownTools(Toolset):
                 )
 
                 # Check for write errors - write_result can be either:
-                # 1. JSON string with error: {"error": "message"}
+                # 1. JSON string with error: {"error": "message"} 
                 # 2. Plain string for success
                 try:
                     # Try to parse as JSON first to check for structured error response
