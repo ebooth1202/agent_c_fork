@@ -6,9 +6,12 @@ setup(
     packages=find_packages(where="src"),
     package_dir={"":"src"},
     install_requires=[
-        "tree-sitter>=0.20.1",
-        "tree-sitter-python",
-        "tree-sitter-c-sharp",
+        "tree-sitter>=0.25.0",
+        "tree-sitter-python>=0.23.0",
+        "tree-sitter-c-sharp>=0.23.0",
+        "tree-sitter-java>=0.23.0",
+        "tree-sitter-javascript>=0.25.0",
+        "PyYAML>=6.0",
     ],
     extras_require={
         "dev": [
