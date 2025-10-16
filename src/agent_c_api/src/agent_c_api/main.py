@@ -23,7 +23,10 @@ _timing = {
 LoggingManager.configure_root_logger()
 LoggingManager.configure_external_loggers()
 LoggingManager.configure_external_loggers({
-    "agent_c_api.core.util.middleware_logging": "WARNING"  # Show INFO logs for middleware_logging, debug is too noisy
+    "agent_c_api.core.util.middleware_logging": "WARNING",  # Show INFO logs for middleware_logging, debug is too noisy
+    "sqlalchemy.engine": "WARNING",  # Suppress SQLAlchemy engine logs
+    "sqlalchemy.pool": "WARNING",  # Suppress connection pool logs
+    "aiosqlite": "WARNING",  # Suppress aiosqlite operation logs
 })
 
 # Configure specific loggers for FastAPI components
