@@ -138,8 +138,14 @@ class CodeExplorer:
                 imports=language_impl.get_imports(tree, code)
             )
             
-            # Add classes
-            for class_info in interface['classes']:
+            # Add classes (including interfaces, structs, enums for C#/Java)
+            all_classes = []
+            all_classes.extend(interface.get('classes', []))
+            all_classes.extend(interface.get('interfaces', []))
+            all_classes.extend(interface.get('structs', []))
+            all_classes.extend(interface.get('enums', []))
+
+            for class_info in all_classes:
                 class_entity = ClassEntity(
                     name=class_info['name'],
                     line_range=class_info['line_range'],
@@ -147,9 +153,9 @@ class CodeExplorer:
                     docstring=class_info.get('docstring'),
                     language=language
                 )
-                
-                # Add methods to class
-                for method_info in class_info['methods']:
+
+                # Add methods to class (if present - enums may not have methods)
+                for method_info in class_info.get('methods', []):
                     method_entity = MethodEntity(
                         name=method_info['name'],
                         line_range=method_info['line_range'],
@@ -161,7 +167,7 @@ class CodeExplorer:
                         return_type=method_info['return_type']
                     )
                     class_entity.methods.append(method_entity)
-                
+
                 module.classes.append(class_entity)
             
             # Add functions
@@ -184,7 +190,8 @@ class CodeExplorer:
                     line_range=var_info['line_range'],
                     byte_range=var_info['byte_range'],
                     language=language,
-                    value=var_info.get('value')
+                    value=var_info.get('value'),
+                    type_hint=var_info.get('type_hint')
                 )
                 module.variables.append(var_entity)
             
@@ -261,8 +268,9 @@ class CodeExplorer:
             # Add public constants
             for var in module_result.module.variables:
                 if not var.name.startswith('_'):
-                    # Assume all-caps variables are constants
-                    if var.name.isupper():
+                    # For PL/SQL, all package-level variables are public
+                    # For other languages, assume all-caps variables are constants
+                    if language == 'plsql' or var.name.isupper():
                         var.is_constant = True
                         result.public_constants.append(var)
             
