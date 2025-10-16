@@ -24,10 +24,6 @@ class JavascriptLanguage(BaseLanguage):
     (class_declaration
       name: (identifier) @class.name
       body: (class_body) @class.body)
-    
-    (class_expression
-      name: (identifier) @class.name
-      body: (class_body) @class.body)
     """
     
     # Query for finding functions
@@ -35,11 +31,20 @@ class JavascriptLanguage(BaseLanguage):
     (function_declaration
       name: (identifier) @function.name
       body: (statement_block) @function.body)
-    
+
+    (generator_function_declaration
+      name: (identifier) @function.name
+      body: (statement_block) @function.body)
+
+    (export_statement
+      declaration: (function_declaration
+        name: (identifier) @function.name
+        body: (statement_block) @function.body))
+
     (method_definition
       name: (property_identifier) @method.name
       body: (statement_block) @method.body)
-    
+
     (arrow_function
       body: (_) @function.body)
     """
@@ -222,7 +227,7 @@ class JavascriptLanguage(BaseLanguage):
             # Collect consecutive comment lines above the node
             while current_line >= 0:
                 line = lines[current_line].strip()
-                if line.startswith('/**') or line.startswith('/*') or line.startswith('//'):
+                if line.startswith('/**') or line.startswith('/*') or line.startswith('//') or line.startswith('*'):
                     comment_lines.insert(0, line)
                     current_line -= 1
                 elif line == '' and comment_lines:  # Allow blank lines within comment blocks
@@ -234,6 +239,9 @@ class JavascriptLanguage(BaseLanguage):
             
             if comment_lines:
                 return self._clean_documentation('\n'.join(comment_lines))
+
+        return None
+
     def get_module_docstring(self, tree: Tree, code: str) -> Optional[str]:
         """Extract the module-level docstring from JavaScript code.
         
@@ -297,8 +305,6 @@ class JavascriptLanguage(BaseLanguage):
         # Create a query for import statements if not already defined
         import_query = self.get_query("""
             (import_statement) @import
-            (import_clause) @import_clause
-            (require_call) @require
         """)
         
         for match in import_query.matches(tree.root_node):
@@ -424,6 +430,7 @@ class JavascriptLanguage(BaseLanguage):
                                 method_info = {
                                     'name': method_name,
                                     'signature': f"{method_name}{params_text}",
+                                    'return_type': None,  # JavaScript is dynamically typed
                                     'line_range': self.get_entity_range(child),
                                     'byte_range': self.get_entity_byte_range(child),
                                     'docstring': self.get_documentation(child, code)
@@ -454,6 +461,7 @@ class JavascriptLanguage(BaseLanguage):
                         function_info = {
                             'name': function_name,
                             'signature': f"{function_name}{params_text}",
+                            'return_type': None,  # JavaScript is dynamically typed
                             'line_range': self.get_entity_range(function_node),
                             'byte_range': self.get_entity_byte_range(function_node),
                             'docstring': self.get_documentation(function_node, code)
