@@ -6,6 +6,7 @@ code exploration results in a readable way.
 
 from typing import Dict, List, Any, Optional, Union
 import json
+import yaml
 
 from ts_tool.models.code_entity import ModuleEntity, ClassEntity, FunctionEntity, MethodEntity, VariableEntity
 from ts_tool.models.extraction_result import DetailLevel, ExtractionResult
@@ -440,17 +441,30 @@ def format_result_as_markdown(result: ExtractionResult) -> str:
 
 def format_result_as_json(result: ExtractionResult, pretty: bool = False) -> str:
     """Format an extraction result as JSON.
-    
+
     Args:
         result: The extraction result to format.
         pretty: Whether to pretty-print the JSON.
-        
+
     Returns:
         A JSON string representation.
     """
     result_dict = result.to_dict()
-    
+
     if pretty:
         return json.dumps(result_dict, indent=2)
     else:
         return json.dumps(result_dict)
+
+
+def format_result_as_yaml(result: ExtractionResult) -> str:
+    """Format an extraction result as YAML.
+
+    Args:
+        result: The extraction result to format.
+
+    Returns:
+        A YAML string representation.
+    """
+    result_dict = result.to_dict()
+    return yaml.dump(result_dict, default_flow_style=False, sort_keys=False, allow_unicode=True)

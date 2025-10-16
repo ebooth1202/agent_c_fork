@@ -12,7 +12,7 @@ from ts_tool.models.extraction_result import (
     DetailLevel, ExtractionResult, EntityExtractionResult,
     ModuleExtractionResult, PublicInterfaceResult, CodeSummaryResult
 )
-from ts_tool.utils.formatting import format_result_as_markdown, format_result_as_json, format_function_as_context
+from ts_tool.utils.formatting import format_result_as_markdown, format_result_as_json, format_result_as_yaml, format_function_as_context
 from ts_tool.utils.formatting import format_entity_as_context
 
 
@@ -79,28 +79,30 @@ def get_code_context(code: str, language: Optional[str] = None,
 
 
 
-def get_code_summary(code: str, language: Optional[str] = None, 
+def get_code_summary(code: str, language: Optional[str] = None,
                    filename: Optional[str] = None, format: str = 'dict') -> str | dict[str, Any] | CodeSummaryResult:
     """Get a high-level summary of code structure.
-    
+
     This function provides a quick overview of the code structure,
     including counts of classes, functions, and variables.
-    
+
     Args:
         code: The source code to analyze.
         language: Optional language name. If not provided, will be detected.
         filename: Optional filename which may help with language detection.
-        format: Output format ('dict', 'json', or 'markdown').
-        
+        format: Output format ('dict', 'json', 'yaml', or 'markdown').
+
     Returns:
         A summary of the code structure in the requested format.
     """
     result = _explorer.get_summary(code, language, filename)
-    
+
     if format == 'dict':
         return result.to_dict()
     elif format == 'json':
         return format_result_as_json(result)
+    elif format == 'yaml':
+        return format_result_as_yaml(result)
     elif format == 'markdown':
         return format_result_as_markdown(result)
     else:
@@ -110,39 +112,41 @@ def get_code_summary(code: str, language: Optional[str] = None,
 def get_public_interface(code: str, language: Optional[str] = None,
                         filename: Optional[str] = None, format: str = 'dict') -> str | dict[str, Any] | PublicInterfaceResult:
     """Extract the public interface from code.
-    
+
     This function extracts only the public elements of the code, such as
     public classes, functions, and constants.
-    
+
     Args:
         code: The source code to analyze.
         language: Optional language name. If not provided, will be detected.
         filename: Optional filename which may help with language detection.
-        format: Output format ('dict', 'json', or 'markdown').
-        
+        format: Output format ('dict', 'json', 'yaml', or 'markdown').
+
     Returns:
         The public interface in the requested format.
     """
     result = _explorer.get_public_interface(code, language, filename)
-    
+
     if format == 'dict':
         return result.to_dict()
     elif format == 'json':
         return format_result_as_json(result)
+    elif format == 'yaml':
+        return format_result_as_yaml(result)
     elif format == 'markdown':
         return format_result_as_markdown(result)
     else:
         return result
 
 
-def get_entity(code: str, entity_type: str, entity_name: str, 
+def get_entity(code: str, entity_type: str, entity_name: str,
               detail_level: str = 'full', language: Optional[str] = None,
               filename: Optional[str] = None, format: str = 'dict') -> Union[Dict[str, Any], str]:
     """Get a specific entity from code.
-    
+
     This function extracts a specific named entity from the code, such as
     a class, function, or method, with the specified level of detail.
-    
+
     Args:
         code: The source code to analyze.
         entity_type: The type of entity to extract ('class', 'function', 'method', 'variable').
@@ -150,45 +154,49 @@ def get_entity(code: str, entity_type: str, entity_name: str,
         detail_level: The level of detail to include ('summary', 'signature', 'full').
         language: Optional language name. If not provided, will be detected.
         filename: Optional filename which may help with language detection.
-        format: Output format ('dict', 'json', or 'markdown').
-        
+        format: Output format ('dict', 'json', 'yaml', or 'markdown').
+
     Returns:
         The extracted entity in the requested format.
     """
     result = _explorer.get_entity(code, entity_type, entity_name, detail_level, language, filename)
-    
+
     if format == 'dict':
         return result.to_dict()
     elif format == 'json':
         return format_result_as_json(result)
+    elif format == 'yaml':
+        return format_result_as_yaml(result)
     elif format == 'markdown':
         return format_result_as_markdown(result)
     else:
-        raise ValueError(f"Unsupported format: {format}. Must be one of 'dict', 'json', or 'markdown'.")
+        raise ValueError(f"Unsupported format: {format}. Must be one of 'dict', 'json', 'yaml', or 'markdown'.")
 
 
 def explore_code(code: str, language: Optional[str] = None,
                 filename: Optional[str] = None, format: str = 'dict') -> str | dict[str, Any] | ModuleExtractionResult:
     """Explore code and extract its complete structure.
-    
+
     This function parses the given code and extracts its complete structure,
     including all classes, functions, and variables.
-    
+
     Args:
         code: The source code to explore.
         language: Optional language name. If not provided, will be detected.
         filename: Optional filename which may help with language detection.
-        format: Output format ('dict', 'json', or 'markdown').
-        
+        format: Output format ('dict', 'json', 'yaml', or 'markdown').
+
     Returns:
         The complete code structure in the requested format.
     """
     result = _explorer.explore_code(code, language, filename)
-    
+
     if format == 'dict':
         return result.to_dict()
     elif format == 'json':
         return format_result_as_json(result)
+    elif format == 'yaml':
+        return format_result_as_yaml(result)
     elif format == 'markdown':
         return format_result_as_markdown(result)
     else:
