@@ -11,7 +11,6 @@ setup(
         "tree-sitter-c-sharp>=0.23.0",
         "tree-sitter-java>=0.23.0",
         "tree-sitter-javascript>=0.25.0",
-        "PyYAML>=6.0",
     ],
     extras_require={
         "dev": [

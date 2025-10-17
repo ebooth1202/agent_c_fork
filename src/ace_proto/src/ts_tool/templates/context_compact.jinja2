@@ -1,0 +1,25 @@
+# {{ filename }}
+{% if constants %}
+{% for const in constants %}
+constant {{ const.name }}{% if const.type_hint %}:{{ const.type_hint }}{% endif %}{% if const.value %}={{ const.value }}{% endif %} [L{{ const.line }}]
+{% endfor %}
+{% endif %}
+{% if functions %}
+{% for func in functions %}
+function {{ func.signature }} [L{{ func.start_line }}-L{{ func.end_line }}]
+{% endfor %}
+{% endif %}
+{% if types %}
+{% for type in types %}
+{{ type.kind }} {{ type.name }}{% if type.inherits %} extends {{ type.inherits|join(', ') }}{% endif %} [L{{ type.start_line }}-L{{ type.end_line }}]
+{% for member in type.public_members %}
+  {{ member.signature }} [L{{ member.start_line }}-L{{ member.end_line }}]{% if member.modifiers %} [{{ member.modifiers|join(', ') }}]{% endif %}
+
+{% endfor %}
+{% if type.private_members %}
+{% for member in type.private_members %}
+  {{ member.name }}(...) [private] [L{{ member.start_line }}-L{{ member.end_line }}]
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endif %}

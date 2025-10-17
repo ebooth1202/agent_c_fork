@@ -1,0 +1,57 @@
+# Public Interface{% if filename %}: {{ filename }}{% endif %}
+
+**Language:** {{ language }}
+
+## Overview
+- **Classes:** {{ class_count }}
+- **Functions:** {{ function_count }}
+- **Constants:** {{ constant_count }}
+
+{% if public_classes %}
+## Public Classes ({{ class_count }})
+
+{% for cls in public_classes %}
+### {{ cls.name }}
+{% if cls.docstring %}
+> {{ cls.docstring }}
+{% endif %}
+{% if cls.base_classes %}
+**Inherits from:** {{ cls.base_classes|join(', ') }}
+{% endif %}
+
+**Methods:** {{ cls.method_count }}
+{% if cls.methods %}
+{% for method in cls.methods %}
+- `{{ method.signature }}`{% if method.return_type and method.return_type != 'None' %} → {{ method.return_type }}{% endif %}{% if method.docstring %}
+  > {{ method.docstring }}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if public_functions %}
+## Public Functions ({{ function_count }})
+
+{% for func in public_functions %}
+### {{ func.name }}
+`{{ func.signature }}`{% if func.return_type and func.return_type != 'None' %} → {{ func.return_type }}{% endif %}
+
+{% if func.docstring %}
+{{ func.docstring }}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if public_constants %}
+## Public Constants ({{ constant_count }})
+{% for const in public_constants %}
+- `{{ const.name }}`{% if const.type_hint %}: {{ const.type_hint }}{% endif %}{% if const.value %} = {{ const.value }}{% endif %}
+
+{% endfor %}
+{% endif %}
+
+---
+**Total Public API:** {{ class_count }} classes, {{ function_count }} functions, {{ constant_count }} constants

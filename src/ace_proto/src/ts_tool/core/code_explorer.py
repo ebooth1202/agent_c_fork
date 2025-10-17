@@ -203,12 +203,7 @@ class CodeExplorer:
             )
             
         except Exception as e:
-            raise e  # Re-raise the exception for higher-level handling
-            return ModuleExtractionResult(
-                successful=False,
-                error_message=str(e),
-                language=language if language else ""
-            )
+            raise e
     
     def get_public_interface(self, code: str, language: Optional[str] = None, filename: Optional[str] = None) -> PublicInterfaceResult:
         """Extract the public interface from code.

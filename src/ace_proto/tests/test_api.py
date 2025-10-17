@@ -5,12 +5,11 @@ Tests core API functionality including:
 - Code summary generation
 - Public interface extraction
 - Entity retrieval
-- Format options (dict, json, yaml, markdown)
+- Format options (dict, json, markdown)
 """
 
 import pytest
 import json
-import yaml as yaml_lib
 from ts_tool import api
 from .conftest import assert_successful_result
 
@@ -81,15 +80,6 @@ class TestCodeSummary:
 
         # Should be valid JSON string
         parsed = json.loads(result)
-        assert parsed['successful'] is True
-        assert parsed['language'] == 'python'
-
-    def test_get_summary_yaml_format(self, python_simple_code):
-        """Test getting code summary in YAML format."""
-        result = api.get_code_summary(python_simple_code, 'python', format='yaml')
-
-        # Should be valid YAML string
-        parsed = yaml_lib.safe_load(result)
         assert parsed['successful'] is True
         assert parsed['language'] == 'python'
 
@@ -215,6 +205,40 @@ class TestEntityRetrieval:
 
         assert result['successful'] is False
         assert 'not found' in result['error_message'].lower()
+
+    def test_get_entity_markdown_format(self, python_simple_code):
+        """Test getting an entity in markdown format."""
+        result = api.get_entity(
+            python_simple_code,
+            'function',
+            'hello_world',
+            detail_level='full',
+            language='python',
+            format='markdown'
+        )
+
+        # Should be markdown string
+        assert isinstance(result, str)
+        assert '# Entity:' in result
+        assert 'hello_world' in result
+        assert '**Type:**' in result
+
+    def test_get_entity_signature_markdown(self, python_simple_code):
+        """Test getting an entity signature in markdown format."""
+        result = api.get_entity(
+            python_simple_code,
+            'function',
+            'hello_world',
+            detail_level='signature',
+            language='python',
+            format='markdown'
+        )
+
+        # Should be markdown string with signature but no source code
+        assert isinstance(result, str)
+        assert 'hello_world' in result
+        assert '**Signature:**' in result
+        assert '## Source Code' not in result
 
 
 class TestSourceCodeRetrieval:
