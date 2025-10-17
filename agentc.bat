@@ -13,7 +13,7 @@ if not exist "%AGENT_C_SAVED_CHAT_FOLDER%" mkdir "%AGENT_C_SAVED_CHAT_FOLDER%"
 :: Check if config file exists
 if not exist "%AGENT_C_CONFIG_PATH%\agent_c.config" (
     copy build_support\config\agent_c.config.example "%AGENT_C_CONFIG_PATH%\agent_c.config"
-    copy data\*.db  "%AGENT_C_CONFIG_PATH%"
+    copy build_support\data\*.db  "%AGENT_C_CONFIG_PATH%"
     echo ** Warning**: Configuration file not found at %AGENT_C_CONFIG_PATH%\agent_c.config
     echo An example file has been added to %AGENT_C_CONFIG_PATH%
     echo.
