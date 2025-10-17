@@ -39,6 +39,7 @@ from .toolbelt.tool import ToolbeltTools
 from .microsoft_stream.tool import MicrosoftStreamTools
 from .plsql_reverse_engineering.tool import PlsqlReverseEngineeringTools
 from .reverse_engineering import ReverseEngineeringTools
+from .ace_proto import AceProtoTools
 
 __all__ = [
     # Essential Tools for good agents
@@ -52,6 +53,7 @@ __all__ = [
     'XmlExplorerTools',
     'PlsqlReverseEngineeringTools',
     'ReverseEngineeringTools',
+    'AceProtoTools',
 
 
     # Workspace tools
