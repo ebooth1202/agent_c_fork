@@ -41,13 +41,11 @@ class CSharpLanguage(BaseLanguage):
     FUNCTION_QUERY = """
     (method_declaration
       name: (identifier) @method.name
-      parameters: (parameter_list) @method.params
-      body: (block) @method.body)
-    
+      parameters: (parameter_list) @method.params)
+
     (constructor_declaration
       name: (identifier) @constructor.name
-      parameters: (parameter_list) @constructor.params
-      body: (block) @constructor.body)
+      parameters: (parameter_list) @constructor.params)
       
     (property_declaration
       name: (identifier) @property.name
@@ -552,18 +550,24 @@ class CSharpLanguage(BaseLanguage):
                                 if not self._is_public_entity(method_def_node, tree):
                                     continue
                                 
-                                # Get parameters for method signature
+                                # Get parameters and return type for method signature
                                 params_node = None
+                                return_type = None
                                 for child in method_def_node.children:
                                     if child.type == 'parameter_list':
                                         params_node = child
-                                        break
-                                        
+                                    elif child.type in ['predefined_type', 'generic_name', 'array_type', 'nullable_type', 'void_keyword']:
+                                        return_type = self.get_node_text(child, code)
+                                    elif child.type == 'identifier' and child != method_node:
+                                        # Only use identifier if it's not the method name itself
+                                        return_type = self.get_node_text(child, code)
+
                                 params_text = self.get_node_text(params_node, code) if params_node else "()"
-                                
+
                                 method_info = {
                                     'name': method_name,
                                     'signature': f"{method_name}{params_text}",
+                                    'return_type': return_type,
                                     'line_range': self.get_entity_range(method_def_node),
                                     'byte_range': self.get_entity_byte_range(method_def_node),
                                     'docstring': self.get_documentation(method_def_node, code, tree)
@@ -666,18 +670,25 @@ class CSharpLanguage(BaseLanguage):
                     if method_node.parent.parent == tree.root_node and self._is_public_entity(method_node, tree):
                         method_name = node.text.decode('utf8')
                         
-                        # Get parameters for function signature
+                        # Get parameters and return type for function signature
                         params_node = None
+                        return_type = None
+                        method_name_node = capture_nodes[0]
                         for child in method_node.children:
                             if child.type == 'parameter_list':
                                 params_node = child
-                                break
-                                
+                            elif child.type in ['predefined_type', 'generic_name', 'array_type', 'nullable_type', 'void_keyword']:
+                                return_type = self.get_node_text(child, code)
+                            elif child.type == 'identifier' and child != method_name_node:
+                                # Only use identifier if it's not the method name itself
+                                return_type = self.get_node_text(child, code)
+
                         params_text = self.get_node_text(params_node, code) if params_node else "()"
-                        
+
                         function_info = {
                             'name': method_name,
                             'signature': f"{method_name}{params_text}",
+                            'return_type': return_type,
                             'line_range': self.get_entity_range(method_node),
                             'byte_range': self.get_entity_byte_range(method_node),
                             'docstring': self.get_documentation(method_node, code, tree)

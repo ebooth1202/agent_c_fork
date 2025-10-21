@@ -7,7 +7,51 @@ providing common functionality and interfaces for all supported languages.
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any, Tuple, Set
 
-from tree_sitter import Node, Tree, Parser, Query
+from tree_sitter import Node, Tree, Parser, Query, QueryCursor
+
+
+class QueryWrapper:
+    """Wrapper for tree-sitter Query that provides backward compatibility.
+
+    In tree-sitter 0.25+, Query.matches() was removed and replaced with
+    QueryCursor(query).matches(). This wrapper provides the old API for
+    backward compatibility.
+    """
+
+    def __init__(self, query: Query):
+        """Initialize the query wrapper.
+
+        Args:
+            query: The tree-sitter Query object to wrap.
+        """
+        self._query = query
+        self._cursor = QueryCursor(query)
+
+    def matches(self, node: Node) -> List[Tuple[int, Dict[str, List[Node]]]]:
+        """Execute the query and return matches.
+
+        Args:
+            node: The node to query against.
+
+        Returns:
+            A list of (pattern_index, captures_dict) tuples.
+        """
+        return self._cursor.matches(node)
+
+    def captures(self, node: Node) -> List[Tuple[Node, str]]:
+        """Execute the query and return captures.
+
+        Args:
+            node: The node to query against.
+
+        Returns:
+            A list of (node, capture_name) tuples.
+        """
+        return self._cursor.captures(node)
+
+    def __getattr__(self, name: str):
+        """Delegate attribute access to the underlying Query object."""
+        return getattr(self._query, name)
 
 
 class BaseLanguage(ABC):
@@ -123,17 +167,18 @@ class BaseLanguage(ABC):
         """
         pass
     
-    def get_query(self, query_string: str) -> Query:
+    def get_query(self, query_string: str) -> QueryWrapper:
         """Get a cached Query object for the given query string.
-        
+
         Args:
             query_string: The tree-sitter query string.
-            
+
         Returns:
-            A compiled Query object.
+            A QueryWrapper object that provides backward-compatible API.
         """
         if query_string not in self._query_cache:
-            self._query_cache[query_string] = Query(self.parser.language, query_string)
+            query = Query(self.parser.language, query_string)
+            self._query_cache[query_string] = QueryWrapper(query)
         return self._query_cache[query_string]
 
     def get_node_text(self, node: Node, code: str) -> str:

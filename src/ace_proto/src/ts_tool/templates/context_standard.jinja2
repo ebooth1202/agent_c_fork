@@ -1,0 +1,63 @@
+# Module: {{ filename }} ({{ stats.lines }} lines, {{ stats.chars }} chars)
+{% if module_doc %}
+> {{ module_doc }}
+{% endif %}
+
+## Public API
+{% if constants %}
+
+### Constants/Variables ({{ constants|length }})
+{% for const in constants %}
+- `{{ const.name }}{% if const.type_hint %}: {{ const.type_hint }}{% endif %}{% if const.value %} = {{ const.value }}{% endif %}` [L{{ const.line }}]{% if const.is_constant %} [const]{% endif %}
+{% endfor %}
+{% endif %}
+{% if functions %}
+
+### Functions ({{ functions|length }})
+{% for func in functions %}
+- `{{ func.signature }}` [L{{ func.start_line }}-L{{ func.end_line }}]{% if func.modifiers %} [{{ func.modifiers|join(', ') }}]{% endif %}
+{% if func.doc %}
+  > {{ func.doc }}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if types %}
+
+### Types ({{ types|length }})
+{% for type in types %}
+
+#### {{ type.name }} [L{{ type.start_line }}-L{{ type.end_line }}]{% if type.kind != 'class' %} [{{ type.kind }}]{% endif %}
+{% if type.doc %}
+> {{ type.doc }}
+{% endif %}
+{% if type.inherits %}
+- Inherits: {{ type.inherits|join(', ') }}
+{% endif %}
+{% if type.implements %}
+- Implements: {{ type.implements|join(', ') }}
+{% endif %}
+{% if type.public_members or type.private_members %}
+- Members: {{ type.public_members|length }} public, {{ type.private_members|length }} private
+{% endif %}
+{% if type.public_members %}
+
+**Public Members:**
+{% for member in type.public_members %}
+- `{{ member.signature }}` [L{{ member.start_line }}-L{{ member.end_line }}]{% if member.modifiers %} [{{ member.modifiers|join(', ') }}]{% endif %}
+{% if member.doc %}
+  > {{ member.doc }}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if type.private_members %}
+
+**Private Members:**
+{% for member in type.private_members %}
+- `{{ member.signature }}` [L{{ member.start_line }}-L{{ member.end_line }}]
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+---
+**Summary:** {{ types|length }} types, {{ functions|length }} functions, {{ constants|length }} constants
