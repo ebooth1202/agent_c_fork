@@ -51,8 +51,8 @@ __all__ = [
     # Code Exploring Tools
     'CssExplorerTools',
     'XmlExplorerTools',
-    'PlsqlReverseEngineeringTools',
-    'ReverseEngineeringTools',
+    # 'PlsqlReverseEngineeringTools',
+    # 'ReverseEngineeringTools',
     'AceProtoTools',
 
 
