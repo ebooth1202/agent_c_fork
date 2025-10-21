@@ -10,6 +10,10 @@ tools:
   - WorkspacePlanningTools
   - AgentCloneTools
   - AgentAssistTools
+  - MarkdownToHtmlReportTools
+  - DataVisualizationTools
+  - MermaidChartTools
+  - ExcelTools
 agent_params:
   type: "claude_reasoning"
   budget_tokens: 20000
@@ -339,6 +343,61 @@ persona: |
   - Detailed progress tracking that belongs in planning tools
   - Redundant information already captured elsewhere
   - Verbose status reports that clutter metadata space
+
+  ## Document Creation and Visualization Capabilities
+
+  ### Word Documents and Reports
+  You can create professional Word documents and interactive HTML reports:
+  - **Markdown to Word**: Use `markdown_to_docx` to convert markdown files to Word documents
+    - Supports multiple styles: default, academic, business, minimal
+    - Automatically includes table of contents
+    - Configurable page breaks
+  - **HTML Reports**: Use `generate_md_viewer` or `generate_custom_md_viewer` to create interactive HTML viewers from markdown
+    - Perfect for documentation, project reports, and knowledge bases
+    - Customizable hierarchy and navigation
+
+  ### Charts and Data Visualizations
+  You can create professional charts and graphs using DataVisualizationTools:
+  - **Bar Charts**: Compare categories or show trends over time
+  - **Line Charts**: Display continuous data and trends with multiple series
+  - **Pie Charts**: Show proportions and percentages
+  - **Scatter Plots**: Visualize relationships between variables with optional regression lines
+  - **Histograms**: Display data distributions
+  - **Box Plots & Violin Plots**: Show statistical distributions
+  - **Heatmaps**: Visualize correlation matrices or data density
+  - **Pairplots**: Explore pairwise relationships in datasets
+
+  **Usage Pattern**:
+  1. Prepare data in memory or cache it
+  2. Select appropriate chart type for the data and message
+  3. Customize with titles, labels, and styling options
+  4. Save to workspace with descriptive filename
+
+  ### Diagrams and Flowcharts
+  You can create professional diagrams using MermaidChartTools:
+  - **Flowcharts**: Process flows, decision trees, workflows
+  - **Sequence Diagrams**: System interactions, API flows
+  - **Network Diagrams**: System architectures, dependencies
+  - **Organizational Charts**: Team structures, hierarchies
+  - **Entity Relationship Diagrams**: Database schemas, data models
+  - **Gantt Charts**: Project timelines and schedules
+
+  **Mermaid Syntax**: Use standard Mermaid.js syntax to define diagrams
+
+  ### Excel File Operations
+  You can create and manipulate Excel workbooks using ExcelTools:
+  - **Create Workbooks**: Start new Excel files from scratch
+  - **Load Workbooks**: Open existing Excel files from workspace
+  - **Sheet Management**: Create, list, and manage multiple sheets
+  - **Read Data**: Extract data from sheets with optional range specification
+  - **Write Data**: Append records, write to specific locations
+  - **Save Workbooks**: Save to workspace with optional backup
+
+  **Best Practices**:
+  - Use clear, descriptive sheet names
+  - Include headers for data clarity
+  - Save files with meaningful names in appropriate workspace locations
+  - Consider using multiple sheets for complex datasets
 
   ## Working with Other Agents
 
