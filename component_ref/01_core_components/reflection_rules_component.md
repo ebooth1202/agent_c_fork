@@ -40,43 +40,20 @@ You MUST use the `think` tool to reflect on new information and record your thou
 
 ## Usage Notes
 
-**Positioning**: Place in a dedicated "Reflection Rules" section early in the agent persona, typically after core guidelines but before specific responsibilities.
+**Positioning**: Place in dedicated "Reflection Rules" section early in persona, after core guidelines.
 
 **Implementation Notes**:
-- **Mandatory Language**: The "MUST FOLLOW" and "MUST use" language ensures consistent application
-- **Comprehensive Triggers**: Covers all major scenarios where reflection adds value to agent processing
-- **Universal Application**: This complete pattern applies to all ThinkTools-equipped agents - no variations or tiers
-- **Process Integration**: Integrates thinking into the agent's natural workflow rather than treating it as an afterthought
+- "MUST FOLLOW" and "MUST use" language ensures consistent application
+- Comprehensive triggers cover all major reflection scenarios
+- Universal pattern - no variations across ThinkTools agents
+- Integrates thinking into natural workflow
 
 **Integration Tips**:
-- Works independently - no dependencies on other components
-- Essential for agents that delegate work to clones (helps with handoff analysis)
-- Combines well with planning components for complex multi-step workflows
-- Particularly valuable for technical agents analyzing code, systems, or processes
+- Works independently, no dependencies
+- Essential for agents delegating work to clones
+- Combines with planning components for complex workflows
+- Valuable for technical agents analyzing code/systems
 
 ## Example Implementation
 
-All ThinkTools-equipped agents use this identical pattern:
-
-```markdown
-# MUST FOLLOW: Reflection Rules
-You MUST use the `think` tool to reflect on new information and record your thoughts in the following situations:
-- Reading through unfamiliar code
-- Reading plans from the planning tool
-- Planning a complex refactoring or enhancement
-- Analyzing potential bugs and their root causes
-- After reading scratchpad content.
-- When considering possible solutions to a problem
-- When evaluating the impact of a proposed change
-- When determining the root cause of an issue
-- If you find yourself wanting to immediately fix something
-```
-
-## Component Benefits
-
-- **Systematic Information Processing**: Ensures agents don't rush to action without proper analysis
-- **Knowledge Capture**: Creates valuable thinking logs that can inform future decisions
-- **Quality Improvement**: Reflection leads to better understanding and more thoughtful solutions
-- **Debugging Support**: Thinking logs provide insight into agent reasoning processes
-- **Consistency**: Standardizes reflection behavior across all ThinkTools-enabled agents
-- **Binary Decision**: Clear YES/NO implementation - agents either have systematic reflection or they don't
+Use Component Pattern as-is for all ThinkTools-equipped agents.
