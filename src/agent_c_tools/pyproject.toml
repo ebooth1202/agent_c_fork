@@ -36,9 +36,10 @@ dependencies = [
     "python-docx==1.1.2", # markdown html report tool
     "sqlparse", # database_query, mariadb
     "mysql-connector-python",
+    "playwright>=1.40.0,<1.47.0",  # Pin to versions compatible with pyee 11.x for pyppeteer compatibility
     "pytest-playwright",
     "sympy",
-    "numpy",
+    "numpy>=1.16.0,<2.4", # Constrained for ydata-profiling compatibility, updated for openai-agents[voice] compatibility
     "scipy",
     "matplotlib",
     "pdfplumber",
@@ -47,6 +48,7 @@ dependencies = [
     "docker==7.1.0", # code_interpreter,
     #"ydata_profiling==4.16.1", # dataframe
     "scikit-learn==1.5.2",  # dataframe
+    "urllib3>=2.0.0",  # For types-requests compatibility
     "google-api-python-client==2.149.0",     # Core Google API client
     "google-auth-httplib2==0.2.0",        # Auth library for HTTP/2
     "google-auth-oauthlib==1.2.1",        # OAuth 2.0 library
@@ -62,7 +64,7 @@ dependencies = [
 
 ]
 
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 authors = [
     { name = "Donavan Stanley", email = "donavan.stanley@centricconsulting.com" },
     { name = "Joe Ours", email = "joesph.ours@centricconsulting.com" },
