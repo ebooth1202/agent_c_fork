@@ -40,7 +40,7 @@ services:
       - PYTHONPATH=/app
       - HOST=0.0.0.0
       - PORT=8000
-      - RELOAD=True
+      - RELOAD=False
       - RUNNING_IN_DOCKER=True
     networks:
       - agent-c-network
