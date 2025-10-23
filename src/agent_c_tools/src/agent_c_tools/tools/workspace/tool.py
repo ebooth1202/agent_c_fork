@@ -1,6 +1,5 @@
 import re
 import json
-import base64
 import mimetypes
 from pathlib import Path
 

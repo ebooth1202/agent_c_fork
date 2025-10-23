@@ -12,12 +12,12 @@ from agent_c.models import BaseModel
 from agent_c_api.core.util.logging_utils import LoggingManager
 
 class WorkspaceDataEntry(BaseModel):
-    type: Literal["local", "azure", "s3"] = Field("local", description="The type of the workspace to add.")
-    path_or_bucket: str = Field(..., description="The path (for local), bucket name (for s3), or blob container (azure)  of the workspace to add.")
     name: Optional[str] = Field(None, description="The name of the workspace to add.")
+    path_or_bucket: str = Field(..., description="The path (for local), bucket name (for s3), or blob container (azure)  of the workspace to add.")
     description: Optional[str] = Field(None, description="The description of the workspace to add.")
-    prefix: Optional[str] = Field('', description="The prefix to prepend to all Azure / S3 paths.")
+    type: Literal["local", "azure", "s3"] = Field("local", description="The type of the workspace to add.")
     read_only: bool = Field(False, description="Whether the workspace should be added as read-only.")
+    prefix: Optional[str] = Field('', description="The prefix to prepend to all Azure / S3 paths.")
 
     @model_validator(mode="after")
     def validate_name(self) -> "WorkspaceDataEntry":
