@@ -61,28 +61,56 @@ echo Upgrading Pip to the latest version.
 python -m pip install --upgrade pip
 pip install tomli
 
-echo "Installing pnpm version 9 and lerna globally..."
-CALL npm install -g pnpm@9 lerna
+echo Installing pnpm version 10 and lerna globally ...
+:: CALL npm install -g pnpm@10 lerna
 
-if errorlevel 1 (
-    echo Failed to install pnpm and lerna.
+::if errorlevel 1 (
+::    echo Failed to install pnpm and lerna.
+::    exit /b 1
+::)
+
+:: Faster/safer global install (disables audit/fund, verbose logs)
+CALL npm config set audit false
+CALL npm config set fund false
+CALL npm config set fetch-retries 0
+CALL npm config set progress false
+
+CALL npm install -g pnpm@10 --no-audit --no-fund
+::add this flag if needed. --loglevel=verbose
+IF ERRORLEVEL 1 (
+    echo Failed to install pnpm globally.
     exit /b 1
 )
 
-echo "Fetching initial client dependencies with pnpm..."
-cd src\typescript_client_sdk
-pnpm install
-
-if errorlevel 1 (
-    echo Failed to install client dependencies with pnpm.
+SETLOCAL
+set npm_config_ignore_scripts=true
+CALL npm install -g lerna@^9 --no-audit --no-fund
+ENDLOCAL
+IF ERRORLEVEL 1 (
+    echo Failed to install Lerna globally.
     exit /b 1
 )
 
-cd ..\..
+:: Install TypeScript Client SDK dependencies first (initial setup only)
+echo Installing TypeScript Client SDK dependencies...
+pnpm install --dir src\typescript_client_sdk
 
-:: Install the requirements
-echo Installing dependencies.
-call scripts/install_deps.bat
+if errorlevel 1 (
+    echo Failed to install TypeScript SDK dependencies.
+    exit /b 1
+)
+
+echo Building TypeScript Client SDK...
+pnpm --dir src\typescript_client_sdk build
+
+if errorlevel 1 (
+    echo Failed to build TypeScript SDK.
+    exit /b 1
+)
+
+:: Install all Python backend dependencies
+echo Installing Python backend dependencies...
+call scripts\install_deps.bat
 
 if errorlevel 1 (
     echo Failed to install the required packages.

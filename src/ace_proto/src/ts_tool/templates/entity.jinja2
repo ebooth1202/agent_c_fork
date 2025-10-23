@@ -1,0 +1,20 @@
+# Entity: {{ entity_name }}
+
+**Type:** {{ entity_type }}
+**Location:** [L{{ start_line }}-L{{ end_line }}]
+{% if detail_level != 'summary' and entity.signature %}
+**Signature:** `{{ entity.signature }}`
+{% endif %}
+{% if entity.docstring %}
+
+**Documentation:**
+> {{ entity.docstring }}
+{% endif %}
+{% if detail_level == 'full' and source_code %}
+
+## Source Code
+
+```{{ language }}
+{{ source_code }}
+```
+{% endif %}

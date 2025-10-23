@@ -408,13 +408,19 @@ class ToolDebugger:
         mock_bridge = MockBridge(self.logger)
 
         if tool_context is None:
+            # Create a default streaming callback for debug mode
+            async def debug_streaming_callback(event):
+                """Default streaming callback that logs events"""
+                self.logger.debug(f"Streaming event: {event.type if hasattr(event, 'type') else 'unknown'}")
+            
             tool_context = {
                 "session_id": f"debug_session_{test_id}",
                 "user_id": "debug_user",
                 "workspace_id": "debug_workspace",
                 "debug_mode": True,
                 "agent_runtime": MockAgentRuntime(),
-                "client_wants_cancel": MockEvent()
+                "client_wants_cancel": MockEvent(),
+                "streaming_callback": debug_streaming_callback
             }
 
         # Add bridge to tool_context - use provided bridge or default to MockBridge

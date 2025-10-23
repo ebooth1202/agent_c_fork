@@ -382,7 +382,16 @@ class PythonLanguage(BaseLanguage):
                 if capture_id == "function.name":
                     for node in capture_nodes:
                         # Ensure it's a top-level function
-                        if node.parent.parent != tree.root_node:
+                        # Could be function_definition directly under root, or decorated_definition -> function_definition
+                        func_def = node.parent
+                        if func_def.parent == tree.root_node:
+                            # Direct top-level function
+                            pass
+                        elif func_def.parent.type == 'decorated_definition' and func_def.parent.parent == tree.root_node:
+                            # Decorated top-level function
+                            pass
+                        else:
+                            # It's a method or nested function
                             continue
 
                         function_name = node.text.decode('utf8')

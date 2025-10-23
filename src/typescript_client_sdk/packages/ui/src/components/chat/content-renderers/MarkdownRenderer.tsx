@@ -82,45 +82,70 @@ const MermaidDiagram: React.FC<MermaidDiagramProps> = ({ code, compact = false }
   const containerRef = React.useRef<HTMLDivElement>(null)
   
   React.useEffect(() => {
+    let isMounted = true
+    let tempContainer: HTMLDivElement | null = null
+    
     const renderDiagram = async () => {
+      // Only render on client side
+      if (typeof window === 'undefined') return
+      
       try {
         // Initialize mermaid if not already done
         initializeMermaid()
         
+        // Validate the diagram syntax first
+        try {
+          await mermaid.parse(code, { suppressErrors: false })
+        } catch (parseError) {
+          if (isMounted) {
+            setError('Invalid Mermaid syntax: ' + (parseError instanceof Error ? parseError.message : 'Parse error'))
+          }
+          return
+        }
+        
         // Generate unique ID for this diagram
         const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`
         
-        // Clean up any existing mermaid error elements before rendering
-        // Mermaid can create orphaned error divs during failed renders
-        const existingErrorDivs = document.querySelectorAll('[id^="d"][id*="mermaid"]')
-        existingErrorDivs.forEach(div => {
-          // Only remove if it's an orphaned error element (not in our container)
-          if (!containerRef.current?.contains(div)) {
-            div.remove()
-          }
-        })
+        // Create a temporary container in the DOM for mermaid to render into
+        // Must be visible for getBBox() to work, but hide it with opacity and position
+        tempContainer = document.createElement('div')
+        tempContainer.id = id
+        tempContainer.style.position = 'fixed'
+        tempContainer.style.top = '0'
+        tempContainer.style.left = '0'
+        tempContainer.style.opacity = '0'
+        tempContainer.style.pointerEvents = 'none'
+        tempContainer.style.zIndex = '-9999'
+        tempContainer.setAttribute('aria-hidden', 'true')
+        document.body.appendChild(tempContainer)
         
-        // Render the diagram
-        const { svg } = await mermaid.render(id, code)
-        setSvg(svg)
-        setError(null)
+        // Small delay to ensure DOM is ready
+        await new Promise(resolve => setTimeout(resolve, 10))
         
-        // Clean up the temporary div that mermaid.render creates
-        const tempDiv = document.getElementById(id)
-        if (tempDiv && !containerRef.current?.contains(tempDiv)) {
-          tempDiv.remove()
+        // Verify the element exists in the DOM
+        const verifyElement = document.getElementById(id)
+        if (!verifyElement) {
+          throw new Error('Failed to create container element')
         }
+        
+        // Render the diagram - in v11, render() needs the element in DOM to calculate dimensions
+        const result = await mermaid.render(id, code)
+        
+        if (isMounted) {
+          setSvg(result.svg)
+          setError(null)
+        }
+        
       } catch (err) {
         console.error('Mermaid rendering error:', err)
-        setError(err instanceof Error ? err.message : 'Failed to render diagram')
-        
-        // Clean up any error divs that mermaid might have created
-        const errorDivs = document.querySelectorAll('[id^="d"][id*="mermaid"]')
-        errorDivs.forEach(div => {
-          if (!containerRef.current?.contains(div)) {
-            div.remove()
-          }
-        })
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : 'Failed to render diagram')
+        }
+      } finally {
+        // Clean up the temporary container
+        if (tempContainer && tempContainer.parentNode) {
+          tempContainer.parentNode.removeChild(tempContainer)
+        }
       }
     }
     
@@ -128,12 +153,10 @@ const MermaidDiagram: React.FC<MermaidDiagramProps> = ({ code, compact = false }
     
     // Cleanup on unmount
     return () => {
-      const orphanedDivs = document.querySelectorAll('[id^="d"][id*="mermaid"]')
-      orphanedDivs.forEach(div => {
-        if (!containerRef.current?.contains(div)) {
-          div.remove()
-        }
-      })
+      isMounted = false
+      if (tempContainer && tempContainer.parentNode) {
+        tempContainer.parentNode.removeChild(tempContainer)
+      }
     }
   }, [code])
   

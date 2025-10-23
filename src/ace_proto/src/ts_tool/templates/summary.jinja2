@@ -1,0 +1,32 @@
+# Code Summary{% if filename %}: {{ filename }}{% endif %}
+
+**Language:** {{ language }}
+**Lines of Code:** {{ total_lines }}
+**Documentation:** {% if has_documentation %}Yes{% else %}No{% endif %}
+
+
+## Structure Overview
+- **Classes:** {{ class_count }}{% if class_names %} ({{ class_names|join(', ') }}){% endif %}
+- **Functions:** {{ function_count }}{% if function_names %} ({{ function_names|join(', ') }}){% endif %}
+- **Variables:** {{ variable_count }}
+{% if class_names or function_names %}
+
+
+## Entities
+{% if class_names %}
+### Classes ({{ class_count }})
+{% for name in class_names %}
+- {{ name }}
+{% endfor %}
+{% endif %}
+
+{% if function_names %}
+### Functions ({{ function_count }})
+{% for name in function_names %}
+- {{ name }}
+{% endfor %}
+{% endif %}
+{% endif %}
+
+---
+**Total:** {{ class_count }} classes, {{ function_count }} functions, {{ variable_count }} variables
