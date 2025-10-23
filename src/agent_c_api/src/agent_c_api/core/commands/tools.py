@@ -1,13 +1,12 @@
 import copy
 from typing import List, TYPE_CHECKING
-
-from agent_c.models.client_tool_info import ClientToolInfo
 from agent_c.toolsets import Toolset
 from .base_command import Command
-from .parsers import FunctionCallParser, JsonStyleParser
+from .parsers import FunctionCallParser
 
 if TYPE_CHECKING:
     from agent_c_api.core.realtime_bridge import RealtimeBridge
+    from agent_c.models.client_tool_info import ClientToolInfo
 
 
 class EquipToolCommand(Command):
@@ -24,7 +23,7 @@ class EquipToolCommand(Command):
 
     async def execute(self, context: 'RealtimeBridge', **kwargs):
         to_equip: List[str] = []
-        catalog: List[ClientToolInfo] = Toolset.client_tool_registry
+        catalog: List['ClientToolInfo'] = Toolset.client_tool_registry
         if 'raw_args' in kwargs and kwargs['raw_args']:
             args = kwargs['raw_args'].split(' ')
         else:
@@ -123,7 +122,7 @@ class ToolInfoCommand(Command):
             await context.raise_render_media_markdown("\n".join(lines))
 
         else:
-            matched_toolsets: List[ClientToolInfo] = [ts for ts in catalogue if ts.name.lower().startswith(target)]
+            matched_toolsets: List['ClientToolInfo'] = [ts for ts in catalogue if ts.name.lower().startswith(target)]
 
             if len(matched_toolsets) == 0:
                 await context.send_system_message(f"No toolset found matching '**{target}**'.", severity="error")
