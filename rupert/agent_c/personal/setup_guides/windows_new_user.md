@@ -30,6 +30,7 @@ winget install Git.Git
 3. **Download Rancher Desktop**:
    - Go to https://rancherdesktop.io/
    - Click download and install for Windows
+   - Choose 'dockerd' as the container engine
 
 
 4. **RESTART COMPUTER** (required after WSL + Rancher) then verify:
@@ -45,7 +46,7 @@ git --version
 
 ```powershell
 cd $env:USERPROFILE
-git clone https://github.com/centricconsulting/agent_c_framework.git agent_c
+git clone https://github.com/centricconsulting/agent_c_framework.git
 cd agent_c
 ```
 
