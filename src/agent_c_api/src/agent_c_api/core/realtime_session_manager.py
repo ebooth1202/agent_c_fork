@@ -1,3 +1,4 @@
+import os
 import asyncio
 import json
 import threading
@@ -5,6 +6,7 @@ import threading
 from typing import Dict, Optional, List, Any, Union
 
 from agent_c.models import ChatUser
+from agent_c.models.events import SystemMessageEvent
 from agent_c.toolsets import ToolCache, ToolChest
 
 from agent_c.config.agent_config_loader import AgentConfigLoader
@@ -64,7 +66,7 @@ class RealtimeSessionManager:
                                    read_only=ws.get('read_only', False),
                                    type='local') for ws in workspaces]
 
-    def _save_user_workspaces(self, user_id: str, entries: Optional[List[BaseWorkspace]]) -> None:
+    def _save_user_workspaces(self, user_id: str, entries: Optional[List[BaseWorkspace]] = None) -> None:
         if entries is None:
             if user_id not in self.user_workspaces:
                 return
@@ -96,7 +98,7 @@ class RealtimeSessionManager:
 
             for entry in local_workspaces:
                 try:
-                    workspace = self._workspace_from_entry(entry)
+                    workspace = self._workspace_from_entry(WorkspaceDataEntry.model_validate(entry))
                 except Exception as e:
                     continue
 
@@ -253,22 +255,26 @@ class RealtimeSessionManager:
             self.logger.error(f"Error creating workspace from entry {entry.path_or_bucket}: {e}")
             raise e
 
-    def add_user_workspace(self, user_id: str, entry: WorkspaceDataEntry ) -> bool:
+    async def add_user_workspace(self, user_id: str, entry: WorkspaceDataEntry ) -> bool:
         message = f"Error adding workspace `{entry.path_or_bucket}` does the directory exist?"
         try:
            workspace = self._workspace_from_entry(entry)
-           self._save_user_workspaces(user_id)
         except Exception as e:
             workspace = None
             message = f"Error adding workspace {entry.path_or_bucket}: {e}"
 
         if workspace is None or not workspace.valid:
             self.logger.error(message)
-            self.send_to_all_user_sessions(user_id, ErrorEvent(message=message))
+            await self.send_to_all_user_sessions(user_id, ErrorEvent(message=message))
             return False
 
         self.user_workspaces[user_id].append(workspace)
-        self.send_to_all_user_sessions(user_id, WorkspaceAddedEvent(entry=workspace.entry))
+        await self.send_to_all_user_sessions(user_id, SystemMessageEvent(content=f"Added workspace `{entry.name}` mapped to `{entry.path_or_bucket}`",
+                                                                         severity="info",
+                                                                         session_id="all",
+                                                                         user_session_id="all"))
+        self._save_user_workspaces(user_id)
+        await self.send_to_all_user_sessions(user_id, WorkspaceAddedEvent(entry=workspace.entry))
         self.logger.info(f"Added local workspace {entry.path_or_bucket} for user {user_id}")
         return True
 

@@ -996,8 +996,8 @@ class RealtimeBridge(ClientEventHandler):
             await self.send_user_turn_start()
             return
 
-    def add_user_workspace(self, entry):
-        self.ui_session_manager.add_user_workspace(self.chat_user.user_id, entry)
+    async def add_user_workspace(self, entry):
+        await self.ui_session_manager.add_user_workspace(self.chat_user.user_id, entry)
 
     async def _get_or_create_chat_session(self, session_id: Optional[str] = None, user_id: Optional[str] = None, agent_key: str = 'default_realtime') -> ChatSession:
         session_id = session_id or f"{self.chat_user.user_id}-{MnemonicSlugs.generate_slug(2)}"
