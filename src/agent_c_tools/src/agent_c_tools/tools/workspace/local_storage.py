@@ -31,16 +31,17 @@ class LocalStorageWorkspace(BaseWorkspace):
         if path.exists():
             return path
 
-        # TODO: If the workspace space path starts with a windows drive letter remap it to /mnt/[drive_letter]
-        if re.match(r'^[C-Z]:', workspace_path):
-            workspace_path[0] = workspace_path[0].lower()
+        match = re.match(r'^([C-Z]):(.*)', workspace_path, re.IGNORECASE)
+        if match:
+            drive_letter = match.group(1).lower()
+            rest_of_path = match.group(2)
+            workspace_path =f'{drive_letter}{rest_of_path}'
 
-        workspace_path = workspace_path.replace('\\', '/').replace(':', '')
-        path = Path(os.path.join("/mnt/", workspace_path)).resolve()
+        path = Path(f'/mnt/{workspace_path}')
         if path.exists():
             return path
 
-        path = Path(os.path.join("/host/", workspace_path)).resolve()
+        path = Path(f"/host/{workspace_path}")
         if path.exists():
             return path
 

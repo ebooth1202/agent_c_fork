@@ -25,7 +25,7 @@ class WorkspaceDataEntry(BaseModel):
             if self.type != "local":
                 self.name = self.path_or_bucket
             else:
-                self.name = os.path.basename(self.path_or_bucket)
+                self.name = self.path_or_bucket.replace("\\", "/").rstrip("/").split("/")[-1]
 
         self.name = self.name.lower()
 
