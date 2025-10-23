@@ -1,10 +1,38 @@
 import asyncio
 import logging
-from typing import Optional, List, Any, Tuple
+import os
+from typing import Optional, List, Any, Tuple, Literal
 
 import yaml
+from pydantic import Field, model_validator
 
 from yaml import FullLoader
+
+from agent_c.models import BaseModel
+from agent_c_api.core.util.logging_utils import LoggingManager
+
+class WorkspaceDataEntry(BaseModel):
+    type: Literal["local", "azure", "s3"] = Field("local", description="The type of the workspace to add.")
+    path_or_bucket: str = Field(..., description="The path (for local), bucket name (for s3), or blob container (azure)  of the workspace to add.")
+    name: Optional[str] = Field(None, description="The name of the workspace to add.")
+    description: Optional[str] = Field(None, description="The description of the workspace to add.")
+    prefix: Optional[str] = Field('', description="The prefix to prepend to all Azure / S3 paths.")
+    read_only: bool = Field(False, description="Whether the workspace should be added as read-only.")
+
+    @model_validator(mode="after")
+    def validate_name(self) -> "WorkspaceDataEntry":
+        if self.name is None:
+            if self.type != "local":
+                self.name = self.path_or_bucket
+            else:
+                self.name = os.path.basename(self.path_or_bucket)
+
+        self.name = self.name.lower()
+
+        if self.description is None:
+            self.description = f"{self.type} workspace mapped to {self.path_or_bucket}"
+
+        return self
 
 
 class BaseWorkspace:
@@ -23,7 +51,7 @@ class BaseWorkspace:
 
     supports_run_command: bool = False
 
-    def __init__(self, type_name: str, **kwargs):
+    def __init__(self, entry: WorkspaceDataEntry, **kwargs):
         """
         The initializer for the BaseWorkspace class.
 
@@ -34,16 +62,19 @@ class BaseWorkspace:
                       - 'description' (str): The description of the workspace.
                       - 'read_only' (bool): If the workspace should be read-only.
         """
-        self.name: str = kwargs.get('name','').lower()
+        self.entry = entry
+        self.name: str = self.entry.name
         self.meta_file_path: str = kwargs.get('meta_file_path', '.agent_c.meta.yaml')
-        self.description: Optional[str] = kwargs.get('description')
-        self.type_name: str = type_name
-        self.read_only: bool = kwargs.get('read_only', False)
+        self.description: Optional[str] = self.entry.description
+        self.type_name: str = self.entry.type
+        self.read_only: bool = self.entry.read_only
         self.write_status: str = "RO" if self.read_only else "R/W"
         self.max_filename_length: int = -1
         self._metadata: Optional[dict[str, Any]] = None
         self._metadata_lock: asyncio.Lock = asyncio.Lock()
-        self.logger = kwargs.get("logger", logging.getLogger(__name__))
+        self.logger = LoggingManager(__name__).get_logger()
+        self.valid = True
+
 
     def __str__(self) -> str:
         """
@@ -53,6 +84,7 @@ class BaseWorkspace:
             str: A formatted string summary of the workspace.
         """
         return f"- workspace_name: `{self.name}`, rw_status: ({self.write_status}), workspace_type: \"{self.type_name}\", description: {self.description}"
+
 
     async def path_exists(self, file_path: str) -> bool:
         """

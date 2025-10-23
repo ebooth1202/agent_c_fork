@@ -9,7 +9,7 @@ from typing import Optional
 
 from aiobotocore.session import get_session
 from botocore.exceptions import NoCredentialsError, ClientError
-from agent_c_tools.tools.workspace.base import BaseWorkspace
+from agent_c_tools.tools.workspace.base import BaseWorkspace, WorkspaceDataEntry
 
 
 class S3StorageWorkspace(BaseWorkspace):
@@ -25,7 +25,7 @@ class S3StorageWorkspace(BaseWorkspace):
         session (aiobotocore.session.AioSession): The aiobotocore session.
     """
 
-    def __init__(self, bucket_name: str, prefix: str = "", **kwargs):
+    def __init__(self, entry: WorkspaceDataEntry, **kwargs):
         """
         Initialize the S3StorageWorkspace.
 
@@ -35,8 +35,8 @@ class S3StorageWorkspace(BaseWorkspace):
             **kwargs: Additional keyword arguments for BaseWorkspace.
         """
         super().__init__(type_name="s3", **kwargs)
-        self.bucket_name = bucket_name
-        self.prefix = prefix.rstrip('/') + '/' if prefix else ""
+        self.bucket_name = entry.path_or_bucket
+        self.prefix = entry.prefix.rstrip('/') + '/'
         self.session = get_session()
 
         aws_region_name = os.getenv('AWS_REGION_NAME')
