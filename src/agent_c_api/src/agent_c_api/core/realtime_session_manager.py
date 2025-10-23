@@ -59,22 +59,57 @@ class RealtimeSessionManager:
         self.chat_session_manager: ChatSessionManager = session_manager
 
     @staticmethod
-    def _init__user_workspaces(user_id: str) -> List[BaseWorkspace]:
-        user_uploads = LocalStorageWorkspace(workspace_path=f"uploads/{user_id}", name="Uploads", description="Files the user had uploaded")
+    def _migrate_old_workspaces(workspaces: List[Dict[str, Any]]) -> List[WorkspaceDataEntry]:
+        return [WorkspaceDataEntry(name=ws['name'],
+                                   description=ws['description'],
+                                   path_or_bucket=ws['workspace_path'],
+                                   read_only=ws.get('read_only', False),
+                                   type='local') for ws in workspaces]
+
+    def _save_user_workspaces(self, user_id: str, entries: Optional[List[BaseWorkspace]]) -> None:
+        if entries is None:
+            if user_id not in self.user_workspaces:
+                return
+
+            entries = self.user_workspaces[user_id]
+
+        entries = [ws.entry.model_dump(exclude_defaults=True) for ws in entries if ws.entry.name not in ['uploads', 'project'] ]
+
+        try:
+            with open(LOCAL_WORKSPACES_FILE, 'w', encoding='utf-8') as json_file:
+                json.dump(entries, json_file, indent=4)
+        except Exception as e:
+            self.logger.error(f"Error saving local workspaces to '{LOCAL_WORKSPACES_FILE}': {e}")
+
+    def _init__user_workspaces(self, user_id: str) -> List[BaseWorkspace]:
+        user_uploads = LocalStorageWorkspace(WorkspaceDataEntry(path_or_bucket=f"uploads/{user_id}", name="Uploads", description="Files the user had uploaded"))
         if os.environ.get('RUNNING_IN_DOCKER', "false").lower() == "false":
             workspaces: List[BaseWorkspace] = [LocalProjectWorkspace(), user_uploads]
         else:
             workspaces: List[BaseWorkspace] = [user_uploads]
-
+        did_migrate = False
         try:
             with open(LOCAL_WORKSPACES_FILE, 'r', encoding='utf-8') as json_file:
                 local_workspaces = json.load(json_file)
 
-            for ws in local_workspaces['local_workspaces']:
-                workspaces.append(LocalStorageWorkspace(**ws))
+            if isinstance(local_workspaces, dict):
+                local_workspaces = self._migrate_old_workspaces(local_workspaces['local_workspaces'])
+                did_migrate = True
+
+            for entry in local_workspaces:
+                try:
+                    workspace = self._workspace_from_entry(entry)
+                except Exception as e:
+                    continue
+
+                if workspace and workspace.valid:
+                    workspaces.append(workspace)
         except FileNotFoundError:
             # Local workspaces file is optional
             pass
+
+        if did_migrate:
+            self._save_user_workspaces(user_id, workspaces)
 
         return workspaces
 
@@ -207,15 +242,24 @@ class RealtimeSessionManager:
         for session in sessions:
             await session.bridge.send_event(event)
 
-    def add_user_workspace(self, user_id: str, entry: WorkspaceDataEntry ) -> bool:
-        message = f"Error adding workspace `{entry.path_or_bucket}` does the directory exist?"
+    def _workspace_from_entry(self, entry: WorkspaceDataEntry) -> Optional[BaseWorkspace]:
         try:
             if entry.type == 's3':
-                workspace =''
+                workspace = S3StorageWorkspace(entry)
             elif entry.type == 'azure':
                 workspace = BlobStorageWorkspace(entry)
             else:
                 workspace = LocalStorageWorkspace(entry)
+            return workspace
+        except Exception as e:
+            self.logger.error(f"Error creating workspace from entry {entry.path_or_bucket}: {e}")
+            raise e
+
+    def add_user_workspace(self, user_id: str, entry: WorkspaceDataEntry ) -> bool:
+        message = f"Error adding workspace `{entry.path_or_bucket}` does the directory exist?"
+        try:
+           workspace = self._workspace_from_entry(entry)
+           self._save_user_workspaces(user_id)
         except Exception as e:
             workspace = None
             message = f"Error adding workspace {entry.path_or_bucket}: {e}"
