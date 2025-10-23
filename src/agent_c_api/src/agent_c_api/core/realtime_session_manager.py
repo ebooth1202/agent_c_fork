@@ -1,4 +1,3 @@
-import os
 import asyncio
 import json
 import threading
@@ -6,7 +5,6 @@ import threading
 from typing import Dict, Optional, List, Any, Union
 
 from agent_c.models import ChatUser
-from agent_c.models.events import SystemMessageEvent
 from agent_c.toolsets import ToolCache, ToolChest
 
 from agent_c.config.agent_config_loader import AgentConfigLoader
@@ -281,6 +279,7 @@ class RealtimeSessionManager:
 
         Args:
             user_id (str): The user ID to create the cache entry for
+            hotload_toolsets (Optional[Union[str, List[str]]]): Toolsets to hotload; if None, defaults are used
         Returns:
             UserRuntimeCacheEntry: The created or existing cache entry
         """
@@ -301,12 +300,10 @@ class RealtimeSessionManager:
             'tool_cache': tool_cache,
             'session_manager': self.chat_session_manager,
             'workspaces': self.user_workspaces[user_id],
-            'streaming_callback': None,
             'model_configs': self.model_config_loader.get_cached_config()
         }
 
-        tool_chest = ToolChest(**tool_opts)
-        await tool_chest.init_tools(tool_opts)
+        tool_chest = ToolChest(tool_opts)
         await tool_chest.activate_toolset(hotload_toolsets)
 
         cache_entry = UserRuntimeCacheEntry(
