@@ -32,7 +32,8 @@ from agent_c.util import MnemonicSlugs
 from agent_c.util.heygen_streaming_avatar_client import HeyGenStreamingClient
 from agent_c.util.logging_utils import LoggingManager
 from agent_c.util.registries.event import EventRegistry
-from agent_c_api.api.rt.models.control_events import ChatSessionNameChangedEvent, SessionMetadataChangedEvent, UISessionIDChangedEvent
+from agent_c_api.api.rt.models.control_events import ChatSessionNameChangedEvent, SessionMetadataChangedEvent, \
+    UISessionIDChangedEvent, WorkspaceListEvent
 from agent_c_api.api.rt.models.control_events import ErrorEvent, AgentListEvent, AvatarListEvent, AvatarConnectionChangedEvent, \
     AgentConfigurationChangedEvent, ChatSessionChangedEvent, AgentVoiceChangedEvent, UserTurnStartEvent, UserTurnEndEvent, GetUserSessionsResponseEvent, ToolCatalogEvent, ChatUserDataEvent, \
     VoiceListEvent, ChatSessionAddedEvent, DeleteChatSessionEvent, CancelledEvent
@@ -196,6 +197,7 @@ class RealtimeBridge(ClientEventHandler):
         """Report a tool error to the client"""
         await self.send_event(SystemMessageEvent(content=f"# Error using tool '{tool_name}':\n\n```{error}```", session_id=self.chat_session.session_id,
                                                  severity="error", role="system"))
+
     async def send_tool_warning(self, tool_name: str, error: str) -> None:
         """Report a tool error to the client"""
         await self.send_event(SystemMessageEvent(content=f"# Error using tool '{tool_name}':\n\n```{error}```", session_id=self.chat_session.session_id,
@@ -256,7 +258,6 @@ class RealtimeBridge(ClientEventHandler):
         await self.send_agent_list()
         await self.tool_chest.activate_toolset(self.chat_session.agent_config.tools)
         await self.send_event(AgentConfigurationChangedEvent(agent_config=self.chat_session.agent_config))
-
 
     async def send_agent_list(self) -> None:
         catalog = self.ui_session_manager.agent_config_loader.client_catalog
@@ -449,7 +450,6 @@ class RealtimeBridge(ClientEventHandler):
 
         return True
 
-
     async def rewind_session(self, count: int):
         if count == 0:
             count = 1
@@ -468,7 +468,6 @@ class RealtimeBridge(ClientEventHandler):
                     await self.send_chat_session()
                     await self.send_system_message(f"Rewound session by {count} user message(s)", severity="info")
                     return
-
 
     async def fork_session(self, session_id: Optional[str] = None):
         if session_id is None:
@@ -501,9 +500,6 @@ class RealtimeBridge(ClientEventHandler):
             self.logger.error(f"Failed to fork session {session_id}: {e}\n{traceback.format_exc()}")
             await self.send_error(f"Failed to fork session '{session_id}': {e}", source="fork_session")
             return
-
-
-
 
     async def send_tool_catalog(self) -> None:
         event = ToolCatalogEvent(tools=Toolset.get_client_registry())
@@ -866,6 +862,12 @@ class RealtimeBridge(ClientEventHandler):
         """Send an event to all sessions for the current user"""
         await self.ui_session_manager.send_to_all_user_sessions(self.chat_user.user_id, event)
 
+    async def send_workspace_list(self):
+        workspaces = self.ui_session_manager.user_workspaces[self.chat_user.user_id]
+
+        await self.send_event(WorkspaceListEvent(workspaces=[ws.entry for ws in workspaces if ws.valid]))
+
+
     async def _tool_context(self, on_event: Optional[callable] = None, prompt_metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         if prompt_metadata is None:
             prompt_metadata = await self._build_prompt_metadata()
@@ -993,6 +995,9 @@ class RealtimeBridge(ClientEventHandler):
             await self.send_error(f"Error flushing session manager: {error_type}: {str(e)}\n{error_traceback}")
             await self.send_user_turn_start()
             return
+
+    async def add_user_workspace(self, entry):
+        await self.ui_session_manager.add_user_workspace(self.chat_user.user_id, entry)
 
     async def _get_or_create_chat_session(self, session_id: Optional[str] = None, user_id: Optional[str] = None, agent_key: str = 'default_realtime') -> ChatSession:
         session_id = session_id or f"{self.chat_user.user_id}-{MnemonicSlugs.generate_slug(2)}"

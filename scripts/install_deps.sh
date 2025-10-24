@@ -4,6 +4,7 @@ source .venv/bin/activate
 # Install the requirements
 echo "Installing agent_c_packages"
 python -m pip install --upgrade pip
+pip install setuptools
 cd src
 pip install ace_proto/ts_tool-0.1.0-py3-none-any.whl
 pip install -e agent_c_core

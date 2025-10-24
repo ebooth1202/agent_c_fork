@@ -6,22 +6,23 @@ import threading
 from typing import Dict, Optional, List, Any, Union
 
 from agent_c.models import ChatUser
+from agent_c.models.events import SystemMessageEvent
 from agent_c.toolsets import ToolCache, ToolChest
 
 from agent_c.config.agent_config_loader import AgentConfigLoader
 from agent_c.config import ModelConfigurationLoader
 from agent_c.chat.session_manager import ChatSessionManager
+from agent_c_api.api.rt.models.control_events import ErrorEvent, WorkspaceListEvent, WorkspaceAddedEvent
 from agent_c_api.core.realtime_bridge import RealtimeBridge
 from agent_c_api.core.util.logging_utils import LoggingManager
 from agent_c_api.models.realtime_session import RealtimeSession
-from agent_c_tools.tools.workspace.base  import BaseWorkspace
+from agent_c_tools.tools.workspace.base import BaseWorkspace, WorkspaceDataEntry
 from agent_c_api.models.user_runtime_cache_entry import UserRuntimeCacheEntry
 
 
 from agent_c_tools import *  # noqa
 from agent_c_tools.tools.in_process import * # noqa
-
-
+from agent_c_tools.tools.workspace.blob_storage import BlobStorageWorkspace
 
 # Constants
 DEFAULT_BACKEND = 'claude'
@@ -44,7 +45,7 @@ class RealtimeSessionManager:
     def __init__(self, session_manager: ChatSessionManager):
         logging_manager = LoggingManager(__name__)
         self.logger = logging_manager.get_logger()
-        self.workspaces: Optional[List[BaseWorkspace]] = None
+        self.user_workspaces: Dict[str, List[BaseWorkspace]] = {}
         self.agent_config_loader: AgentConfigLoader = AgentConfigLoader()
         self.model_config_loader = ModelConfigurationLoader()
         self.model_configs: Dict[str, Any] = self.model_config_loader.flattened_config()
@@ -58,20 +59,57 @@ class RealtimeSessionManager:
         self.chat_session_manager: ChatSessionManager = session_manager
 
     @staticmethod
-    def _init__user_workspaces(user_id: str) -> List[BaseWorkspace]:
-        local_project = LocalProjectWorkspace()
-        user_uploads = LocalStorageWorkspace(workspace_path=f"uploads/{user_id}", name="Uploads", description="Files the user had uploaded")
-        workspaces: List[BaseWorkspace] = [local_project, user_uploads]
+    def _migrate_old_workspaces(workspaces: List[Dict[str, Any]]) -> List[WorkspaceDataEntry]:
+        return [WorkspaceDataEntry(name=ws['name'],
+                                   description=ws['description'],
+                                   path_or_bucket=ws['workspace_path'],
+                                   read_only=ws.get('read_only', False),
+                                   type='local') for ws in workspaces]
 
+    def _save_user_workspaces(self, user_id: str, entries: Optional[List[BaseWorkspace]] = None) -> None:
+        if entries is None:
+            if user_id not in self.user_workspaces:
+                return
+
+            entries = self.user_workspaces[user_id]
+
+        entries = [ws.entry.model_dump(exclude_defaults=True) for ws in entries if ws.entry.name not in ['uploads', 'project'] ]
+
+        try:
+            with open(LOCAL_WORKSPACES_FILE, 'w', encoding='utf-8') as json_file:
+                json.dump(entries, json_file, indent=4)
+        except Exception as e:
+            self.logger.error(f"Error saving local workspaces to '{LOCAL_WORKSPACES_FILE}': {e}")
+
+    def _init__user_workspaces(self, user_id: str) -> List[BaseWorkspace]:
+        user_uploads = LocalStorageWorkspace(WorkspaceDataEntry(path_or_bucket=f"uploads/{user_id}", name="Uploads", description="Files the user had uploaded"))
+        if os.environ.get('RUNNING_IN_DOCKER', "false").lower() == "false":
+            workspaces: List[BaseWorkspace] = [LocalProjectWorkspace(), user_uploads]
+        else:
+            workspaces: List[BaseWorkspace] = [user_uploads]
+        did_migrate = False
         try:
             with open(LOCAL_WORKSPACES_FILE, 'r', encoding='utf-8') as json_file:
                 local_workspaces = json.load(json_file)
 
-            for ws in local_workspaces['local_workspaces']:
-                workspaces.append(LocalStorageWorkspace(**ws))
+            if isinstance(local_workspaces, dict):
+                local_workspaces = self._migrate_old_workspaces(local_workspaces['local_workspaces'])
+                did_migrate = True
+
+            for entry in local_workspaces:
+                try:
+                    workspace = self._workspace_from_entry(WorkspaceDataEntry.model_validate(entry))
+                except Exception as e:
+                    continue
+
+                if workspace and workspace.valid:
+                    workspaces.append(workspace)
         except FileNotFoundError:
             # Local workspaces file is optional
             pass
+
+        if did_migrate:
+            self._save_user_workspaces(user_id, workspaces)
 
         return workspaces
 
@@ -204,6 +242,42 @@ class RealtimeSessionManager:
         for session in sessions:
             await session.bridge.send_event(event)
 
+    def _workspace_from_entry(self, entry: WorkspaceDataEntry) -> Optional[BaseWorkspace]:
+        try:
+            if entry.type == 's3':
+                workspace = S3StorageWorkspace(entry)
+            elif entry.type == 'azure':
+                workspace = BlobStorageWorkspace(entry)
+            else:
+                workspace = LocalStorageWorkspace(entry)
+            return workspace
+        except Exception as e:
+            self.logger.error(f"Error creating workspace from entry {entry.path_or_bucket}: {e}")
+            raise e
+
+    async def add_user_workspace(self, user_id: str, entry: WorkspaceDataEntry ) -> bool:
+        message = f"Error adding workspace `{entry.path_or_bucket}` does the directory exist?"
+        try:
+           workspace = self._workspace_from_entry(entry)
+        except Exception as e:
+            workspace = None
+            message = f"Error adding workspace {entry.path_or_bucket}: {e}"
+
+        if workspace is None or not workspace.valid:
+            self.logger.error(message)
+            await self.send_to_all_user_sessions(user_id, ErrorEvent(message=message))
+            return False
+
+        self.user_workspaces[user_id].append(workspace)
+        await self.send_to_all_user_sessions(user_id, SystemMessageEvent(content=f"Added workspace `{entry.name}` mapped to `{entry.path_or_bucket}`",
+                                                                         severity="info",
+                                                                         session_id="all",
+                                                                         user_session_id="all"))
+        self._save_user_workspaces(user_id)
+        await self.send_to_all_user_sessions(user_id, WorkspaceAddedEvent(entry=workspace.entry))
+        self.logger.info(f"Added local workspace {entry.path_or_bucket} for user {user_id}")
+        return True
+
 
     async def create_user_runtime_cache_entry(self, user_id: str, hotload_toolsets: Optional[Union[str, List[str]]] = None) -> UserRuntimeCacheEntry:
         """
@@ -211,6 +285,7 @@ class RealtimeSessionManager:
 
         Args:
             user_id (str): The user ID to create the cache entry for
+            hotload_toolsets (Optional[Union[str, List[str]]]): Toolsets to hotload; if None, defaults are used
         Returns:
             UserRuntimeCacheEntry: The created or existing cache entry
         """
@@ -224,20 +299,17 @@ class RealtimeSessionManager:
         if isinstance(hotload_toolsets, str):
             hotload_toolsets = [ts.strip() for ts in hotload_toolsets.split(",")]
 
-
-        workspaces = self._init__user_workspaces(user_id)
+        self.user_workspaces[user_id] = self._init__user_workspaces(user_id)
         tool_cache = ToolCache(cache_dir=self.tool_cache_dir)
 
         tool_opts = {
             'tool_cache': tool_cache,
             'session_manager': self.chat_session_manager,
-            'workspaces': workspaces,
-            'streaming_callback': None,
+            'workspaces': self.user_workspaces[user_id],
             'model_configs': self.model_config_loader.get_cached_config()
         }
 
-        tool_chest = ToolChest(**tool_opts)
-        await tool_chest.init_tools(tool_opts)
+        tool_chest = ToolChest(tool_opts)
         await tool_chest.activate_toolset(hotload_toolsets)
 
         cache_entry = UserRuntimeCacheEntry(
@@ -245,7 +317,7 @@ class RealtimeSessionManager:
             tool_chest=tool_chest,
             tool_cache=tool_cache,
             model_configs=self.model_configs,
-            workspaces=workspaces
+            workspaces=self.user_workspaces[user_id]
         )
 
         self.user_runtime_cache[user_id] = cache_entry

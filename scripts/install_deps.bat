@@ -8,6 +8,8 @@ CALL .venv\scripts\activate
 :: Install the Python backend requirements
 echo Installing Python backend dependencies...
 python -m pip install --upgrade pip
+pip install setuptools
+
 
 cd src
 

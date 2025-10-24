@@ -30,7 +30,7 @@ def _jwt_secret_key() -> str:
 def create_jwt_token(user: 'ChatUser',  time_delta: Optional[timedelta] = None ) -> str:
     """Create a JWT token for a user"""
     if time_delta is None:
-        time_delta = timedelta(hours=24)
+        time_delta = timedelta(hours=72)
     now = datetime.now(UTC)  # Python 3.11+ has UTC constant
     payload = {
         "sub": user.user_id,

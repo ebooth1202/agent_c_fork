@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Optional, Dict, Any, TYPE_CHECKING
 
 from agent_c_api.models.realtime_session import RealtimeSession
@@ -44,18 +45,30 @@ async def login(login_request: UserLoginRequest,
                                  heygen_token=heygen_token,
                                  ui_session_id=f"{login_response.user.user_id}-{MnemonicSlugs.generate_slug(2)}")
 
+
 @router.get("/refresh_token")
-async def refresh_token(request: Request):
+async def refresh_token(request: Request,
+                        auth_service: "AuthService" = Depends(get_auth_service),
+                        heygen_client: "HeyGenStreamingClient" = Depends(get_heygen_client)):
     """
     Refreshes the JWT token for the user.
     """
+    # Validate current token and get user_id
     user_info = await validate_request_jwt(request)
     if not user_info:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    heygen_client = HeyGenStreamingClient()
-    heygen_token = await heygen_client.create_streaming_access_token()
-    new_token = create_jwt_token(user_info['user_id'], user_info.get('permissions', []))
+    user = await auth_service.auth_repo.get_user_by_id(user_info['user_id'])
+    if not user or not user.is_active:
+        raise HTTPException(status_code=401, detail="User not found or inactive")
+
+    new_token = create_jwt_token(user=user, time_delta=timedelta(days=8))
+
+    if heygen_client is not None:
+        heygen_token = await heygen_client.create_streaming_access_token()
+    else:
+        heygen_token = "None"
+
     return {"agent_c_token": new_token, 'heygen_token': heygen_token}
 
 
