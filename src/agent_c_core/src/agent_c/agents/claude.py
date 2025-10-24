@@ -267,10 +267,10 @@ class ClaudeChatAgent(BaseAgent):
                     delay = await self._handle_retryable_error(delay)
                 except httpcore.RemoteProtocolError:
                     self.logger.warning(f"Remote protocol error encountered, retrying...Delay is {delay} seconds")
-                    await self._raise_system_event(f"Claude API is overloaded, retrying... Delay is {delay} seconds \n", severity="warning", **callback_opts)
+                    await self._raise_system_event(f"Claude API crashed, retrying... Delay is {delay} seconds \n", severity="warning", **callback_opts)
                     delay = await self._handle_retryable_error(delay)
                 except Exception as e:
-                    if "overloaded" in str(e).lower():
+                    if "overloaded" in str(e).lower() or "incomplete chunked read" in str(e):
                         self.logger.warning(f"Claude API is overloaded, retrying... Delay is {delay} seconds")
                         await self._raise_system_event(f"Claude API is overloaded, retrying... Delay is {delay} seconds \n", severity="warning", **callback_opts)
                         delay = await self._handle_retryable_error(delay)
@@ -320,42 +320,48 @@ class ClaudeChatAgent(BaseAgent):
         else:
             stream_source = self.client
 
+        try:
 
-        async with stream_source.messages.stream(**completion_opts) as stream:
-            async for event in stream:
-                await self._process_stream_event(event, state, tool_chest, session_manager,
-                                                 messages, callback_opts)
+            async with stream_source.messages.stream(**completion_opts) as stream:
+                async for event in stream:
+                    await self._process_stream_event(event, state, tool_chest, session_manager,
+                                                     messages, callback_opts)
 
-                if client_wants_cancel.is_set():
-                    self.logger.info("Client requested cancellation.")
-                    state['complete'] = True
-                    state['stop_reason'] = "client_cancel"
+                    if client_wants_cancel.is_set():
+                        self.logger.info("Client requested cancellation.")
+                        state['complete'] = True
+                        state['stop_reason'] = "client_cancel"
 
-                # If we've reached the end of a non-tool response, return
-                if state['complete'] and state['stop_reason'] != 'tool_use':
-                    if state['stop_reason'] == 'refusal':
-                        self.logger.warning("Call resulted in refusal, ending interaction.")
-                    await self._raise_history_event(messages, **callback_opts)
-                    await self._raise_interaction_end(id=state['interaction_id'], **callback_opts)
-                    return messages, state
-
-                # If we've reached the end of a tool call response, continue after processing tool calls
-                elif state['complete'] and state['stop_reason'] == 'tool_use':
-                    if state['collected_tool_calls']:
-                        await self._finalize_tool_calls(state, tool_chest, session_manager,
-                                                        messages, callback_opts, tool_context, client_wants_cancel)
-                    
-                    # Check if finalize_tool_calls set cancellation state
-                    if state['stop_reason'] == 'client_cancel':
-                        # Tool call processing was cancelled, fire events and return
+                    # If we've reached the end of a non-tool response, return
+                    if state['complete'] and state['stop_reason'] != 'tool_use':
+                        if state['stop_reason'] == 'refusal':
+                            self.logger.warning("Call resulted in refusal, ending interaction.")
                         await self._raise_history_event(messages, **callback_opts)
                         await self._raise_interaction_end(id=state['interaction_id'], **callback_opts)
                         return messages, state
 
-                    await self._raise_history_event(messages, **callback_opts)
-                    return  messages, state
+                    # If we've reached the end of a tool call response, continue after processing tool calls
+                    elif state['complete'] and state['stop_reason'] == 'tool_use':
+                        if state['collected_tool_calls']:
+                            await self._finalize_tool_calls(state, tool_chest, session_manager,
+                                                            messages, callback_opts, tool_context, client_wants_cancel)
 
-                await asyncio.sleep(0)
+                        # Check if finalize_tool_calls set cancellation state
+                        if state['stop_reason'] == 'client_cancel':
+                            # Tool call processing was cancelled, fire events and return
+                            await self._raise_history_event(messages, **callback_opts)
+                            await self._raise_interaction_end(id=state['interaction_id'], **callback_opts)
+                            return messages, state
+
+                        await self._raise_history_event(messages, **callback_opts)
+                        return  messages, state
+
+                    await asyncio.sleep(0)
+        except Exception as e:
+            self.logger.exception(f"Exception during Claude streaming: {e}", exc_info=True)
+            await self._raise_system_event(f"Exception during Claude streaming: {e}\n", **callback_opts)
+            state['complete'] = True
+            state['stop_reason'] = "exception"
 
         return messages, state
 
