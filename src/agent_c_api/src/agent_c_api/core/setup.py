@@ -53,8 +53,7 @@ def create_application(router: APIRouter, **kwargs) -> FastAPI:
     # Define a lifespan handler for startup and shutdown tasks.
     @asynccontextmanager
     async def lifespan(lifespan_app: FastAPI):
-        # Import Redis configuration at runtime to avoid circular imports
-        from agent_c_api.config.redis_config import RedisConfig
+
         from agent_c_api.config.env_config import settings
 
         logger.info(f"🔧 Initializing loaders:")
