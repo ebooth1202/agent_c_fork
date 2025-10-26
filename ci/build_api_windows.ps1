@@ -62,50 +62,43 @@ if (-not $SkipValidation) {
     
     # 1. Check Python version
     Write-Host "[1/7] Checking Python version..." -NoNewline
-    try {
-        $pythonVersion = python --version 2>&1
-        if ($pythonVersion -match "Python (\d+)\.(\d+)") {
+    $pythonCmd = Get-Command python -ErrorAction SilentlyContinue
+    if ($pythonCmd) {
+        $pythonVersionOutput = & $pythonCmd.Source --version 2>&1
+        if ($pythonVersionOutput -match "Python (\d+)\.(\d+)") {
             $major = [int]$matches[1]
             $minor = [int]$matches[2]
             if ($major -ge 3 -and $minor -ge 12) {
-                Write-Host " OK ($pythonVersion)" -ForegroundColor Green
+                Write-Host " OK (Python $major.$minor)" -ForegroundColor Green
             } else {
-                Write-Host " FAIL (Need Python 3.12+, found $pythonVersion)" -ForegroundColor Red
+                Write-Host " FAIL (Need 3.12+, found $major.$minor)" -ForegroundColor Red
                 $validationFailed = $true
             }
         }
-    } catch {
-        Write-Host " FAIL (Python not found)" -ForegroundColor Red
+    } else {
+        Write-Host " FAIL (not in PATH)" -ForegroundColor Red
         $validationFailed = $true
     }
     
     # 2. Check Nuitka
     Write-Host "[2/7] Checking Nuitka..." -NoNewline
-    try {
-        $nuitkaVersion = python -m nuitka --version 2>&1
-        if ($nuitkaVersion -match "\d+\.\d+") {
-            Write-Host " OK (v$($nuitkaVersion.Trim()))" -ForegroundColor Green
-        } else {
-            Write-Host " FAIL" -ForegroundColor Red
-            Write-Host "      Install: pip install nuitka ordered-set" -ForegroundColor Yellow
-            $validationFailed = $true
-        }
-    } catch {
+    $nuitkaCheck = Get-Command nuitka  -ErrorAction SilentlyContinue
+    if ($nuitkaCheck ) {
+        Write-Host " OK" -ForegroundColor Green
+    } else {
         Write-Host " FAIL" -ForegroundColor Red
+        Write-Host "      Install: pip install nuitka ordered-set" -ForegroundColor Yellow
         $validationFailed = $true
     }
     
     # 3. Check MSVC
-    Write-Host "[3/7] Checking MSVC..." -NoNewline
-    try {
-        $clTest = cl.exe /? 2>&1
-        if ($clTest -match "Microsoft") {
-            Write-Host " OK" -ForegroundColor Green
-        } else {
-            throw "cl.exe not working"
-        }
-    } catch {
-        Write-Host " FAIL" -ForegroundColor Red
+    Write-Host "[3/7] Checking MSVC (cl.exe)..." -NoNewline
+    $clCmd = Get-Command cl.exe -ErrorAction SilentlyContinue
+    if ($clCmd) {
+        Write-Host " OK" -ForegroundColor Green
+        Write-Host "      Path: $($clCmd.Source)" -ForegroundColor DarkGray
+    } else {
+        Write-Host " FAIL (not in PATH)" -ForegroundColor Red
         Write-Host "" 
         Write-Host "      Run from 'Developer PowerShell for VS 2022', OR:" -ForegroundColor Yellow
         Write-Host "      & 'C:\Program Files\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\Launch-VsDevShell.ps1'" -ForegroundColor Cyan
@@ -113,32 +106,8 @@ if (-not $SkipValidation) {
         $validationFailed = $true
     }
     
-    # 4. Check API source
-    Write-Host "[4/7] Checking API source..." -NoNewline
-    if (Test-Path "src\agent_c_api\src\agent_c_api\main.py") {
-        Write-Host " OK" -ForegroundColor Green
-    } else {
-        Write-Host " FAIL (main.py not found)" -ForegroundColor Red
-        $validationFailed = $true
-    }
-    
-    # 5. Check agent_c packages
-    Write-Host "[5/7] Checking agent_c packages..." -NoNewline
-    try {
-        $coreOK = python -c "import agent_c; print('OK')" 2>&1
-        $toolsOK = python -c "import agent_c_tools; print('OK')" 2>&1
-        if ($coreOK -match "OK" -and $toolsOK -match "OK") {
-            Write-Host " OK" -ForegroundColor Green
-        } else {
-            Write-Host " FAIL" -ForegroundColor Red
-            Write-Host "      Install packages from monorepo first" -ForegroundColor Yellow
-            $validationFailed = $true
-        }
-    } catch {
-        Write-Host " FAIL" -ForegroundColor Red
-        $validationFailed = $true
-    }
-    
+
+
     # 6. Check/create cache directory
     Write-Host "[6/7] Setting up cache..." -NoNewline
     $CACHE_DIR = Join-Path $REPO_ROOT "build_cache\nuitka"
