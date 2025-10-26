@@ -191,3 +191,5 @@ package-lock.json
 logs/
 
 jim_writing*
+
+build_cache
