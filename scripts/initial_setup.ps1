@@ -20,7 +20,9 @@
 #>
 
 [CmdletBinding()]
-param()
+param(
+    [switch]$NoElevate  # Skip auto-elevation if user wants to run without admin
+)
 
 # Set error action preference
 $ErrorActionPreference = "Stop"
@@ -102,12 +104,38 @@ $projectRoot = Split-Path -Parent $scriptPath
 Set-Location $projectRoot
 Write-Success "Working directory set to: $projectRoot"
 
-# Check for administrator privileges
+# Check for administrator privileges and auto-elevate if needed
 if (-not (Test-IsAdministrator)) {
-    Write-Warning "This script is not running as Administrator."
-    Write-Warning "Some installations may require elevated privileges."
-    Write-Info "If installations fail, try running as Administrator."
-    Write-Host ""
+    if ($NoElevate) {
+        Write-Warning "Running without administrator privileges (-NoElevate specified)"
+        Write-Warning "Some installations may fail without elevation."
+        Write-Host ""
+    } else {
+        Write-Info "Administrator privileges required for installations."
+        Write-Info "Attempting to elevate..."
+        
+        try {
+            # Build argument list
+            $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$($MyInvocation.MyCommand.Path)`""
+            
+            # Add -NoElevate to prevent infinite loop if elevation fails
+            $arguments += " -NoElevate"
+            
+            # Start elevated process
+            Start-Process PowerShell.exe -ArgumentList $arguments -Verb RunAs -WorkingDirectory $projectRoot
+            
+            # Exit current non-elevated process
+            Write-Info "Launching elevated process..."
+            exit 0
+        } catch {
+            Write-Warning "Failed to elevate privileges: $_"
+            Write-Warning "Continuing without administrator privileges."
+            Write-Warning "Some installations may fail."
+            Write-Host ""
+        }
+    }
+} else {
+    Write-Success "Running with administrator privileges"
 }
 
 # 2. Check for winget
