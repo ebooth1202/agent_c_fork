@@ -158,6 +158,11 @@ $CACHE_DIR = Join-Path $REPO_ROOT "build_cache\nuitka"
 # Ensure cache directory exists
 New-Item -ItemType Directory -Force -Path $CACHE_DIR | Out-Null
 
+# Set cache location via environment variable (proper Nuitka way)
+$env:NUITKA_CACHE_DIR = $CACHE_DIR
+Write-Host "Cache location: $env:NUITKA_CACHE_DIR" -ForegroundColor DarkGray
+Write-Host ""
+
 # Clean if requested
 if ($Clean) {
     Write-Host "Cleaning previous build..." -ForegroundColor Yellow
@@ -176,13 +181,12 @@ $NUITKA_ARGS = @(
     # Core options
     "--standalone"
     "--assume-yes-for-downloads"
-    
+
     # Output
     "--output-dir=$OUTPUT_DIR"
     "--output-filename=$OUTPUT_NAME.exe"
-    
-    # Explicit cache location (avoid nested Nuitka\Nuitka issue)
-    "--cache-dir=$CACHE_DIR"
+
+    # Note: Cache location set via $env:NUITKA_CACHE_DIR below
     
     # Include packages
     "--include-package=agent_c_api"
