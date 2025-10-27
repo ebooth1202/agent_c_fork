@@ -192,7 +192,10 @@ $NUITKA_ARGS = @(
     "--include-package=agent_c_api"
     "--follow-import-to=agent_c"
     "--follow-import-to=agent_c_tools"
-    
+
+    "--include-package-data=puremagic"
+    "--include-package-data=tiktoken"
+
     # ============================================
     # ALWAYS EXCLUDE (tests, dev tools)
     # ============================================
