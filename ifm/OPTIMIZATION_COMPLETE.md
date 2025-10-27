@@ -57,12 +57,7 @@ Optimized IFI insurance analysis team to address accuracy and efficiency issues.
 
 ## Critical Additions
 
-### 1. Source Code Location (Douglas)
-- Primary target: `//project/ifm/source-code/Primary Source Code/WebSystems_VelociRater/`
-- Reference systems: `//project/ifm/source-code/Reference Source Code/`
-- Impact: Clear scope and boundaries
-
-### 2. Classification & Verification Guidance (Mason)
+### 1. Classification & Verification Guidance (Mason)
 6 practical protocols addressing accuracy pain points:
 1. Kill vs Eligibility Questions - explicit verification process
 2. Popup UI Composition - checklist + 2-part loading pattern
@@ -71,13 +66,13 @@ Optimized IFI insurance analysis team to address accuracy and efficiency issues.
 5. Integration Claims - method call verification
 6. Uncertainty Documentation - UNVERIFIED marking + escalation
 
-### 3. Data Source Tracing Emphasis (Mason)
+### 2. Data Source Tracing Emphasis (Mason)
 - MUST trace to data source (database/config/code)
 - MUST extract ACTUAL question content (not just framework)
 - MUST verify count if expected count known
 - MUST escalate if count mismatch
 
-### 4. Hard Stops - Assumption Prevention (ALL AGENTS)
+### 3. Hard Stops - Assumption Prevention (ALL AGENTS)
 **Problem**: Despite evidence standards, agents made assumptions ("WCP=6, CGL=6, therefore BOP=6")
 **Solution**: Added BLOCKING CONDITIONS that prevent progress when standards violated
 
@@ -89,6 +84,29 @@ Optimized IFI insurance analysis team to address accuracy and efficiency issues.
 
 **Token Cost**: ~750 tokens total across 5 agents
 **Impact**: Agents CANNOT proceed when quality standards violated (forced compliance)
+
+### 4. Lessons Learned Workflow Integration (Rex, Mason, Douglas)
+
+**Problem**: Agents wasted time rediscovering patterns when hints already documented
+**Solution**: Added proactive workflow integration (reading + writing protocols)
+
+**Reading Protocol** (Step 0 in methodology):
+- Check lessons learned BEFORE starting analysis
+- Use as discovery HINTS (what patterns to look for)
+- ALWAYS verify independently (lessons ≠ answers)
+- Generic approach (works for all pattern types: popups, validations, UI, etc.)
+
+**Writing Protocol** (Douglas documentation standard):
+- Format template: Pattern name, observed in, pattern type, verification approach, limitation
+- Guidelines: NO specific values as universal truths, qualify by context, state verification requirement
+- Token limit: 200-300 tokens max per lesson (prevents bloat)
+- Bias prevention: Context qualification + limitation statements
+
+**Impact**: 
+- **Efficiency**: Agents check lessons first, save rediscovery time
+- **Accuracy**: "ALWAYS verify independently" requirement maintained
+- **Quality**: Lessons written as general hints (not specific answers or bible)
+- **Token cost**: ~510 tokens across 3 agents (minimal for efficiency gain)
 
 ---
 
