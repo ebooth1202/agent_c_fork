@@ -6,15 +6,13 @@ from typing import Dict, Any
 from fastapi import FastAPI, APIRouter
 from contextlib import asynccontextmanager
 from starlette.middleware.cors import CORSMiddleware
-from fastapi_cache import FastAPICache
-from fastapi_cache.backends.inmemory import InMemoryBackend
 
 from agent_c.chat import ChatSessionManager
 from agent_c.config.saved_chat import SavedChatLoader
 from agent_c.util.heygen_streaming_avatar_client import HeyGenStreamingClient
 from agent_c_api.config.env_config import settings
 from agent_c_api.core.realtime_session_manager import RealtimeSessionManager
-from agent_c_api.core.util.logging_utils import LoggingManager
+from agent_c.util.logging_utils import LoggingManager
 from agent_c_api.core.util.middleware_logging import APILoggingMiddleware
 from agent_c.config.agent_config_loader import AgentConfigLoader
 
@@ -80,12 +78,7 @@ def create_application(router: APIRouter, **kwargs) -> FastAPI:
         lifespan_app.state.realtime_manager = RealtimeSessionManager(lifespan_app.state.chat_session_manager)
         await lifespan_app.state.realtime_manager.create_user_runtime_cache_entry("admin")  # Pre-create cache for admin user
         logger.info("✅ Client Session Manager initialized successfully")
-        
-        # Initialize FastAPICache with InMemoryBackend
-        logger.info("💾 Initializing FastAPI Cache...")
-        FastAPICache.init(InMemoryBackend(), prefix="agent_c_api_cache")
-        logger.info("✅ FastAPICache initialized with InMemoryBackend")
-        
+
         # Initialize authentication database
         logger.info("🗄️ Initializing authentication database...")
         from agent_c_api.config.database import initialize_database

@@ -1,7 +1,7 @@
 import os
-import logging
 from pathlib import Path
 
+from agent_c.util.logging_utils import LoggingManager
 from agent_c_tools.tools.workspace.base import WorkspaceDataEntry
 from agent_c_tools.tools.workspace.local_storage import LocalStorageWorkspace
 
@@ -16,8 +16,7 @@ class LocalProjectWorkspace(LocalStorageWorkspace):
     The description can be overridden via PROJECT_WORKSPACE_DESCRIPTION environment variable.
     """
     def __init__(self):
-        self.logger = logging.getLogger("agent_c_tools.tools.workspaces.local_project_workspace")
-        self.logger.info("Initializing LocalProjectWorkspace")
+        self.logger = LoggingManager(__name__).get_logger()
         entry = WorkspaceDataEntry(type="local", name="project", path_or_bucket=self._determine_workspace_path(),
                                    description="Mapped to the root for the Agent C project git repo.")
         super().__init__(entry)

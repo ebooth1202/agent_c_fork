@@ -8,7 +8,7 @@ from agent_c_api.core.util.logging_utils import LoggingManager
 from agent_c_api.api import router
 from agent_c_api.config.env_config import settings
 from agent_c_api.core.setup import create_application
-from fastapi import FastAPI
+
 
 load_dotenv(override=True)
 
@@ -32,6 +32,7 @@ LoggingManager.configure_external_loggers({
 # Configure specific loggers for FastAPI components
 logging_manager = LoggingManager("agent_c_api")
 logger = logging_manager.get_logger()
+logger.info("Agent C API starting up...")
 
 # This ensures sub-loggers own logs use our formatting
 uvicorn_logger = logging.getLogger("uvicorn")
@@ -58,7 +59,7 @@ app = create_application(router=router, settings=settings)
 _timing["app_creation_end"] = time.time()
 logger.info(f"Registered {len(app.routes)} routes")
 logger.info(f"API application created in {(_timing['app_creation_end'] - _timing['app_creation_start']):.2f} seconds")
-logger.info("API versioning using directory structure with paths '/api/v1' and '/api/v2'")
+
 
 def run():
     """Entrypoint for the API"""
