@@ -415,6 +415,10 @@ if (Test-Path $activateScript) {
         pip install tomli --quiet
         Show-Success "tomli installed"
 
+        Show-Info "Installing Nuitka..."
+        pip install Nuitka --quiet
+        Show-Success "Nuitka installed"
+
     } catch {
         Write-Error "Failed to activate virtual environment: $_"
         Write-Warning "You may need to set execution policy: Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser"
