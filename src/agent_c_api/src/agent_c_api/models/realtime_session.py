@@ -3,9 +3,7 @@ from typing import TYPE_CHECKING
 from pydantic import Field
 from agent_c.models.base import BaseModel
 from agent_c.util import MnemonicSlugs
-
-if TYPE_CHECKING:
-    from agent_c_api.core.realtime_bridge import RealtimeBridge
+from agent_c_api.core.realtime_bridge import RealtimeBridge
 
 
 class RealtimeSession(BaseModel):
