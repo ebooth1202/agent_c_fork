@@ -371,46 +371,55 @@ if (Test-Path $demoEnvPath) {
     }
 }
 
-# 11. Activate virtual environment and install Python dependencies
-Write-Header "Installing Python Dependencies"
-
-Show-Info "Activating virtual environment..."
-$activateScript = Join-Path $projectRoot ".venv\Scripts\Activate.ps1"
-
-if (Test-Path $activateScript) {
-    try {
-        & $activateScript
-        Show-Success "Virtual environment activated"
-
-        # Upgrade pip
-        Show-Info "Upgrading pip..."
-        python -m pip install --upgrade pip --quiet
-        Show-Success "Pip upgraded"
-
-        # Install tomli
-        Show-Info "Installing tomli..."
-        pip install tomli --quiet
-        Show-Success "tomli installed"
-
-    } catch {
-        Write-Error "Failed to activate virtual environment: $_"
-        Write-Warning "You may need to set execution policy: Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser"
-        exit 1
-    }
+if (Test-Path "docker-compose.override.yml") {
+    Show-Success "Docker compose override file already exists"
 } else {
-    Write-Error "Virtual environment activation script not found at: $activateScript"
-    exit 1
+    Show-Info "Generating docker-compose.override.yml with drive mappings..."
+    ./scripts/generate_drive_mappings.ps1
+    Show-Success "Generated docker-compose.override.yml"
 }
 
-# 12. Configure npm and install global packages
-Write-Header "Installing Node.js Global Packages"
+    # 11. Activate virtual environment and install Python dependencies
+    Write-Header "Installing Python Dependencies"
 
-Show-Info "Configuring npm for faster installs..."
-npm config set audit false
-npm config set fund false
-npm config set fetch-retries 0
-npm config set progress false
-Show-Success "npm configured"
+    Show-Info "Activating virtual environment..."
+    $activateScript = Join-Path $projectRoot ".venv\Scripts\Activate.ps1"
+
+    if (Test-Path $activateScript) {
+        try {
+            & $activateScript
+            Show-Success "Virtual environment activated"
+
+            # Upgrade pip
+            Show-Info "Upgrading pip..."
+            python -m pip install --upgrade pip --quiet
+            Show-Success "Pip upgraded"
+
+            # Install tomli
+            Show-Info "Installing tomli..."
+            pip install tomli --quiet
+            Show-Success "tomli installed"
+
+        } catch {
+            Write-Error "Failed to activate virtual environment: $_"
+            Write-Warning "You may need to set execution policy: Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser"
+            exit 1
+        }
+    } else {
+        Write-Error "Virtual environment activation script not found at: $activateScript"
+        exit 1
+    }
+
+    # 12. Configure npm and install global packages
+    Write-Header "Installing Node.js Global Packages"
+
+    Show-Info "Configuring npm for faster installs..."
+    npm config set audit false
+    npm config set fund false
+    npm config set fetch-retries 0
+    npm config set progress false
+    Show-Success "npm configured"
+}
 
 Show-Info "Installing pnpm globally..."
 try {
