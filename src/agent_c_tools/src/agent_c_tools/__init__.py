@@ -53,6 +53,7 @@ def __getattr__(name: str):
 
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
+discovered_tools = _tools_mapping
 
 if TYPE_CHECKING:
     # For type checkers

@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse
 from agent_c.models.base import BaseModel
 
 from agent_c_api.core.util.jwt import validate_request_jwt
-from agent_c_tools.tools.workspace.local_project import LocalProjectWorkspace
+
 
 if TYPE_CHECKING:
     from agent_c_api.core.file_handler import RTFileHandler
@@ -31,8 +31,6 @@ class WSResolver:
 
     @classmethod
     def _init_workspaces(cls) -> None:
-        local_project = LocalProjectWorkspace()
-        cls.workspaces['project'] = local_project.workspace_root
         try:
             with open(LOCAL_WORKSPACES_FILE, 'r', encoding='utf-8') as json_file:
                 local_workspaces = json.load(json_file)
