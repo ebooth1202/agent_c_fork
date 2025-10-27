@@ -1,0 +1,72 @@
+{
+  "lob": "CGL",
+  "lob_name": "Commercial General Liability",
+  "lob_type_code": "9",
+  "lob_enum": "QuickQuoteObject.QuickQuoteLobType.CommercialGeneralLiability",
+  "popup_questions": {
+    "total_count": 6,
+    "popup_control": "ctlUWQuestionsPopup.ascx",
+    "source_function": "GetCGLUnderwritingQuestions()",
+    "filter_function": "GetKillQuestions",
+    "source_file": "UWQuestions.vb",
+    "questions": [
+      {
+        "number": 1,
+        "code": "9345",
+        "text": "1. Any prior coverage declined, cancelled or non-renewed during the prior 3 years?",
+        "risk_category": "Coverage History",
+        "source_line": "966-971"
+      },
+      {
+        "number": 2,
+        "code": "9346",
+        "text": "2. Any past losses or claims relating to sexual abuse or molestation allegations, discrimination or negligent hiring?",
+        "risk_category": "Legal/Discrimination Risk",
+        "source_line": "973-978"
+      },
+      {
+        "number": 3,
+        "code": "9347",
+        "text": "3. Do any operations include blasting or utilize or store explosive material?",
+        "risk_category": "Explosive/Hazardous Operations",
+        "source_line": "980-985"
+      },
+      {
+        "number": 4,
+        "code": "9348",
+        "text": "4. Are subcontractors allowed to work without providing you with a certificate of insurance?",
+        "risk_category": "Contractor Risk Management",
+        "source_line": "987-992"
+      },
+      {
+        "number": 5,
+        "code": "9349",
+        "text": "5. Does applicant lease equipment to others with or without operators?",
+        "risk_category": "Equipment Liability",
+        "source_line": "994-999"
+      },
+      {
+        "number": 6,
+        "code": "9350",
+        "text": "6. Any products related to the aircraft or space industry?",
+        "risk_category": "Specialized Industry Risk",
+        "source_line": "1001-1006"
+      }
+    ]
+  },
+  "technical_pattern": {
+    "architecture_match_wcp": true,
+    "same_popup_control": true,
+    "same_function_pattern": true,
+    "same_data_structure": true,
+    "kill_question_behavior": "All questions are kill questions - Yes answers trigger underwriting review/decline"
+  },
+  "verification_status": {
+    "source_code_located": true,
+    "function_verified": true,
+    "questions_extracted": true,
+    "text_content_retrieved": true,
+    "architecture_confirmed": true,
+    "evidence_quality": "HIGH"
+  }
+}
