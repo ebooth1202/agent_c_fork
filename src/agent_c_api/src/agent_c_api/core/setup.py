@@ -130,30 +130,12 @@ def create_application(router: APIRouter, **kwargs) -> FastAPI:
 
 
     # Set up comprehensive OpenAPI metadata from settings (or fallback defaults)
-    app_version = getattr(settings, "APP_VERSION", "0.2.0")
+    app_version = getattr(settings, "APP_VERSION", "0.3.0")
 
     openapi_metadata = {
         "title": getattr(settings, "APP_NAME", "Agent C API"),
         "description": getattr(settings, "APP_DESCRIPTION", "RESTful API for interacting with Agent C. The API provides resources for session management, chat interactions, file handling, and history access."),
         "version": app_version,
-        "openapi_tags": [
-            {
-                "name": "config",
-                "description": "Configuration resources for models, personas, tools, and system settings"
-            },
-            {
-                "name": "sessions",
-                "description": "Session management resources for creating, configuring, and interacting with agent sessions"
-            },
-            {
-                "name": "history",
-                "description": "History resources for accessing past interactions and replaying sessions"
-            },
-            {
-                "name": "debug",
-                "description": "Debug resources for accessing detailed information about session and agent state"
-            }
-        ],
         "contact": {
             "name": getattr(settings, "CONTACT_NAME", "Agent C Team"),
             "email": getattr(settings, "CONTACT_EMAIL", "joseph.ours@centricconsulting.com"),
@@ -205,35 +187,5 @@ def create_application(router: APIRouter, **kwargs) -> FastAPI:
     )
 
     app.include_router(router)
-
-    # Log application creation details
-    app_name = getattr(settings, 'APP_NAME', 'Agent C API')
-    app_version = getattr(settings, 'APP_VERSION', '2.0.0')
-    docs_url = getattr(settings, 'DOCS_URL', '/docs')
-    redoc_url = getattr(settings, 'REDOC_URL', '/redoc')
-    openapi_url = getattr(settings, 'OPENAPI_URL', '/openapi.json')
-    
-    logger.info(f"Application created: {app_name} v{app_version}")
-    logger.info(f"API documentation available at:\n  - Swagger UI: {docs_url}\n  - ReDoc: {redoc_url}\n  - OpenAPI Schema: {openapi_url}")
-
-    # Add a utility method to the app for accessing the OpenAPI schema
-    app.openapi_schema_version = app_version
-    
-    # Override the default openapi method to add custom components if needed
-    original_openapi = app.openapi
-    
-    def custom_openapi() -> Dict[str, Any]:
-        if app.openapi_schema:
-            return app.openapi_schema
-            
-        openapi_schema = original_openapi()
-        
-        # Add custom security schemes if needed
-        # This is where you would add JWT security definitions, OAuth flows, etc.
-        
-        app.openapi_schema = openapi_schema
-        return app.openapi_schema
-    
-    app.openapi = custom_openapi
 
     return app

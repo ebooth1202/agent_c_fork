@@ -1,4 +1,3 @@
-import markdown
 import threading
 
 from datetime import datetime
@@ -9,7 +8,7 @@ from agent_c.prompting.prompt_section import PromptSection
 from agent_c.config.model_config_loader import ModelConfigurationLoader
 from agent_c.config.agent_config_loader import AgentConfigLoader
 from agent_c.models.events import SessionEvent
-from agent_c.models.events.chat import HistoryDeltaEvent, CompleteThoughtEvent, SubsessionEndedEvent, SubsessionStartedEvent
+from agent_c.models.events.chat import  SubsessionEndedEvent, SubsessionStartedEvent
 from agent_c.util.slugs import MnemonicSlugs
 from agent_c.toolsets.tool_set import Toolset
 from agent_c.models.agent_config import AgentConfiguration
@@ -58,7 +57,7 @@ class AgentAssistToolBase(Toolset):
     async def _raise_subsession_end(self, event: SubsessionEndedEvent, streaming_callback):
         await self._raise_event(event, streaming_callback)
 
-    async def _streaming_callback_for_subagent(self, agent: AgentConfiguration, parent_streaming_callback, parent_session_id, event: SessionEvent):
+    async def _streaming_callback_for_subagent(self,  parent_streaming_callback, parent_session_id, event: SessionEvent):
         if event.type not in [ 'history_delta', 'history'] and parent_streaming_callback is not None:
             await parent_streaming_callback(event)
 
@@ -112,7 +111,7 @@ class AgentAssistToolBase(Toolset):
 
 
         chat_params = {"prompt_metadata": prompt_metadata, "output_format": 'raw',
-                       "streaming_callback": partial(self._streaming_callback_for_subagent, agent, parent_streaming_callback, user_session_id),
+                       "streaming_callback": partial(self._streaming_callback_for_subagent, parent_streaming_callback, user_session_id),
                        "client_wants_cancel": client_wants_cancel, "tool_chest": self.tool_chest,
                        "prompt_builder": PromptBuilder(sections=self.sections),
                        "session_id": agent_session_id, "parent_session_id": parent_session_id,

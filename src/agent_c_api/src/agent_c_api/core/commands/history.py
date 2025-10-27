@@ -1,7 +1,9 @@
-from typing import List
+from typing import List, TYPE_CHECKING
 
 from agent_c_api.core.commands.base_command import Command
 
+if TYPE_CHECKING:
+    from agent_c_api.core.realtime_bridge import RealtimeBridge
 
 class RewindCommand(Command):
     @property
@@ -12,7 +14,7 @@ class RewindCommand(Command):
     def help_text(self) -> str:
         return "Rewind the chat session by a number of user input messages - Usage: !rewind [steps]\n\n"
 
-    async def execute(self, context, **kwargs):
+    async def execute(self, context: 'RealtimeBridge', **kwargs):
 
         if 'raw_args' in kwargs and kwargs['raw_args']:
             count = int(kwargs['raw_args'].strip())
@@ -30,5 +32,5 @@ class ForkCommand(Command):
     def help_text(self) -> str:
         return "Fork the current chat session into a new session - Usage: !fork\n\n"
 
-    async def execute(self, context, **kwargs):
+    async def execute(self, context: 'RealtimeBridge', **kwargs):
         await context.fork_session()

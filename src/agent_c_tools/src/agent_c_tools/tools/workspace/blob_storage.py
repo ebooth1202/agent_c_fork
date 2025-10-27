@@ -9,43 +9,20 @@ from azure.storage.blob.aio import BlobServiceClient as AsyncBlobServiceClient
 from azure.storage.blob.aio import BlobClient as AsyncBlobClient
 from azure.storage.blob.aio import ContainerClient as AsyncContainerClient
 from azure.core.exceptions import ResourceNotFoundError, ResourceExistsError, AzureError
-from agent_c_tools.tools.workspace.base import BaseWorkspace
+from agent_c_tools.tools.workspace.base import BaseWorkspace, WorkspaceDataEntry
 
 
 class BlobStorageWorkspace(BaseWorkspace):
-    """
-    A workspace implementation that uses Azure Blob Storage.
-
-    This class provides asynchronous methods to read, write, and manage files
-    in an Azure Blob Storage container. Authentication is handled through
-    environment variables.
-
-    Environment Variables:
-        AZURE_STORAGE_CONNECTION_STRING: Connection string for the Azure Storage account
-        AZURE_STORAGE_ACCOUNT_NAME: Storage account name (used if connection string not provided)
-        AZURE_STORAGE_ACCOUNT_KEY: Storage account key (used with account name)
-        AZURE_STORAGE_SAS_TOKEN: SAS token (can be used instead of account key)
-
-    Attributes:
-        container_name (str): The name of the Azure Blob container to use
-        prefix (str, optional): A prefix to prepend to all blob paths
-    """
-
-    def __init__(self, container_name: str, prefix: str = "", **kwargs):
+    def __init__(self, entry: WorkspaceDataEntry, **kwargs):
         """
         Initialize an Azure Blob Storage workspace.
 
         Args:
-            container_name (str): The name of the Azure Blob container to use
-            prefix (str, optional): A prefix to prepend to all blob paths
-            **kwargs: Additional arguments to pass to BaseWorkspace
-                - name (str): The name of the workspace
-                - description (str): The description of the workspace
-                - read_only (bool): If the workspace should be read-only
+            entry (WorkspaceDataEntry): The workspace data entry containing configuration
         """
-        super().__init__(type_name="azure_blob", **kwargs)
-        self.container_name = container_name
-        self.prefix = prefix.rstrip("/") + "/" if prefix else ""
+        super().__init__(entry, **kwargs)
+        self.container_name = entry.path_or_bucket
+        self.prefix = entry.prefix.rstrip("/") + "/"
 
         # Get Azure credentials from environment variables
         self.connection_string = os.environ.get(
@@ -71,6 +48,24 @@ class BlobStorageWorkspace(BaseWorkspace):
 
         # Setup logger
         self.logger = logging.getLogger(__name__)
+
+    """
+    A workspace implementation that uses Azure Blob Storage.
+
+    This class provides asynchronous methods to read, write, and manage files
+    in an Azure Blob Storage container. Authentication is handled through
+    environment variables.
+
+    Environment Variables:
+        AZURE_STORAGE_CONNECTION_STRING: Connection string for the Azure Storage account
+        AZURE_STORAGE_ACCOUNT_NAME: Storage account name (used if connection string not provided)
+        AZURE_STORAGE_ACCOUNT_KEY: Storage account key (used with account name)
+        AZURE_STORAGE_SAS_TOKEN: SAS token (can be used instead of account key)
+
+    Attributes:
+        container_name (str): The name of the Azure Blob container to use
+        prefix (str, optional): A prefix to prepend to all blob paths
+    """
 
     async def _get_service_client(self) -> AsyncBlobServiceClient:
         """

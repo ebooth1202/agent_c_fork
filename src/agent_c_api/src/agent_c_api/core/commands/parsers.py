@@ -38,7 +38,7 @@ class ArgparseParser(CommandParser):
 
     def parse(self, args_string: str) -> dict:
         # Use shlex to properly handle quoted strings
-        args = shlex.split(args_string)
+        args = shlex.split(args_string.replace("\\", "/"))
         parsed = self.parser.parse_args(args)
         return vars(parsed)
 

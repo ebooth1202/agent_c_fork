@@ -2,13 +2,14 @@ from typing import List, Optional, Any, Literal
 
 from pydantic import Field
 
-from agent_c.models import ChatSession, ChatUser
+from agent_c.models import ChatSession, ChatUser, BaseModel
 from agent_c.models.agent_config import CurrentAgentConfiguration, AgentCatalogEntry
 from agent_c.models.chat_history.chat_session import ChatSessionQueryResponse, ChatSessionIndexEntry
 from agent_c.models.client_tool_info import ClientToolInfo
 from agent_c.models.events import BaseEvent
 from agent_c.models.heygen import Avatar, HeygenAvatarSessionData, NewSessionRequest
 from agent_c_api.core.voice.models import AvailableVoiceModel
+from agent_c_tools.tools.workspace.base import WorkspaceDataEntry
 
 
 class GetAgentsEvent(BaseEvent):
@@ -384,3 +385,49 @@ class SetAgentToolsEvent(BaseEvent):
         tools (List[str]): The toolset names that should be equipped.
     """
     tools: List[str] = Field(default_factory=list)
+
+class AddWorkspaceEvent(BaseEvent):
+    """
+    Event to add a workspace for the current user
+
+    Any errors will be sent as a system message to tu user.
+
+    Attributes:
+        entry (WorkspaceDataEntry): The data for the workspace to add.
+    """
+    entry: WorkspaceDataEntry = Field(..., description="The workspace data to add.")
+
+class WorkspaceAddedEvent(BaseEvent):
+    """
+    Event to notify that a workspace has been added for the current user
+
+    Attributes:
+        entry (WorkspaceDataEntry): The data for the workspace that was added.
+    """
+    entry: WorkspaceDataEntry = Field(..., description="The workspace data that was added.")
+
+class RemoveWorkspaceEvent(BaseEvent):
+    """
+    Event to remove a workspace from the current user.
+
+    Attributes:
+        name (str): The name of the workspace to remove.
+    """
+    name: str
+
+class ListWorkspacesEvent(BaseEvent):
+    """
+    Event to request a list of workspaces for the current agent.
+
+    This event does not require any additional data.
+    """
+    pass
+
+class WorkspaceListEvent(BaseEvent):
+    """
+    Event to send a list of workspaces for the current user
+
+    Attributes:
+        workspaces (list): A list of available workspaces.
+    """
+    workspaces: List[WorkspaceDataEntry] = Field(default_factory=list, description="The list of workspaces available to the current user")
