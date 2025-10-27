@@ -213,11 +213,14 @@ class LoggingManager:
             "httpx": "WARNING",
             "urllib3": "WARNING",
             "uvicorn.access": "WARNING",
+            "uvicorn.error": "ERROR",
             "asyncio": "WARNING",
             "httpcore": "WARNING",
             "python_multipart": "WARNING",
             "anthropic": "WARNING",
             "openai": "WARNING",
+            "uvicorn": "INFO",
+            "fastapi": "INFO",
             # Add others as needed
         }
 

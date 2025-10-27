@@ -1,5 +1,5 @@
 # Unified Web Search Tools - Primary interface for all web search functionality
-from .web_search_tools import WebSearchTools
+from .tool import WebSearchTools
 
 # Legacy individual tools - DEPRECATED
 # These tools are deprecated and will be removed in a future version.

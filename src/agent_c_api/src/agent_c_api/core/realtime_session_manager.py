@@ -3,21 +3,22 @@ import asyncio
 import json
 import threading
 
-from typing import Dict, Optional, List, Any, Union
+from typing import Dict, Optional, List, Any, Union, TYPE_CHECKING
 
 from agent_c.models import ChatUser
 from agent_c.models.events import SystemMessageEvent
 from agent_c.toolsets import ToolCache, ToolChest
-
-from agent_c.config.agent_config_loader import AgentConfigLoader
-from agent_c.config import ModelConfigurationLoader
-from agent_c.chat.session_manager import ChatSessionManager
 from agent_c_api.api.rt.models.control_events import ErrorEvent, WorkspaceListEvent, WorkspaceAddedEvent
 from agent_c_api.core.realtime_bridge import RealtimeBridge
-from agent_c_api.core.util.logging_utils import LoggingManager
+from agent_c.util.logging_utils import LoggingManager
 from agent_c_api.models.realtime_session import RealtimeSession
 from agent_c_tools.tools.workspace.base import BaseWorkspace, WorkspaceDataEntry
 from agent_c_api.models.user_runtime_cache_entry import UserRuntimeCacheEntry
+
+if TYPE_CHECKING:
+    from agent_c.chat.session_manager import ChatSessionManager
+    from agent_c.config.agent_config_loader import AgentConfigLoader
+    from agent_c.config import ModelConfigurationLoader
 
 
 from agent_c_tools import *  # noqa
@@ -42,21 +43,20 @@ class RealtimeSessionManager:
     Maintains the connection between client UI
     """
 
-    def __init__(self, session_manager: ChatSessionManager):
+    def __init__(self, state):
         logging_manager = LoggingManager(__name__)
         self.logger = logging_manager.get_logger()
         self.user_workspaces: Dict[str, List[BaseWorkspace]] = {}
-        self.agent_config_loader: AgentConfigLoader = AgentConfigLoader()
-        self.model_config_loader = ModelConfigurationLoader()
-        self.model_configs: Dict[str, Any] = self.model_config_loader.flattened_config()
+        self.agent_config_loader: 'AgentConfigLoader' = state.agent_config_loader
+        self.model_config_loader:  'ModelConfigurationLoader' = state.model_config_loader
+        self.chat_session_manager: 'ChatSessionManager' = state.chat_session_manager
+        self.model_configs: Dict[str, Any] = state.model_configs
         self.tool_cache_dir = DEFAULT_TOOL_CACHE_DIR
 
         self.user_runtime_cache: Dict[str, UserRuntimeCacheEntry] = {}
         self.ui_sessions: Dict[str, RealtimeSession] = {}
         self._locks: Dict[str, asyncio.Lock] = {}
         self._cancel_events: Dict[str, threading.Event] = {}
-        self.agent_config_loader: AgentConfigLoader = AgentConfigLoader()
-        self.chat_session_manager: ChatSessionManager = session_manager
 
     @staticmethod
     def _migrate_old_workspaces(workspaces: List[Dict[str, Any]]) -> List[WorkspaceDataEntry]:

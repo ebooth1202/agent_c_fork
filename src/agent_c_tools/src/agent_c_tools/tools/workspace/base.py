@@ -9,7 +9,7 @@ from pydantic import Field, model_validator
 from yaml import FullLoader
 
 from agent_c.models import BaseModel
-from agent_c_api.core.util.logging_utils import LoggingManager
+from agent_c.util.logging_utils import LoggingManager
 
 class WorkspaceDataEntry(BaseModel):
     name: Optional[str] = Field(None, description="The name of the workspace to add.")
