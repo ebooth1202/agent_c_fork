@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Persona Positioning and Hierarchy</title>
+    
+    <!-- Marked.js for markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/yaml.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        #sidebar {
+            width: 320px;
+            background: #f8f9fa;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+            position: relative;
+            flex-shrink: 0;
+        }
+        
+        #sidebar-header {
+            padding: 50px 20px 20px 20px;
+            background: #2c1a5d;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        #sidebar-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        #toggle-sidebar {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            color: white;
+            transition: all 0.2s;
+        }
+        
+        #toggle-sidebar:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        #toc {
+            list-style: none;
+            padding: 20px;
+        }
+        
+        #toc li {
+            margin: 0;
+        }
+        
+        #toc a {
+            color: #333;
+            text-decoration: none;
+            display: block;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+        
+        #toc a:hover {
+            background: #e9ecef;
+            transform: translateX(3px);
+        }
+        
+        #toc a.active {
+            background: rgba(44, 26, 93, 0.1);
+            color: #2c1a5d;
+            font-weight: 600;
+            border-left: 3px solid #fdb825;
+        }
+        
+        #toc .h1 {
+            font-weight: 600;
+            font-size: 14px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        #toc .h1:first-child {
+            margin-top: 0;
+            padding-top: 0;
+            border-top: none;
+        }
+        
+        #toc .h2 {
+            margin-left: 15px;
+            font-size: 13px;
+        }
+        
+        #toc .h3 {
+            margin-left: 30px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        #content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px 80px;
+            scroll-behavior: smooth;
+        }
+        
+        #markdown-content {
+            max-width: 900px;
+        }
+        
+        #markdown-content h1 {
+            color: #2c1a5d;
+            border-bottom: 3px solid #fdb825;
+            padding-bottom: 12px;
+            margin: 40px 0 20px 0;
+            font-size: 2em;
+        }
+        
+        #markdown-content h2 {
+            color: #2c1a5d;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            margin: 32px 0 16px 0;
+            font-size: 1.6em;
+        }
+        
+        #markdown-content h3 {
+            color: #2c1a5d;
+            margin: 24px 0 12px 0;
+            font-size: 1.3em;
+        }
+        
+        #markdown-content h4 {
+            color: #555;
+            margin: 20px 0 10px 0;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+        
+        #markdown-content code {
+            background: #f8f9fa;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #e83e8c;
+        }
+        
+        #markdown-content pre {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-left: 4px solid #fdb825;
+            border-radius: 6px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        
+        #markdown-content pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+        
+        #markdown-content ul, #markdown-content ol {
+            margin: 16px 0 16px 30px;
+        }
+        
+        #markdown-content li {
+            margin: 8px 0;
+        }
+        
+        #markdown-content p {
+            margin: 16px 0;
+        }
+        
+        #markdown-content strong {
+            color: #2c1a5d;
+            font-weight: 600;
+        }
+        
+        #markdown-content blockquote {
+            border-left: 4px solid #fdb825;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #666;
+            font-style: italic;
+        }
+        
+        #markdown-content hr {
+            border: none;
+            border-top: 2px solid #e9ecef;
+            margin: 40px 0;
+        }
+        
+        #back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #2c1a5d;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            font-size: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 999;
+        }
+        
+        #back-to-top.visible {
+            opacity: 0.8;
+        }
+        
+        #back-to-top:hover {
+            opacity: 1;
+            transform: translateY(-4px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
+        
+        #logo {
+            position: fixed;
+            bottom: 100px;
+            right: 40px;
+            opacity: 0.6;
+            z-index: 998;
+            transition: opacity 0.3s;
+        }
+        
+        #logo:hover {
+            opacity: 0.9;
+        }
+        
+        #logo img {
+            width: 55px;
+            height: auto;
+        }
+        
+        body.sidebar-hidden #sidebar {
+            margin-left: -320px;
+        }
+        
+        body.sidebar-hidden #content {
+            margin-left: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <div id="sidebar-header">
+            <button id="toggle-sidebar">Hide</button>
+            <h2>Table of Contents</h2>
+        </div>
+        <ul id="toc"></ul>
+    </div>
+    
+    <div id="content">
+        <div id="markdown-content"></div>
+    </div>
+    
+    <div id="back-to-top">↑</div>
+    
+    <div id="logo">
+        <img src="data:image/png;base64,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" alt="Centric Consulting">
+    </div>
+    
+    <script>
+        // Embedded markdown content
+        const markdownContent = "# Agent Persona Positioning and Hierarchy\n\n## Executive Summary\n\n**YES, positioning matters significantly.** The order of content in agent persona YAML files affects how LLMs interpret and prioritize information through positional bias, emphasis patterns, and cognitive load management.\n\n---\n\n# Part 1: Understanding Positional Bias\n\n## Core Principle: Positional Bias in LLM Processing\n\n### Primacy Effect\n**What appears FIRST has outsized influence**\n\n**Mechanism**:\n- LLMs pay strong attention to early content in prompts\n- First impressions establish context and framing\n- Early rules create \"mental model\" for subsequent interpretation\n- First-mentioned constraints often override later ones in conflict situations\n\n**Application**:\n- Critical constraints should appear early\n- Mission/role statements benefit from top placement\n- Non-negotiable rules belong near the beginning\n\n### Recency Effect\n**What appears LAST also has strong influence**\n\n**Mechanism**:\n- Final instructions are \"fresh\" when LLM begins reasoning\n- Last-stated rules often win in ambiguous situations\n- Concluding statements reinforce earlier content\n- \"Remember:\" statements at end have high impact\n\n**Application**:\n- Repeat critical constraints at the end\n- Final reminders of most important rules\n- Closing emphasis on mission-critical behaviors\n\n### Middle Dilution\n**Middle content can be less influential**\n\n**Mechanism**:\n- Detailed procedures in middle can blur together\n- Long sections reduce attention per item\n- Context switching between topics reduces retention\n- Procedural details compete for attention\n\n**Mitigation**:\n- Use clear section headers for middle content\n- Bold/capitalize critical items even in middle\n- Break long middle sections into digestible chunks\n- Repeat critical rules if appearing in middle\n\n---\n\n## Evidence from BOKF Agents\n\n### Example: Gatekeeper Orchestrator Structure\n\n**Positioning Analysis**:\n\n```yaml\n# Position 1: CRITICAL INTERACTION GUIDELINES (TOP)\n## CRITICAL INTERACTION GUIDELINES\n- **STOP IMMEDIATELY if workspaces/paths don't exist**\n  # \u2191 HIGHEST PRIORITY rule - positioned FIRST\n  # This ensures it's seen before any other instructions\n\n# Position 2: SHAWN WALLACE TECHNICAL AUTHORITY (EARLY)\n## SHAWN WALLACE TECHNICAL AUTHORITY\n**MANDATORY SIGNOFF PROTOCOL**: ...\n  # \u2191 Critical authority relationship - positioned SECOND\n  # Establishes non-negotiable approval hierarchy upfront\n\n# Position 3: MANDATORY SCOPE CONSTRAINTS (EARLY-MIDDLE)\n## \ud83d\udea8 MANDATORY SCOPE CONSTRAINTS - NON-NEGOTIABLE\n  # \u2191 Critical operational boundaries\n  # Positioned early to establish what agent CAN'T do\n  # Uses emoji \ud83d\udea8 for visual emphasis even in middle position\n\n# Middle sections: Mission, team coordination, workflows\n  # Detailed procedures and context\n  # Less critical positionally but well-structured\n\n# Final Position: Success metrics and REMINDER\nRemember: Your role is to orchestrate a team that transforms...\n  # \u2191 Recency effect - final reminder of core mission\n  # Reinforces primary objective as last thing before execution\n```\n\n**Pattern Observed**:\n1. **Absolute constraints FIRST** (stop rules, critical guidelines)\n2. **Authority relationships SECOND** (who has power, signoff requirements)\n3. **Scope boundaries THIRD** (what's permitted/prohibited)\n4. **Mission and procedures MIDDLE** (how to do the work)\n5. **Reminders and success metrics LAST** (reinforce mission)\n\n---\n\n# Part 2: Best Practices and Patterns\n\n## Positioning Best Practices\n\n### Tier 1: Top Position (Highest Priority)\n\n**What Goes Here**:\n- Critical stop rules (\"STOP if X\")\n- Absolute constraints that override everything\n- Emergency protocols\n- Highest-priority behavioral rules\n\n**Example**:\n```yaml\npersona: |\n  ## CRITICAL: STOP RULES\n  - **STOP IMMEDIATELY if workspaces/paths don't exist**\n  - **STOP if requirements contradict established patterns**\n  - **STOP if clone tasks exceed 30 minutes**\n```\n\n**Why This Works**:\n- LLM sees constraints before being tempted by other instructions\n- Establishes \"safety rails\" before complex procedures\n- Creates strong initial framing for all subsequent behavior\n\n### Tier 2: Early Position (High Priority)\n\n**What Goes Here**:\n- Role and mission statement\n- Authority relationships and signoff requirements\n- Non-negotiable scope boundaries\n- Critical coordination protocols\n\n**Example**:\n```yaml\n  You are Douglas, the Gatekeeper System Modernization Orchestrator...\n\n  ## SHAWN WALLACE TECHNICAL AUTHORITY\n  **MANDATORY SIGNOFF PROTOCOL**: ...\n\n  ## \ud83d\udea8 MANDATORY SCOPE CONSTRAINTS - NON-NEGOTIABLE\n  \u2705 PERMITTED: ...\n  \u274c PROHIBITED: ...\n```\n\n**Why This Works**:\n- Establishes identity and mission context early\n- Authority relationships clear before delegation instructions\n- Scope boundaries prevent invalid work planning\n\n### Tier 3: Middle Position (Standard Priority)\n\n**What Goes Here**:\n- Detailed workflows and procedures\n- Team coordination specifics\n- Tool usage instructions\n- Context management strategies\n- Clone delegation details\n\n**Important**: Use strong formatting to prevent middle dilution\n```yaml\n  ### \ud83d\udd25 Clone Delegation Framework - MANDATORY DISCIPLINE\n  - **15-30 Minute Financial Task Rule** - NEVER create clone tasks longer than 30 minutes\n```\n\n**Emphasis Techniques for Middle Content**:\n- Emoji for visual differentiation (\ud83d\udd25, \ud83d\udea8, \u2705, \u274c)\n- Bold for critical terms (**MANDATORY**, **NEVER**)\n- ALL CAPS for emphasis (STOP, ONE, CRITICAL)\n- Section headers with clear hierarchy (##, ###)\n- Numbered/bulleted lists for clarity\n\n### Tier 4: Late Position (Reinforcement)\n\n**What Goes Here**:\n- Success metrics\n- Quality standards\n- Final mission reminders\n- Key principle repetition\n\n**Example**:\n```yaml\n  ## Success Metrics\n  - Requirements Coverage: 100%\n  - Code Quality: Superior maintainability\n\n  Remember: Your role is to orchestrate a team that transforms\n  comprehensive financial requirements into superior C# solutions\n  under Shawn Wallace's technical authority. Systematic, requirements-driven\n  development produces better results than experience-based assumptions.\n```\n\n**Why This Works**:\n- Recency effect reinforces mission as LLM begins work\n- Success metrics provide clear targets for evaluation\n- Final reminder creates strong closing framing\n\n---\n\n## Hierarchy Patterns\n\n### Pattern 1: Constraint Sandwich\n\n**Structure**:\n```\n[Critical constraints and stops - TOP]\n[Mission and role]\n[Detailed procedures - MIDDLE]\n[Reinforced constraints and mission - BOTTOM]\n```\n\n**Usage**: When absolute rules must never be violated\n**Example**: Gatekeeper agent (scope constraints repeated/reinforced)\n\n### Pattern 2: Mission-First\n\n**Structure**:\n```\n[Mission and role identity - TOP]\n[Critical constraints - EARLY]\n[Detailed workflows - MIDDLE]\n[Success criteria - BOTTOM]\n```\n\n**Usage**: When agent identity and purpose drive behavior\n**Example**: Standard orchestrator agents\n\n### Pattern 3: Authority-Driven\n\n**Structure**:\n```\n[Stop rules - TOP]\n[Authority relationships - EARLY]\n[Coordination protocols - MIDDLE]\n[Authority reminders - BOTTOM]\n```\n\n**Usage**: When signoff/approval workflows are critical\n**Example**: Gatekeeper with Shawn Wallace authority\n\n### Pattern 4: Sequential Workflow\n\n**Structure**:\n```\n[Role definition - TOP]\n[Sequential phase definitions - EARLY TO MIDDLE]\n[Phase transition rules - MIDDLE]\n[Workflow reminders - BOTTOM]\n```\n\n**Usage**: When agent follows strict sequential process\n**Example**: Dominic domain analysis (one domain at a time)\n\n---\n\n## Emphasis Techniques\n\n### Visual Emphasis (Emoji)\n```yaml\n\ud83d\udea8 CRITICAL: ...        # Emergency/danger\n\ud83d\udd25 MANDATORY: ...       # Non-negotiable requirement\n\u2705 PERMITTED: ...       # Allowed actions\n\u274c PROHIBITED: ...      # Forbidden actions\n\u26a0\ufe0f  WARNING: ...        # Caution/risk\n\ud83d\udca1 TIP: ...             # Helpful guidance\n```\n\n**Effect**: Breaks up text walls, creates visual hierarchy even in middle sections\n\n### Textual Emphasis\n```yaml\n**BOLD**: Critical terms\n*Italic*: Emphasis\nALL CAPS: Strong emphasis (use sparingly)\n\"Quotes\": Specific values/terms\n```\n\n**Effect**: Draws eye to critical information in dense text\n\n### Structural Emphasis\n```yaml\n## Major Section\n### Subsection\n#### Detail Level\n\n- Top-level bullet\n  - Nested detail\n    - Further nesting\n```\n\n**Effect**: Creates clear information hierarchy\n\n### Repetition for Emphasis\n```yaml\n# Early in persona:\n**15-30 Minute Task Rule** - NEVER create clone tasks longer than 30 minutes\n\n# Middle reminder:\n- Clone tasks: 15-30 minutes maximum\n\n# Final reminder:\nRemember: All clone tasks must be 15-30 minutes for optimal execution\n```\n\n**Effect**: Critical rules reinforced through strategic repetition\n\n---\n\n# Part 3: What to Avoid\n\n## Common Anti-Patterns\n\n### Anti-Pattern 1: Buried Critical Constraints\n\n**Problem**:\n```yaml\npersona: |\n  You are an orchestrator who coordinates teams...\n  \n  [3 pages of detailed workflows]\n  \n  NEVER exceed 30-minute clone tasks.\n```\n\n**Why It Fails**: Critical constraint appears too late, after agent has internalized complex workflows\n\n**Solution**: Move constraint to top or early position\n\n### Anti-Pattern 2: Wall of Text (No Hierarchy)\n\n**Problem**:\n```yaml\npersona: |\n  You coordinate teams and ensure quality and manage context and\n  delegate clones and validate requirements and track progress and\n  compress context and handle failures and escalate issues...\n```\n\n**Why It Fails**: No visual breaks, everything equal priority, cognitive overload\n\n**Solution**: Use headers, bullets, emphasis to create hierarchy\n\n### Anti-Pattern 3: Contradictory Positioning\n\n**Problem**:\n```yaml\npersona: |\n  ## CRITICAL: Work on multiple domains in parallel for efficiency\n  \n  [10 sections later]\n  \n  Sequential processing: ONE domain at a time (never parallel)\n```\n\n**Why It Fails**: Primacy effect means early instruction wins, conflicts with later rule\n\n**Solution**: Ensure critical rules don't contradict, position critical rule first\n\n### Anti-Pattern 4: Weak Final Position\n\n**Problem**:\n```yaml\npersona: |\n  [Excellent persona content]\n  \n  Workspace structure: $workspace_tree\n```\n\n**Why It Fails**: Wastes recency effect on structural information instead of mission reminder\n\n**Solution**: End with mission reminder or critical constraint repetition\n\n### Anti-Pattern 5: Critical Rules Only in Middle\n\n**Problem**:\n```yaml\npersona: |\n  You are an orchestrator...\n  \n  [Section 5 of 10]\n  NEVER modify source code in read-only workspace\n  \n  [Continues with more sections]\n```\n\n**Why It Fails**: Critical safety rule buried in middle dilution zone\n\n**Solution**: Move to top AND repeat at bottom\n\n---\n\n# Part 4: Application Guide\n\n## Positioning Strategy by Agent Type\n\n### Orchestrator Agents\n\n**Priority Order**:\n1. Stop rules and critical constraints (TOP)\n2. Mission and team composition (EARLY)\n3. Authority relationships (EARLY)\n4. Sequential workflow phases (MIDDLE)\n5. Quality gates and coordination (MIDDLE)\n6. Success metrics (LATE)\n7. Mission reminder (BOTTOM)\n\n**Rationale**: Orchestrators need constraints first, then team coordination structure\n\n### Specialist Agents\n\n**Priority Order**:\n1. Role definition and focus (TOP)\n2. Critical constraints (EARLY)\n3. Deliverable requirements (EARLY)\n4. Detailed procedures (MIDDLE)\n5. Quality standards (MIDDLE)\n6. Success criteria (LATE)\n7. Role reminder (BOTTOM)\n\n**Rationale**: Specialists need clear focus area, then detailed execution guidance\n\n### Validator/Reviewer Agents\n\n**Priority Order**:\n1. Independence requirement (TOP) - \"Do not rely on X\"\n2. Validation criteria (EARLY)\n3. Critical accuracy thresholds (EARLY)\n4. Validation procedures (MIDDLE)\n5. Escalation protocols (MIDDLE)\n6. Approval standards (LATE)\n7. Quality reminder (BOTTOM)\n\n**Rationale**: Validators must establish independence first, then criteria\n\n### Domain/Sequential Processing Agents\n\n**Priority Order**:\n1. ONE at a time rule (TOP)\n2. Sequential discipline (EARLY)\n3. Assignment protocol (EARLY)\n4. Per-unit workflow (MIDDLE)\n5. Cross-unit tracking (MIDDLE)\n6. Completion signaling (LATE)\n7. Sequential reminder (BOTTOM)\n\n**Rationale**: Sequential discipline is paramount, must be established immediately\n\n---\n\n## Practical Checklist\n\n### Persona Design Review\n\n**Top Section (Lines 1-50)**:\n- [ ] Critical stop rules present?\n- [ ] Absolute constraints clearly stated?\n- [ ] Strong opening framing of mission/role?\n- [ ] Authority relationships established if needed?\n\n**Early Section (Lines 51-200)**:\n- [ ] Mission and objectives clear?\n- [ ] Non-negotiable scope boundaries defined?\n- [ ] Team composition/coordination pattern stated?\n- [ ] Critical behavioral rules emphasized?\n\n**Middle Section (Lines 201-1000)**:\n- [ ] Clear section headers breaking up content?\n- [ ] Emoji or bold used for emphasis?\n- [ ] Detailed procedures logically organized?\n- [ ] Critical rules repeated or reinforced?\n\n**Late Section (Last 100 lines)**:\n- [ ] Success metrics defined?\n- [ ] Quality standards clear?\n- [ ] Mission reminder present?\n- [ ] Critical constraints reinforced?\n\n**Overall**:\n- [ ] No contradictions between sections?\n- [ ] Critical rules appear early AND late?\n- [ ] Visual hierarchy clear (headers, bullets, emphasis)?\n- [ ] Most important rules not buried in middle?\n\n---\n\n## Conclusion\n\n**Positioning is a critical design element, not an afterthought.**\n\n**Key Principles**:\n1. **Primacy**: Put critical constraints and stops FIRST\n2. **Recency**: Reinforce mission and critical rules LAST\n3. **Emphasis**: Use formatting to prevent middle dilution\n4. **Repetition**: Repeat critical rules strategically\n5. **Hierarchy**: Clear structure prevents cognitive overload\n\n**Test Your Design**:\n- What does the agent see in first 30 seconds of reading? (Should be critical constraints)\n- What's the last thing before execution? (Should be mission reminder)\n- Can you skim middle sections and still find critical rules? (Should have visual emphasis)\n- Are absolute constraints repeated? (Should appear top AND bottom if critical)\n\n**Remember**: LLMs are influenced by position, emphasis, and structure just like humans reading documentation - design personas accordingly.\n";
+        
+        // Wait for marked.js to load
+        function initPage() {
+            if (typeof marked === 'undefined') {
+                setTimeout(initPage, 100);
+                return;
+            }
+            
+            // Configure marked
+            marked.setOptions({
+                breaks: true,
+                gfm: true
+            });
+            
+            // Render markdown
+            const html = marked.parse(markdownContent);
+            document.getElementById('markdown-content').innerHTML = html;
+            
+            // Apply syntax highlighting
+            if (typeof hljs !== 'undefined') {
+                document.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            }
+            
+            // Build TOC
+            buildTOC();
+            
+            // Setup scroll handlers
+            setupScrollHandlers();
+        }
+        
+        function buildTOC() {
+            const content = document.getElementById('markdown-content');
+            const toc = document.getElementById('toc');
+            const headings = content.querySelectorAll('h1, h2, h3');
+            
+            headings.forEach((heading, index) => {
+                // Create ID if needed
+                if (!heading.id) {
+                    heading.id = heading.textContent.trim().toLowerCase()
+                        .replace(/[^a-z0-9]+/g, '-')
+                        .replace(/(^-|-$)/g, '') + '-' + index;
+                }
+                
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = '#' + heading.id;
+                a.textContent = heading.textContent;
+                a.className = heading.tagName.toLowerCase();
+                
+                a.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    
+                    // Highlight briefly
+                    const orig = heading.style.backgroundColor;
+                    heading.style.backgroundColor = 'rgba(253,184,37,0.2)';
+                    setTimeout(() => heading.style.backgroundColor = orig, 1500);
+                    
+                    // Update active
+                    updateActiveTOC(a);
+                });
+                
+                li.appendChild(a);
+                toc.appendChild(li);
+            });
+        }
+        
+        function updateActiveTOC(activeLink) {
+            document.querySelectorAll('#toc a').forEach(link => {
+                link.classList.remove('active');
+            });
+            if (activeLink) {
+                activeLink.classList.add('active');
+            }
+        }
+        
+        function setupScrollHandlers() {
+            const contentDiv = document.getElementById('content');
+            const backToTop = document.getElementById('back-to-top');
+            const headings = document.querySelectorAll('#markdown-content h1, #markdown-content h2, #markdown-content h3');
+            
+            // Back to top button
+            contentDiv.addEventListener('scroll', () => {
+                if (contentDiv.scrollTop > 300) {
+                    backToTop.classList.add('visible');
+                } else {
+                    backToTop.classList.remove('visible');
+                }
+                
+                // Update active TOC link
+                let currentHeading = null;
+                headings.forEach(h => {
+                    const rect = h.getBoundingClientRect();
+                    if (rect.top >= 0 && rect.top < window.innerHeight / 3) {
+                        currentHeading = h;
+                    }
+                });
+                
+                if (currentHeading) {
+                    const activeLink = document.querySelector(`#toc a[href="#${currentHeading.id}"]`);
+                    updateActiveTOC(activeLink);
+                }
+            });
+            
+            backToTop.addEventListener('click', () => {
+                contentDiv.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+        
+        // Toggle sidebar
+        document.getElementById('toggle-sidebar').addEventListener('click', () => {
+            document.body.classList.toggle('sidebar-hidden');
+            const btn = document.getElementById('toggle-sidebar');
+            btn.textContent = document.body.classList.contains('sidebar-hidden') ? 'Show' : 'Hide';
+        });
+        
+        // Initialize
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initPage);
+        } else {
+            initPage();
+        }
+    </script>
+</body>
+</html>
