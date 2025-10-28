@@ -27,7 +27,7 @@ Write-Host "  - $hostname" -ForegroundColor Green
 # Generate the certificates
 try {
     .\build_support\mkcert -install
-    .\build_support\mkcert -cert-file agent_c_config\certs\cert.pem -key-file agent_c_config\certs\key.pem localhost agentc.local host.docker.internal $hostname
+    .\build_support\mkcert -cert-file agent_c_config\certs\dev_cert.pem -key-file agent_c_config\certs\dev_key.pem localhost agentc.local host.docker.internal $hostname
 
     if ($LASTEXITCODE -eq 0) {
         Write-Host "`nCertificates generated successfully!" -ForegroundColor Green
