@@ -194,3 +194,4 @@ jim_writing*
 
 build_cache
 docker-compose.override.yml
+agent_c_config/certs
