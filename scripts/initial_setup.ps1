@@ -479,7 +479,7 @@ try {
     exit 1
 }
 
-Show-Info "Generating SSL certs..."
+Write-Header "Generating SSL certs"
 try {
     .\scripts\generate_certs.ps1
     Show-Success "certs generated."
