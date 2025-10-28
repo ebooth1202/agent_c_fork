@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
 set -e
+if ! command -v brew &> /dev/null; then
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+fi
+
+echo "Installing mkcert using Homebrew"
+sudo apt install -y libnss3-tools
+brew install mkcert
+mkcert -install
+chdmod a+x  scripts/generate_certs.sh
+./scripts/generate_certs.sh
 
 # Check for Python and print the version
 if ! command -v python &> /dev/null; then
