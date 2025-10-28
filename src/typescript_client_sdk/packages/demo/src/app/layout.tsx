@@ -1,12 +1,20 @@
 import "@/styles/globals.css"
 
 import { Inter } from "next/font/google"
+import type { Metadata } from "next"
 
 import { cn } from "@/lib/utils"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@agentc/realtime-ui"
 
 const inter = Inter({ subsets: ["latin"] })
+
+export const metadata: Metadata = {
+  title: "Agent C",
+  icons: {
+    icon: "/favicon.ico",
+  },
+}
 
 interface RootLayoutProps {
   children: React.ReactNode

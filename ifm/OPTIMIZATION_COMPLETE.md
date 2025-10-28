@@ -1,6 +1,6 @@
 # IFI Team Optimization - COMPLETE ✅
 
-**Team**: 5 agents (Douglas, Rex, Mason, Vera, Aria)
+**Team**: 6 agents (Douglas, Rex, Mason, Vera, Aria, Rita)
 **Location**: `//project/agent_c_config/agents/`
 **Status**: Optimized + Hard Stops Implemented
 
@@ -28,8 +28,9 @@ Optimized IFI insurance analysis team to address accuracy and efficiency issues.
 | **Mason** | Requirements | 46-54% | Classification guidance + IFI popup pattern + 🛑 count mismatch blocker |
 | **Vera** | Quality Validator | 60-65% | Quality hierarchy fixed + 🛑 pattern assumption prohibition |
 | **Aria** | Architecture | 60-65% | Architecture expertise preserved + 🛑 pattern assumption prohibition |
+| **Rita** | Insurance Specialist | 60-65% | Insurance expertise preserved + 🛑 pattern assumption prohibition + Juncture 4 (HIGHEST RISK) |
 
-**Team-Wide**: 46-54% average reduction, 20K-30K tokens saved
+**Team-Wide**: 46-54% average reduction, 25K-35K tokens saved
 
 ---
 
@@ -119,9 +120,10 @@ Optimized IFI insurance analysis team to address accuracy and efficiency issues.
 | Douglas | ~12-14K | ~7.4-8.4K | 40-45% |
 | Mason | ~12-14K | ~7.3-8.3K | 46-54% |
 | Aria | ~12-14K | ~6.0-7.0K | 60-65% |
-| **TOTAL** | **~60-70K** | **~31-38K** | **46-54%** |
+| Rita | ~12-14K | ~6.0-7.0K | 60-65% |
+| **TOTAL** | **~72-84K** | **~37-45K** | **46-54%** |
 
-**Team Savings**: 20K-30K tokens despite ADDING accuracy enforcement
+**Team Savings**: 25K-35K tokens despite ADDING accuracy enforcement
 
 ---
 
