@@ -196,22 +196,11 @@ If you are NOT a Python developer who is used to working with Python virtual env
 <details>
 <summary><b>Mac/Linux Prerequisites</b> (click to expand)</summary>
 
-1. Install Xcode command line tools:
+1. Make the shell scripts executable
    ```bash
-   xcode-select --install
+   chmod a+x scripts/*.sh
    ```
-
-2. Install Homebrew (if not already installed):
-   ```bash
-   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-   ```
-
-3. Install required packages:
-   ```bash
-   brew install python@3.12 pyenv rust node ffmpeg
-   ```
-
-4. Optional: Install development tools:
+2. Optional: Install development tools:
    ```bash
    brew install visual-studio-code
    brew install --cask pycharm-ce
@@ -235,10 +224,13 @@ Run the setup script for your platform - these scripts are kept up-to-date with 
 
 ```bash
 # On Windows
-.\scripts\initial_setup.bat
+.\scripts\initial_setup.ps1
 
-# On Mac/Linux
-./scripts/initial_setup.sh
+# On Linux
+./scripts/initial_setup_linux.sh
+
+# On OSX
+./scripts/initial_setup_osx.sh
 ```
 
 If you need to understand what dependencies are being installed, please review these setup scripts to see the exact packages and versions being used.
