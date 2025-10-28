@@ -1,9 +1,11 @@
 import os
 import time
+from pathlib import Path
+
 import uvicorn
 from dotenv import load_dotenv
 from agent_c.util.logging_utils import LoggingManager
-
+from agent_c.config import locate_config_path
 load_dotenv(override=True)
 
 # dictionary to track performance metrics
@@ -45,37 +47,26 @@ def run():
     logger.info(f"FastAPI Reload Setting is: {settings.RELOAD}.")
     logger.info(f"Agent_C API server running on {settings.HOST}:{settings.PORT}")
     logger.info(f"Working Directory: {os.getcwd()}")
-    
-    # If reload is enabled, we must use the import string
-    if settings.RELOAD:
+    config_path = locate_config_path()
+    key_file_path = Path(config_path).joinpath("certs/key.pem")
+    cert_file_path = Path(config_path).joinpath("certs/cert.pem")
+    if os.environ.get("RUNNING_IN_DOCKER", "false").lower() == "true":
+        logger.info("Detected running in Docker, disabling SSL for Uvicorn")
         uvicorn.run(
-            "agent_c_api.main:app",
+            app,
             host=settings.HOST,
             port=settings.PORT,
-            ssl_keyfile="./agent_c_config/localhost_self_signed-key.pem",
-            ssl_certfile="./agent_c_config/localhost_self_signed.pem",
-            reload=settings.RELOAD,
             log_level=LoggingManager.LOG_LEVEL.lower() if hasattr(LoggingManager, 'LOG_LEVEL') else "info"
         )
     else:
-        # Otherwise, we can use the app object directly for better debugging
-        if os.environ.get("RUNNING_IN_DOCKER", "false").lower() == "true":
-            logger.info("Detected running in Docker, disabling SSL for Uvicorn")
-            uvicorn.run(
-                app,
-                host=settings.HOST,
-                port=settings.PORT,
-                log_level=LoggingManager.LOG_LEVEL.lower() if hasattr(LoggingManager, 'LOG_LEVEL') else "info"
-            )
-        else:
-            uvicorn.run(
-                app,
-                host=settings.HOST,
-                port=settings.PORT,
-                ssl_keyfile="agent_c_config/localhost_self_signed-key.pem",
-                ssl_certfile="agent_c_config/localhost_self_signed.pem",
-                log_level=LoggingManager.LOG_LEVEL.lower() if hasattr(LoggingManager, 'LOG_LEVEL') else "info"
-            )
+        uvicorn.run(
+            app,
+            host=settings.HOST,
+            port=settings.PORT,
+            ssl_keyfile=str(key_file_path),
+            ssl_certfile=str(cert_file_path),
+            log_level=LoggingManager.LOG_LEVEL.lower() if hasattr(LoggingManager, 'LOG_LEVEL') else "info"
+        )
     logger.info(f"Exiting Run Loop")
 
 if __name__ == "__main__":

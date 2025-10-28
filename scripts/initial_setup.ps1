@@ -236,14 +236,34 @@ if (Test-Path ".venv") {
     .venv\Scripts\Activate.ps1
 } else {
     Show-Info "Creating Python virtual environment..."
-    try {
-        python3.12 -m venv .venv
-        .venv\Scripts\Activate.ps1
-        Show-Success "Virtual environment created successfully"
-    } catch {
-        Write-Error "Failed to create virtual environment: $_"
-        exit 1
+    if (Test-CommandExists "python3.12")
+    {
+        try
+        {
+            python3.12 -m venv .venv
+            .venv\Scripts\Activate.ps1
+            Show-Success "Virtual environment created successfully"
+        }
+        catch
+        {
+            Write-Error "Failed to create virtual environment: $_"
+            exit 1
+        }
+    } else {
+        try
+        {
+            python -m venv .venv
+            .venv\Scripts\Activate.ps1
+            Show-Success "Virtual environment created successfully"
+        }
+        catch
+        {
+            Write-Error "Failed to create virtual environment: $_"
+            exit 1
+        }
     }
+
+    pip install setuptools
 }
 
 # 6. Check for MSVC Build Tools
@@ -459,6 +479,15 @@ try {
     exit 1
 }
 
+Show-Info "Generating SSL certs..."
+try {
+    .\scripts\generate_certs.ps1
+    Show-Success "certs generated."
+} catch {
+    Write-Error "Failed to generate certs: $_"
+    exit 1
+}
+
 # 13. Install TypeScript Client SDK dependencies
 Write-Header "Building TypeScript Client SDK"
 
@@ -481,7 +510,7 @@ Write-Header "Installing Python Backend Dependencies"
 
 $installDepsScript = Join-Path $scriptPath "install_deps.bat"
 if (Test-Path $installDepsScript) {
-    Show-Info "Installing Python backend dependencies..."
+    Show-Info "Installing Python backend dependencies... And building client"
     try {
         & cmd /c $installDepsScript
         Show-Success "Python dependencies installed"
