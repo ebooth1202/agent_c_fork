@@ -8,7 +8,7 @@ services:
       - "5173:5173"
     volumes:
       - ./build_support/config/nginx.conf.client-only:/etc/nginx/nginx.conf:ro
-      - ./agent_c_config/certs:/etc/nginx/certs:ro
+      - ./build_support/certs:/etc/nginx/certs:ro
     depends_on:
       - client
     networks:
