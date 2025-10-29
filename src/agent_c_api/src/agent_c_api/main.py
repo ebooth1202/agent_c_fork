@@ -1,3 +1,66 @@
+# Nuitka Project File options
+#
+# ============================================
+# OS SPECIFIC SETTINGS
+# ============================================
+# nuitka-project-if: {OS} =="Windows":
+#   nuitka-project: --windows-icon-from-ico={MAIN_DIRECTORY}/icon.png
+#   nuitka-project: --mode=standalone
+#   nuitka-project: --output-filename=agentc-api.exe
+# nuitka-project-if: {OS} =="Darwin":
+#   nuitka-project: --macos-app-icon={MAIN_DIRECTORY}/icon.png
+#   nuitka-project: --mode=app
+#   nuitka-project: --output-filename=agentc-api.app
+# nuitka-project-if: {OS} =="Linux":
+#   nuitka-project: --linux-app-icon={MAIN_DIRECTORY}/icon.png
+#   nuitka-project: --mode=onefile
+#   nuitka-project: --output-filename=agentc-api
+#
+# ============================================
+# MISC SETTINGS
+# ============================================
+# nuitka-project: --assume-yes-for-downloads
+#
+# ============================================
+# METADATA
+# ============================================
+# nuitka-project: --product-name=Agent C API
+# nuitka-project: --product-version=0.3.0
+# nuitka-project: --file-version=0.3.0
+# nuitka-project: --copyright=Copyright 2023-2025 Centric Computing
+# nuitka-project: --file-description=Runtime API for Agent C.
+#
+# ============================================
+# Include packages
+# ============================================
+# nuitka-project: --include-package=agent_c_api
+# nuitka-project: --follow-import-to=agent_c
+# nuitka-project: --follow-import-to=agent_c_tools
+# nuitka-project: --include-package=passlib.handlers
+# nuitka-project: --include-package-data=puremagic
+# nuitka-project: --include-package-data=tiktoken
+#
+# ============================================
+# ALWAYS EXCLUDE (tests, dev tools)
+# ============================================
+# nuitka-project: --nofollow-import-to=agent_c_api.tests
+# nuitka-project: --nofollow-import-to=agent_c.tests
+# nuitka-project: --nofollow-import-to=agent_c_tools.tests
+# nuitka-project: --nofollow-import-to=pytest
+# nuitka-project: --nofollow-import-to=_pytest
+# nuitka-project: --nofollow-import-to=unittest
+# nuitka-project: --nofollow-import-to=test
+#
+# ============================================
+# PLUGINS
+# ============================================
+# nuitka-project: --enable-plugin=no-qt
+#
+# ============================================
+# MODULE PARAMETERS
+# ============================================
+# --module-parameter=torch-disable-jit=no
+
 import os
 import time
 from pathlib import Path
