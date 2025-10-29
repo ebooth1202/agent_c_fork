@@ -51,12 +51,11 @@ def create_application(router: APIRouter, **kwargs) -> FastAPI:
         lifespan_app.state.agent_config_loader = AgentConfigLoader()
         logger.info("✅  Agent config loader initialized successfully")
 
-
         from agent_c.config import ModelConfigurationLoader
-
         lifespan_app.state.model_config_loader = ModelConfigurationLoader()
         lifespan_app.state.model_configs = lifespan_app.state.model_config_loader.flattened_config()
         logger.info("✅  Model config loader initialized successfully")
+
         from agent_c.config.saved_chat import SavedChatLoader
         lifespan_app.state.chat_loader = SavedChatLoader()
         logger.info("✅  Saved chat loader initialized successfully")
@@ -81,11 +80,12 @@ def create_application(router: APIRouter, **kwargs) -> FastAPI:
 
         logger.info(f"🔧 Discovering tools")
         from agent_c_tools import discovered_tools # noqa
-
+        from agent_c_tools.tools.standalone import BridgeTools # noqa
 
         logger.info("🤖 Initializing Client Session Manager...")
         from agent_c_api.core.realtime_session_manager import RealtimeSessionManager
         lifespan_app.state.realtime_manager = RealtimeSessionManager(lifespan_app.state)
+
         logger.info(f"🔧 Pre-creating runtime cache entries...")
         await lifespan_app.state.realtime_manager.create_user_runtime_cache_entry("admin")  # Pre-create cache for admin user
         logger.info("✅  Client Session Manager initialized successfully")
