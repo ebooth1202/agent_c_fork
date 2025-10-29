@@ -459,6 +459,15 @@ npm config set fetch-retries 0
 npm config set progress false
 Show-Success "npm configured"
 
+Show-Info "Installing Typescript globally..."
+try {
+    npm install -g typescript --no-audit --no-fund --silent
+    Show-Success "Typescript installed"
+} catch {
+    Write-Error "Failed to install Typescript: $_"
+    exit 1
+}
+
 Show-Info "Installing pnpm globally..."
 try {
     npm install -g pnpm@10 --no-audit --no-fund --silent
