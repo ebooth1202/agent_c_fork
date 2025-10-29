@@ -15,11 +15,12 @@ from agent_c.util.logging_utils import LoggingManager
 from agent_c_api.models.realtime_session import RealtimeSession
 from agent_c_tools.tools.workspace.base import BaseWorkspace, WorkspaceDataEntry
 from agent_c_api.models.user_runtime_cache_entry import UserRuntimeCacheEntry
+from agent_c.config import locate_config_path
 
 if TYPE_CHECKING:
     from agent_c.chat.session_manager import ChatSessionManager
     from agent_c.config.agent_config_loader import AgentConfigLoader
-    from agent_c.config import ModelConfigurationLoader, locate_config_path
+    from agent_c.config import ModelConfigurationLoader
 
 from agent_c_tools import *  # noqa
 from agent_c_tools.tools.in_process import * # noqa
