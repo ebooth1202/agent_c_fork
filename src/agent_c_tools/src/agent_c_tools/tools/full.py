@@ -25,7 +25,7 @@ from .browser_playwright import BrowserPlaywrightTools
 from .data_visualization import DataVisualizationTools
 from .database_query import DatabaseQueryTools
 from .code_interpreter import CodeInterpreterTools
-from .xml_explorer import XmlExplorerTools
+from .xml_explorer import XmlExplorerTools, XmlEditorTools
 from .dataframe import DataframeTools
 from .gmail import GmailSearch, GmailMessage
 from .health import FDANDCTools, ClinicalTrialsTools, PubMedTools
@@ -40,6 +40,7 @@ from .microsoft_stream.tool import MicrosoftStreamTools
 from .plsql_reverse_engineering.tool import PlsqlReverseEngineeringTools
 from .reverse_engineering import ReverseEngineeringTools
 from .ace_proto import AceProtoTools
+from .json_explorer import JsonExplorerTools, JsonEditorTools
 
 __all__ = [
     # Essential Tools for good agents
@@ -51,9 +52,12 @@ __all__ = [
     # Code Exploring Tools
     'CssExplorerTools',
     'XmlExplorerTools',
+    'XmlEditorTools',
     # 'PlsqlReverseEngineeringTools',
     # 'ReverseEngineeringTools',
     'AceProtoTools',
+    'JsonExplorerTools',
+    'JsonEditorTools',
 
 
     # Workspace tools

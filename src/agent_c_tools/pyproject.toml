@@ -61,7 +61,8 @@ dependencies = [
     "requests==2.32.3", # youtube
     "youtube_transcript_api==1.0.3", # YouTube_Transcript
     "huggingface_hub==0.33.0",
-    "pyppeteer"
+    "pyppeteer",
+    "jsonpath-ng==1.7.0",
 
 ]
 

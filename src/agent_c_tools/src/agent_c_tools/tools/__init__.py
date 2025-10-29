@@ -10,6 +10,7 @@ from . import user_bio
 from . import weather
 from . import random_number
 from . import xml_explorer  # XML Explorer toolset
+from . import json_explorer  # JSON Explorer toolset
 from . import css_explorer  # CSS Explorer toolset
 from . import mariadb  # MariaDB toolset
 from . import reverse_engineering  # Reverse Engineering toolset
