@@ -2,6 +2,7 @@ import os
 import asyncio
 import json
 import threading
+from pathlib import Path
 
 from typing import Dict, Optional, List, Any, Union, TYPE_CHECKING
 
@@ -18,19 +19,13 @@ from agent_c_api.models.user_runtime_cache_entry import UserRuntimeCacheEntry
 if TYPE_CHECKING:
     from agent_c.chat.session_manager import ChatSessionManager
     from agent_c.config.agent_config_loader import AgentConfigLoader
-    from agent_c.config import ModelConfigurationLoader
-
+    from agent_c.config import ModelConfigurationLoader, locate_config_path
 
 from agent_c_tools import *  # noqa
 from agent_c_tools.tools.in_process import * # noqa
 from agent_c_tools.tools.workspace.blob_storage import BlobStorageWorkspace
 
 # Constants
-DEFAULT_BACKEND = 'claude'
-DEFAULT_MODEL_NAME = 'claude-sonnet-4-20250514'
-DEFAULT_OUTPUT_FORMAT = 'raw'
-DEFAULT_TOOL_CACHE_DIR = '.tool_cache'
-DEFAULT_LOG_DIR = './logs/sessions'
 LOCAL_WORKSPACES_FILE = '.local_workspaces.json'
 DEFAULT_ENV_NAME = 'development'
 OPENAI_REASONING_MODELS = ['o1', 'o1-mini', 'o3', 'o3-mini']
@@ -51,7 +46,7 @@ class RealtimeSessionManager:
         self.model_config_loader:  'ModelConfigurationLoader' = state.model_config_loader
         self.chat_session_manager: 'ChatSessionManager' = state.chat_session_manager
         self.model_configs: Dict[str, Any] = state.model_configs
-        self.tool_cache_dir = DEFAULT_TOOL_CACHE_DIR
+        self.tool_cache_dir = str(Path(locate_config_path()).joinpath(".tool_cache"))
 
         self.user_runtime_cache: Dict[str, UserRuntimeCacheEntry] = {}
         self.ui_sessions: Dict[str, RealtimeSession] = {}
