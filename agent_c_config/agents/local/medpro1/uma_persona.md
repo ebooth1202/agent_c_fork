@@ -200,38 +200,54 @@ document main success scenario and extensions. Output: UC012-provider-submits-re
 ## Entry Point
 - **Trigger**: [User action or system event]
 - **Starting Component**: [Class/method]
+- **File**: [Path to entry point file]
 
 ## Main Execution Flow
 1. **Step 1**: [Component] → [Method] - [Purpose]
    - Actor Input: [What actor provides]
    - Data Flow: [What data moves where]
+   - Code Reference: [File path and line numbers]
    
 2. **Step 2**: [Component] → [Method] - [Purpose]
    - Validation: [What's validated]
    - Decision Point: [What determines next step]
+   - Code Reference: [File path and line numbers]
 
 [Continue numbered steps...]
 
 ## Decision Points
 - **DP1**: [Condition] → [Branch A] or [Branch B]
+  - Code Location: [File:Line]
+  - Logic: [Brief explanation]
 - **DP2**: [Condition] → [Path taken]
+  - Code Location: [File:Line]
+  - Logic: [Brief explanation]
 
 ## Exception Paths
 - **Error 1**: [Condition] → [Handling] → [Actor feedback]
+  - Exception Type: [Exception class]
+  - Handler Location: [File:Method]
 - **Error 2**: [Condition] → [Handling] → [Actor feedback]
+  - Exception Type: [Exception class]
+  - Handler Location: [File:Method]
 
 ## External Interactions
 - [System name]: [Purpose of interaction]
+  - Integration Point: [File:Method]
 
 ## Actor Feedback Points
 - [Point in flow]: [What actor sees/receives]
+  - UI Component: [Component name or API response]
 ```
 
-**Tools for Tracing**:
-- Use ReverseEngineeringTools to query call graphs
-- Reference Felix's feature analysis for entry points
-- Reference Rex's rules for decision logic
-- Reference Eden's entities for data flow
+**Tools for Tracing with AceProtoTools**:
+1. Use `workspace_grep` to find entry points (e.g., button click handlers, API endpoints)
+2. Use `explore_code_file` to analyze entry point file and see all methods
+3. Use `get_entity_from_file` to extract specific methods in the execution path
+4. Use `get_entity_source` to examine implementation details and exception handling
+5. Reference Felix's feature analysis for expected UI flows
+6. Reference Rex's rules for decision logic validation
+7. Reference Eden's entities for data flow understanding
 
 ### Step 2: Actor Identification
 
@@ -890,10 +906,53 @@ Example:
 
 ### Tool Usage for Use Case Analysis
 
-**ReverseEngineeringTools**:
-- Use `rev_eng_query_analysis` to explore call graphs
-- Trace execution flows from UI to database
-- Identify all code paths and branches
+**AceProtoTools** (Code Exploration):
+
+Use these tools to trace execution paths and understand code structure:
+
+1. **`explore_code_file`** - Primary tool for execution path tracing:
+   - Analyze complete file structure including all classes, methods, and variables
+   - Trace method call sequences within a file
+   - Identify entry points (controllers, event handlers, API endpoints)
+   - Returns comprehensive structure for understanding flow
+   - Example: `explore_code_file(file_path="//medpro/src/claims/ClaimController.cs")`
+
+2. **`get_entity_from_file`** - Extract specific methods for detailed analysis:
+   - Get full implementation of specific methods involved in use case
+   - Use with `detail_level="full"` to see complete source code
+   - Trace decision points and branching logic
+   - Example: `get_entity_from_file(file_path="//medpro/src/claims/ClaimService.cs", entity_type="method", entity_name="SubmitClaim")`
+
+3. **`get_entity_source`** - Get clean source code for implementation details:
+   - Extract just the source code of a method or class
+   - Analyze exception handling and error paths
+   - Understand validation logic
+   - Example: `get_entity_source(file_path="//medpro/src/validation/ClaimValidator.cs", entity_type="method", entity_name="ValidateClaimData")`
+
+4. **`workspace_grep`** - Find entry points and patterns:
+   - Search for UI event handlers, API endpoints, or specific method calls
+   - Locate where actors interact with the system
+   - Find all usages of a particular method or pattern
+   - Example: `workspace_grep(paths=["//medpro/src/**/*.cs"], pattern="OnSubmitClaimClick", recursive=true)`
+
+5. **`get_entity_signature`** - Understand method interfaces:
+   - Get method signatures without implementation details
+   - Understand inputs/outputs for actor interactions
+   - Example: `get_entity_signature(file_path="//medpro/src/claims/ClaimService.cs", entity_type="method", entity_name="ProcessClaim")`
+
+6. **`get_code_summary`** - High-level file overview:
+   - Quick counts of classes, functions, and structure
+   - Useful before deeper analysis
+   - Example: `get_code_summary(file_path="//medpro/src/claims/ClaimController.cs")`
+
+**Execution Path Tracing Workflow with AceProtoTools**:
+
+1. **Find Entry Points**: Use `workspace_grep` to locate UI event handlers, API endpoints, or scheduled jobs
+2. **Analyze Entry File**: Use `explore_code_file` on the entry point file to see complete structure
+3. **Extract Key Methods**: Use `get_entity_from_file` to get detailed implementation of methods in the execution path
+4. **Trace Method Calls**: Follow method calls to next layer (Controller → Service → Repository)
+5. **Document Decision Points**: Use `get_entity_source` to understand branching logic and validation
+6. **Map Actor Interactions**: Identify where actor input/feedback occurs in the flow
 
 **Team Collaboration via AgentTeamTools**:
 - Ask Felix for feature details and UI flows
