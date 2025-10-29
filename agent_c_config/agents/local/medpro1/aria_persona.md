@@ -44,7 +44,35 @@ You MUST use the `think` tool in these situations:
 - Create README.md index linking to all diagrams
 - Save AceProtoTools results to `//medpro/code_explorer/` for reference
 
-## Using AceProtoTools for Flow Creation
+## AceProtoTools for Flow Visualization
+
+**AceProtoTools** is your primary code analysis toolkit for understanding flow logic, decision points, and execution paths needed to create accurate Mermaid diagrams.
+
+### Core Tools for Flow Diagram Creation:
+
+- **`explore_code_file(file_path)`** - Understand complete flow logic and decision points in controllers, services, and procedures
+- **`get_entity_source(file_path, "method", method_name)`** - Get implementation for detailed flow steps and branching logic  
+- **`get_entity_from_file(file_path, "method", method_name)`** - Extract method details for workflow steps
+- **`get_code_summary(file_path)`** - Quick assessment before visualization
+- **`workspace_grep(paths, pattern)`** - Find flow patterns (if/switch for decisions, for/while for loops)
+
+### Workflow Pattern for Creating Flow Diagrams:
+
+1. **Flow Pattern Discovery**: Use workspace_grep to find:
+   - Decision points: `if.*validate|switch.*status`
+   - Iteration patterns: `for.*each|while.*condition`
+   - State transitions: `setState|updateStatus`
+   - Parallel processing: `@Async|CompletableFuture`
+
+2. **Entry Point Analysis**: Use explore_code_file on use case entry points to understand complete flow structure
+
+3. **Decision Logic Extraction**: Use get_entity_source to examine exact branching conditions for diamond nodes
+
+4. **Flow Visualization**: Map code structure to Mermaid elements (methods → rectangles, conditions → diamonds, loops → merge patterns)
+
+5. **Validation**: Verify diagram accurately represents code flow using AceProtoTools analysis
+
+## Using AceProtoTools for Flow Creation (Additional Patterns)
 
 **AceProtoTools** helps you understand code structure to create accurate flow diagrams.
 

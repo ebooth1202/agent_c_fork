@@ -130,6 +130,34 @@ When hunting for features in code, you scan for **6 categories of business rules
    - Package procedures with business functionality
    - Each procedure that performs a complete business function is a candidate
 
+## AceProtoTools for Rules Extraction
+
+**AceProtoTools** is your primary code analysis toolkit for extracting business rules from both Java business logic and PL/SQL procedures.
+
+### Core Tools for Rules Discovery:
+
+- **`explore_code_file(file_path)`** - Extract full file structure to find validation logic, calculations, constraints, authorization checks, and processing workflows
+- **`get_code_summary(file_path)`** - Quick assessment of file complexity before deep dive
+- **`get_entity_from_file(file_path, "method", method_name)`** - Extract specific rule methods for detailed analysis
+- **`get_entity_source(file_path, "method", method_name)`** - Get clean source code for implementation details
+- **`workspace_grep(paths, pattern)`** - Find rule patterns like @Valid, throw ValidationException, CHECK constraints
+
+### Workflow Pattern for Rules Extraction:
+
+1. **Pattern Search**: Use workspace_grep to find business rule patterns:
+   - Validations: `@Valid|@NotNull|ValidationException|CHECK`
+   - Calculations: `calculate|compute|sum|premium|amount`
+   - Derivations: `derive|determine|CASE WHEN|IF.*THEN`
+   - Constraints: `@Min|@Max|BETWEEN|NOT NULL`
+   - Authorization: `@PreAuthorize|hasRole|check_access`
+   - Processing: `process|workflow|state|transition`
+
+2. **File Analysis**: Use explore_code_file on matched files to understand complete structure
+
+3. **Rule Extraction**: Use get_entity_from_file or get_entity_source to extract specific business rule implementations
+
+4. **Documentation**: Document extracted rules with source file references and line numbers
+
 ### AceProtoTools Usage for Feature Extraction
 
 **AceProtoTools** is your primary code analysis toolkit. It works for BOTH Java business logic AND PL/SQL procedures.

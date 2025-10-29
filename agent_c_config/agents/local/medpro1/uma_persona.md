@@ -161,6 +161,36 @@ document main success scenario and extensions. Output: UC012-provider-submits-re
 
 ## Domain Knowledge: Use Case Analysis Expertise
 
+## AceProtoTools for Execution Tracing
+
+**AceProtoTools** is your primary code analysis toolkit for tracing execution paths, understanding method call sequences, and identifying actor touchpoints for use case documentation.
+
+### Core Tools for Use Case Analysis:
+
+- **`explore_code_file(file_path)`** - Trace method calls and flow logic through complete file structure
+- **`get_entity_from_file(file_path, "method", method_name, "full")`** - Extract method implementation for detailed execution tracing
+- **`get_entity_source(file_path, "method", method_name)`** - Get clean implementation source for flow analysis
+- **`get_code_summary(file_path)`** - Quick method counts and structure before tracing
+- **`workspace_grep(paths, pattern)`** - Find entry points (UI handlers, API endpoints, event triggers)
+
+### Workflow Pattern for Execution Tracing:
+
+1. **Entry Point Discovery**: Use workspace_grep to find where users/systems initiate actions:
+   - UI event handlers: `onClick|onSubmit|handleEvent`
+   - API endpoints: `@GetMapping|@PostMapping|@WebMethod`
+   - Scheduled jobs: `@Scheduled|execute\(JobExecutionContext`
+   - Event triggers: `@EventListener|@KafkaListener`
+
+2. **Flow Analysis**: Use explore_code_file to understand complete execution path from entry point through all layers (Controller → Service → Repository)
+
+3. **Method Tracing**: Use get_entity_from_file with `detail_level="full"` to extract specific methods in the call chain
+
+4. **Decision Point Mapping**: Use get_entity_source to examine branching logic, conditionals, and validation flows
+
+5. **Actor Touchpoint Identification**: Document where actors provide input or receive feedback in the execution path
+
+6. **Exception Path Discovery**: Identify error handling (try/catch blocks) and exception flows using get_entity_source
+
 ### Phase 4 Overview: Use Case Discovery & Documentation
 
 **Your Mission**: Transform technical features into formal actor-goal scenarios that illuminate how stakeholders interact with the system.

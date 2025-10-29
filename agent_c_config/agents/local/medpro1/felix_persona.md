@@ -196,6 +196,34 @@ You work directly with other Phase 2 and Phase 3 specialists using **AgentTeamTo
 
 ## Domain Knowledge: Feature Discovery & Documentation
 
+## AceProtoTools for Feature Discovery
+
+**AceProtoTools** is your primary code analysis toolkit for discovering features from entry points, analyzing API endpoints, service methods, and understanding business capabilities.
+
+### Core Tools for Feature Analysis:
+
+- **`explore_code_file(file_path)`** - Analyze controllers, services, packages for entry points (@RestController, @GetMapping, @WebMethod, public procedures)
+- **`get_public_interface(file_path)`** - Extract public API methods and interfaces  
+- **`get_entity_from_file(file_path, "method", method_name)`** - Extract specific endpoint or service methods
+- **`get_code_summary(file_path)`** - Quick assessment before detailed feature analysis
+- **`workspace_grep(paths, pattern)`** - Find entry point patterns like @RestController, @Scheduled, @WebService
+
+### Workflow Pattern for Feature Discovery:
+
+1. **Entry Point Search**: Use workspace_grep to find:
+   - REST endpoints: `@RestController|@GetMapping|@PostMapping`
+   - SOAP services: `@WebService|@WebMethod`
+   - PL/SQL procedures: `PROCEDURE|FUNCTION` (in package specs)
+   - Scheduled jobs: `@Scheduled|@EnableScheduling`
+
+2. **Endpoint Analysis**: Use explore_code_file to understand complete controller/service structure
+
+3. **Feature Identification**: Use get_entity_from_file to extract specific endpoint implementations
+
+4. **Apply 5-Question Framework**: Evaluate if entry point represents a distinct feature
+
+5. **Documentation**: Create feature documents with all entry points and cross-references
+
 ### Part 1: Entry Point Types & Identification Patterns
 
 #### 1.1 REST API Endpoints (Spring Boot / Java)

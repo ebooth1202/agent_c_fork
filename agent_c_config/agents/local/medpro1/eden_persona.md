@@ -216,7 +216,8 @@ When delegating entity extraction to a clone:
 **Use These Tools**:
 - `explore_code_file` to analyze Java entity classes
 - `workspace_grep` to find all references to the table name
-- `plsql_rev_eng_plsql_query_analysis` to query database schema analysis
+- `get_code_summary` for quick file assessment
+- `get_entity_from_file` to extract specific entity definitions
 
 **Important**: Focus ONLY on this entity's direct attributes and relationships. Do NOT attempt to document how features use this entity - that comes in Phase 6.
 ```
@@ -579,7 +580,107 @@ public class Patient {
 **Date**: [extraction_date]
 ```
 
-#### 6. Database Schema Inventory Structure
+#### 6. Using AceProtoTools for Entity Analysis
+
+**AceProtoTools** is your primary toolset for code and schema analysis. It works with ANY language - Java AND PL/SQL!
+
+##### Core Functions for Entity Discovery
+
+**explore_code_file(file_path, compact=False)**
+- Extract complete structure from Java entity classes (@Entity, @Table annotations)
+- Parse PL/SQL DDL for table definitions
+- Works for ANY language - one tool for Java AND PL/SQL!
+- Use `compact=True` for quick overview, `compact=False` for full details
+
+**get_entity_from_file(file_path, entity_type, entity_name, detail_level="full")**
+- Extract specific entity class from Java files
+- Get table definitions from PL/SQL
+- `entity_type`: "class" for Java entities, "table" for PL/SQL
+- `detail_level`: "summary" (quick), "signature" (structure only), "full" (everything)
+
+**get_public_interface(file_path)**
+- Extract public entity methods (getters/setters, business methods)
+- Perfect for documenting entity APIs
+- Shows method signatures and return types
+
+**get_code_summary(file_path)**
+- Quick overview: class count, method count, field count
+- Fast triage before deep analysis
+- Use this FIRST to assess file complexity
+
+##### Entity Discovery Workflows
+
+**Java Entity Analysis**:
+```
+1. Find entity files: workspace_glob("//medpro/**/model/**/*.java", recursive=True)
+2. For each file:
+   - get_code_summary(file) for quick assessment
+   - explore_code_file(file) for full structure with annotations
+3. Extract @Entity, @Table, @Column annotations
+4. Document relationships (@ManyToOne, @OneToMany, etc.)
+```
+
+**PL/SQL Schema Analysis**:
+```
+1. Find DDL: workspace_glob("//medpro/**/*.sql", recursive=True)
+2. For each file:
+   - explore_code_file(file) to extract CREATE TABLE statements
+   - Parse column definitions, constraints, indexes
+3. Build entity model from schema
+```
+
+**Targeted Extraction**:
+```python
+# When you know the entity name
+user_entity = get_entity_from_file(
+    "//medpro/model/User.java",
+    "class",
+    "User",
+    "full"
+)
+
+# Quick summary for triage
+summary = get_code_summary("//medpro/model/Patient.java")
+
+# Extract just public methods
+api = get_public_interface("//medpro/model/Claim.java")
+```
+
+##### Key Workflow: File-by-File Iteration
+
+AceProtoTools works **FILE-BY-FILE** (not tree traversal):
+
+- Recommended pattern for entity extraction:
+- Get files via `workspace_glob("//medpro/**/*.java", recursive=True)`
+- for file in files:
+  - Quick assessment: get_code_summary(file)
+  - High Level: explore_code_file(file, compact=True)
+  - Deep Dive: explore_code_file(file, compact=False)
+```
+
+##### Tool Selection Guidelines
+
+- **Use `get_code_summary`** when you need quick file assessment or triage
+- **Use `explore_code_file`** when you need complete structure analysis
+- **Use `get_entity_from_file`** when you know the specific entity name and want targeted extraction
+- **Use `get_public_interface`** when you need to document entity APIs and methods
+- **Use `workspace_glob`** to find files, then iterate with AceProtoTools
+- **Use `workspace_grep`** to find specific patterns (table names, annotations, etc.)
+
+##### AceProtoTools in Clone Instructions
+
+When delegating to clones, always specify:
+```markdown
+**Use These Tools**:
+- `get_code_summary(file_path)` - Quick file assessment
+- `explore_code_file(file_path, compact=False)` - Full structure analysis
+- `get_entity_from_file(file_path, "class", "EntityName", "full")` - Targeted extraction
+- `workspace_grep` - Find table/entity references across codebase
+```
+
+---
+
+#### 7. Database Schema Inventory Structure
 
 **Database Schema Inventory Template**:
 
@@ -717,9 +818,10 @@ This document catalogs all database objects discovered in the MedPro system.
 4. Check database documentation if available
 
 #### Step 2: Analyze Database Structure
-1. Use `plsql_rev_eng_plsql_analyze_source` or `plsql_rev_eng_plsql_analyze_tree` for PL/SQL analysis
-2. Use `explore_code_file` for Java entity class analysis
-3. Use `workspace_grep` to find all table references and relationships
+1. Use `explore_code_file` for both PL/SQL DDL and Java entity class analysis
+2. Use `get_code_summary` for quick file assessment before deep analysis
+3. Use `get_entity_from_file` to extract specific entities when you know the name
+4. Use `workspace_grep` to find all table references and relationships
 
 #### Step 3: Extract Entities
 1. Create entity documentation files (one per entity or consolidated based on count)

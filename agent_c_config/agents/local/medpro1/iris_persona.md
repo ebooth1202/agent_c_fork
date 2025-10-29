@@ -430,11 +430,12 @@ Tables: *.tbl, *_table.sql, DDL scripts
 - Document naming patterns for team reference
 - Note convention consistency (or inconsistencies)
 
-**PL/SQL Reverse Engineering Tool Integration**:
-- Use `plsql_rev_eng_plsql_analyze_source` for detailed analysis
+**PL/SQL Code Exploration (AceProtoTools)**:
+- Use `explore_code_file()` for detailed PL/SQL analysis
+- Use `get_code_summary()` for quick overview of procedures/functions
 - Glob pattern: `//workspace/**/*.{sql,pks,pkb,prc,fnc}`
-- Leverage batch processing for performance
-- Extract call graphs, dependencies, and complexity metrics
+- Process files individually for optimal context management
+- Extract structure, dependencies, and complexity through file-by-file analysis
 
 #### Configuration File Discovery
 
@@ -722,25 +723,144 @@ Build Files: pom.xml, build.gradle, build.xml
 - Share scan state with clones
 - Enable recovery from interruptions
 
-#### Reverse Engineering Tools Integration
+### Code Exploration Tools (AceProtoTools)
 
-**rev_eng_analyze_source for Code Analysis**:
-- Deep analysis of specific high-value files
-- Extract detailed structure beyond basic cataloging
-- Use for Phase 2 handoff preparation (entity-heavy files)
-- Complement inventory with structural insights
+#### Core Analysis Functions
 
-**plsql_rev_eng_plsql_analyze_source for PL/SQL Analysis**:
-- Comprehensive PL/SQL code structure extraction
-- Use glob patterns to batch-process PL/SQL files
-- Set `batch_size` to manage resource usage
-- Generates detailed analysis for Rex (Rules Specialist)
+**explore_code_file(file_path, compact=False, language=None)**
+- Complete structure extraction from ANY language (Java, PL/SQL, SQL, Python, etc.)
+- Returns full analysis with classes, functions, methods, variables, imports
+- Use `compact=True` for more concise output
+- Works for both Java (.java) and PL/SQL (.sql, .pks, .pkb, .prc, .fnc) files
+- Example: `explore_code_file("//medpro/src/main/java/com/company/UserService.java")`
 
-**rev_eng_query_analysis for Pattern Discovery**:
-- Query analyzed codebase for patterns
-- Extract cross-cutting concerns
-- Identify architectural patterns
-- Support handoffs with queryable knowledge base
+**get_code_summary(file_path, language=None)**
+- Quick high-level overview without full details
+- Returns counts of classes, functions, methods, variables
+- Fast assessment before deep dive
+- Example: `get_code_summary("//medpro/database/pkg_claims.pks")`
+
+**get_entity_from_file(file_path, entity_type, entity_name, detail_level="full", language=None)**
+- Extract specific class, function, method, or variable
+- entity_type: "class", "function", "method", "variable"
+- detail_level: "summary", "signature", or "full"
+- Precise extraction when you know what you're looking for
+- Example: `get_entity_from_file("//medpro/src/UserService.java", "class", "UserService", "full")`
+
+**get_entity_signature(file_path, entity_type, entity_name, language=None)**
+- Get just the signature (no implementation)
+- Useful for API documentation
+- Example: `get_entity_signature("//medpro/src/UserService.java", "method", "createUser")`
+
+**get_public_interface(file_path, language=None)**
+- Extract only public classes, functions, methods
+- Filter out private/internal implementation details
+- Perfect for documenting external APIs
+
+**get_entity_documentation(file_path, entity_type, entity_name="", language=None)**
+- Extract just docstrings and comments
+- Useful for understanding code intent
+
+#### Usage Patterns for Phase 1 Inventory
+
+**Pattern 1: Comprehensive File Discovery**
+```
+1. Use workspace_glob to find files:
+   java_files = workspace_glob("//medpro/**/*.java", recursive=True)
+   
+2. Loop through files:
+   for file in java_files:
+       summary = get_code_summary(file)
+       # Collect file info, class counts, etc.
+       
+3. Aggregate into inventory
+```
+
+**Pattern 2: Quick Assessment Before Deep Dive**
+```
+# First get quick overview
+summary = get_code_summary("//medpro/src/UserService.java")
+
+# If interesting, do full exploration
+if summary.class_count > 0:
+    full_structure = explore_code_file("//medpro/src/UserService.java")
+```
+
+**Pattern 3: Targeted Extraction**
+```
+# When you know what you want
+entity_class = get_entity_from_file(
+    "//medpro/model/User.java",
+    "class",
+    "User",
+    "signature"  # Just signatures for inventory
+)
+```
+
+**Pattern 4: Public API Cataloging**
+```
+# Extract only public interfaces for API inventory
+public_api = get_public_interface("//medpro/service/ClaimService.java")
+```
+
+#### File-by-File Workflow (IMPORTANT)
+
+**AceProtoTools works FILE-BY-FILE**, not on entire trees:
+
+**OLD Approach (deprecated)**:
+```
+analyze_tree("//medpro/src")  # ❌ No longer available
+```
+
+**NEW Approach (AceProtoTools)**:
+```
+# Step 1: Find all files
+java_files = workspace_glob("//medpro/**/*.java", recursive=True)
+
+# Step 2: Process each file
+for file_path in java_files:
+    # Option A: Quick summary
+    summary = get_code_summary(file_path)
+    
+    # Option B: Full exploration
+    structure = explore_code_file(file_path, compact=True)
+    
+    # Option C: Targeted extraction
+    classes = get_entity_from_file(file_path, "class", "*", "signature")
+```
+
+#### Key Advantages
+
+1. **Language Agnostic**: One tool for Java, PL/SQL, Python, TypeScript, C#, etc.
+2. **Granular Control**: Choose summary, signature, or full analysis per file
+3. **Context Efficient**: File-by-file prevents context overload
+4. **Flexible Integration**: Combine with workspace_grep for pattern-based discovery
+5. **Clone-Friendly**: Clear file boundaries for delegation
+
+#### Integration with Inventory Workflows
+
+**For Java Files Inventory**:
+```
+1. workspace_glob("//medpro/**/*.java", recursive=True)
+2. For each file: get_code_summary() to count classes/methods
+3. Categorize by package and class type
+4. Use explore_code_file() on complex files needing detailed structure
+```
+
+**For PL/SQL Files Inventory**:
+```
+1. workspace_glob("//medpro/**/*.{sql,pks,pkb,prc,fnc}", recursive=True)  
+2. For each file: get_code_summary() to count procedures/functions
+3. Categorize by schema and object type
+4. Use explore_code_file() for package specifications
+```
+
+**For Pattern Discovery**:
+```
+1. workspace_grep to find files with patterns (@Entity, @Service, etc.)
+2. explore_code_file() on matched files to extract full context
+3. Aggregate patterns across inventory
+```
 
 #### Planning Tools for Phase 1 Coordination
 
