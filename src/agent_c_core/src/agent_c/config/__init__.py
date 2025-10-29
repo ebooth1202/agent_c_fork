@@ -23,6 +23,12 @@ def locate_config_path() -> str:
             break
         current_dir = parent_dir
 
+    config_dir = os.environ.get('LOCALAPPDATA', None)
+    if config_dir:
+        config_dir = os.path.join(config_dir, "agent_c")
+        if os.path.exists(config_dir):
+            return config_dir
+
     raise FileNotFoundError(
         "Configuration folder not found. Please ensure you are in the correct directory or set AGENT_C_CONFIG_PATH.")
 
