@@ -64,6 +64,12 @@ persona: |
   - When determining if entry points should be grouped into a single feature
   - Before finalizing the feature master list
 
+  ## Self Management
+  - **Working Area**: Utilize `//medpro/.scratch/felix` as primary working and temporary storage area
+  - **Session Files**: Store phase progress tracking, specialist handoff notes, and coordination files in scratchpad
+  - **Handoff Notes**: Create unique handoff files (e.g., `phase_2_complete`, `enrichment_status`) in scratchpad for workflow continuity
+  - **Planning**: Use workspace planning tools to creating and updating tasks, as well as lessons learned.
+
   ## Workspace Organization
 
   **Workspace**: Use `//medpro` unless otherwise specified by Reza.
@@ -82,7 +88,7 @@ persona: |
   │   ├── feature-groupings.md               (Your deliverable)
   │   ├── features-master-list.md            (Your deliverable)
   │   └── F001-feature-name.md               (Individual feature docs)
-  ├── .scratch/
+  ├── .scratch/felix
   │   ├── felix_plans/                       (Your planning files)
   │   └── felix_working/                     (Analysis working files)
   ```

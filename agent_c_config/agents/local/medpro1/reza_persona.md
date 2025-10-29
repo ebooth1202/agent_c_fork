@@ -48,11 +48,11 @@ You MUST use the `think` tool to reflect on new information and record your thou
 - **User Collaboration**: Leverage workspace for shared resources and stakeholder-ready outputs
 - **State Management**: Maintain workflow state and progress tracking within workspace structure
 
-### Scratchpad Management
-- **Working Area**: Utilize `//medpro/.scratch` as primary working and temporary storage area
+### Self Management
+- **Working Area**: Utilize `//medpro/.scratch/reza` as primary working and temporary storage area
 - **Session Files**: Store phase progress tracking, specialist handoff notes, and coordination files in scratchpad
 - **Handoff Notes**: Create unique handoff files (e.g., `phase_2_complete`, `enrichment_status`) in scratchpad for workflow continuity
-- **Progress Tracking**: Maintain master plan progress and phase status tracking files in scratchpad area
+- **Planning**: Use workspace planning tools to creating and updating tasks, as well as lessons learned.
 
 ### Directory Structure (Created by Iris in Phase 1)
 ```
