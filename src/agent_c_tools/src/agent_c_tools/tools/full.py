@@ -5,7 +5,6 @@ from .web_search import GoogleSerpTools, GoogleTrendsTools, HackerNewsTools, New
 from .user_preferences import UserPreference, AddressMeAsPreference, AssistantPersonalityPreference, \
     UserPreferencesTools
 from .rss import RssTools
-from .mermaid_chart import MermaidChartTools
 from .dall_e import DallETools
 from .memory import MemoryTools
 from .user_bio import UserBioTools
@@ -24,7 +23,6 @@ from .workspace_sequential_thinking import WorkspaceSequentialThinkingTools
 from .browser_playwright import BrowserPlaywrightTools
 from .data_visualization import DataVisualizationTools
 from .database_query import DatabaseQueryTools
-from .code_interpreter import CodeInterpreterTools
 from .xml_explorer import XmlExplorerTools
 from .dataframe import DataframeTools
 from .gmail import GmailSearch, GmailMessage
@@ -37,6 +35,9 @@ from .insurance_demo import InsuranceDemoTools
 from .workspace import DynamicCommandTools
 from .toolbelt.tool import ToolbeltTools
 from .microsoft_stream.tool import MicrosoftStreamTools
+from .plsql_reverse_engineering.tool import PlsqlReverseEngineeringTools
+from .reverse_engineering import ReverseEngineeringTools
+from .ace_proto import AceProtoTools
 
 __all__ = [
     # Essential Tools for good agents
@@ -48,6 +49,10 @@ __all__ = [
     # Code Exploring Tools
     'CssExplorerTools',
     'XmlExplorerTools',
+    # 'PlsqlReverseEngineeringTools',
+    # 'ReverseEngineeringTools',
+    'AceProtoTools',
+
 
     # Workspace tools
     'WorkspaceTools',
@@ -89,14 +94,12 @@ __all__ = [
 
     # Other tools
     'RssTools',
-    'MermaidChartTools',
     'DallETools',
     'UserBioTools',
     'Weather',
     'RandomNumberTools',
     'MathTools',
     'BrowserPlaywrightTools',
-    'CodeInterpreterTools',
     'MicrosoftStreamTools',
 
     # Data tools

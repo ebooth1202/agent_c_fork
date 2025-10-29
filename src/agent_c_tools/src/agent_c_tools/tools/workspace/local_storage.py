@@ -12,8 +12,9 @@ import glob
 from pathlib import Path
 from typing import Optional, Union, Tuple, Callable, TypeVar, List, Dict
 
+from agent_c.util.logging_utils import LoggingManager
 from agent_c.util.token_counter import TokenCounter
-from agent_c_tools.tools.workspace.base import BaseWorkspace
+from agent_c_tools.tools.workspace.base import BaseWorkspace, WorkspaceDataEntry
 from agent_c_tools.tools.workspace.util.trees.renderers.minimal import MinimalTreeRenderer
 from agent_c_tools.tools.workspace.util.trees.builders.local_file_system import LocalFileSystemTreeBuilder
 from .executors.local_storage.secure_command_executor import SecureCommandExecutor, CommandExecutionResult
@@ -25,23 +26,35 @@ T = TypeVar('T')
 class LocalStorageWorkspace(BaseWorkspace):
     supports_run_command = True # Enable command execution support
 
-    def __init__(self, **kwargs):
-        super().__init__("local_storage", **kwargs)
-        workspace_path: Optional[str] = kwargs.get('workspace_path')
-        self.max_token_size: int = kwargs.get('max_size', 50000)
-        self.valid: bool = isinstance(workspace_path, str)
-        if self.valid:
-            self.workspace_root: Path = Path(workspace_path).resolve()
+    def _resolve_path(self, workspace_path: str) -> Optional[Path]:
+        path = Path(workspace_path).resolve()
+        if path.exists():
+            return path
 
-        # Check environment for development/local mode
-        # We only allow symlinks in those environments by default
-        # Otherwise the default is to disallow symlinks unless explicitly set
-        env = os.environ.get('ENVIRONMENT', '').lower()
-        self.allow_symlinks: bool = kwargs.get('allow_symlinks', 'local' in env or 'dev' in env)
-        self.logger: logging.Logger = logging.getLogger(__name__)
+        match = re.match(r'^([C-Z]):(.*)', workspace_path, re.IGNORECASE)
+        if match:
+            drive_letter = match.group(1).lower()
+            rest_of_path = match.group(2)
+            workspace_path =f'{drive_letter}{rest_of_path}'
 
-        #if self.allow_symlinks:
-        #    self.logger.info("Symlink paths are allowed in workspace")
+        path = Path(f'/mnt/{workspace_path}')
+        if path.exists():
+            return path
+
+        path = Path(f"/host/{workspace_path}")
+        if path.exists():
+            return path
+
+        return None
+
+
+    def __init__(self, entry: WorkspaceDataEntry, **kwargs):
+        super().__init__(entry, **kwargs)
+
+        self.workspace_root: Path = self._resolve_path(entry.path_or_bucket)
+        self.valid: bool = self.workspace_root is not None
+        self.allow_symlinks: bool = os.environ.get('WORKSPACE_ALLOW_SYMLINKS', 'true').lower() == 'true'
+        self.logger = LoggingManager(__name__).get_logger()
 
         self.max_filename_length = 200
 
@@ -87,9 +100,6 @@ class LocalStorageWorkspace(BaseWorkspace):
         # Prevent path traversal attacks with ".." regardless of symlink settings
         if ".." in norm_path.split(os.sep):
             return False
-
-        if self.allow_symlinks:
-            return True
 
         resolved_path = self.workspace_root.joinpath(norm_path).resolve()
         return self.workspace_root in resolved_path.parents or resolved_path == self.workspace_root

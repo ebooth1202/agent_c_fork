@@ -12,13 +12,23 @@ from ts_tool.models.extraction_result import (
     DetailLevel, ExtractionResult, EntityExtractionResult,
     ModuleExtractionResult, PublicInterfaceResult, CodeSummaryResult
 )
-from ts_tool.utils.formatting import format_result_as_markdown, format_result_as_json, format_function_as_context
-from ts_tool.utils.formatting import format_entity_as_context
-
+from ts_tool.utils.formatting import CodeFormatter, format_result_as_json
 
 # Create a singleton instance of the CodeExplorer
 _explorer = CodeExplorer()
 
+# Lazily-created formatter so callers can optionally pass a template_dir
+_formatter: Optional[CodeFormatter] = None
+
+def _get_formatter(template_dir: Optional[str] = None) -> CodeFormatter:
+    """Return a CodeFormatter, using given template_dir or default /templates next to module."""
+    global _formatter
+    if template_dir is not None:
+        # Always make a fresh formatter if caller specifies a template_dir
+        return CodeFormatter(template_dir=template_dir)
+    if _formatter is None:
+        _formatter = CodeFormatter()  # defaults to 'templates' next to this file
+    return _formatter
 
 def get_supported_languages() -> List[str]:
     """Get a list of supported programming languages.
@@ -27,7 +37,6 @@ def get_supported_languages() -> List[str]:
         A list of supported language names.
     """
     return _explorer.get_supported_languages()
-
 
 def detect_language(code: str, filename: Optional[str] = None) -> Optional[str]:
     """Detect the programming language of the given code.
@@ -41,162 +50,186 @@ def detect_language(code: str, filename: Optional[str] = None) -> Optional[str]:
     """
     return _explorer.detect_language(code, filename)
 
-def get_code_context(code: str, language: Optional[str] = None,
-                     filename: Optional[str] = None, format: str = 'markdown') -> str:
-    result = _explorer.explore_code(code, language, filename)
-    source_lines = result.source_code.split("\n") if result.source_code else []
-    ds = result.module.docstring if result.module and result.module.docstring else ""
 
-    md = [f"# Module Overview {result.module.filename}\n"
-          f"{ds}"
-          f"\n- Module size: {len(source_lines)} lines, {len(result.source_code)} characters\n"]
-
-    if len(result.module.functions) == 0:
-        md.append(f"- No methods found.\n")
-
-    if len(result.module.classes) == 0:
-        md.append(f"- No classes found.\n")
-
-    if len(result.module.variables) == 0:
-        md.append(f"- No module level variables found.\n")
-
-    if len(result.module.functions):
-        md.append(f"\n## Methods:\n")
-        for entity in result.module.functions:
-            md.append(format_function_as_context("function", entity))
-
-    # classes = []
-    # for class_name in summary.class_names:
-    #     class_info = _explorer.get_entity(code, 'class', class_name, DetailLevel.FULL, language, filename)
-    #     classes.append(class_info)
-    if len(result.module.classes) > 0:
-        md.append(f"\n## Classes:\n")
-        for entity in result.module.classes:
-            md.append(format_entity_as_context("class", entity))
-
-    return "".join(md)
-
-
-
-
-def get_code_summary(code: str, language: Optional[str] = None, 
-                   filename: Optional[str] = None, format: str = 'dict') -> str | dict[str, Any] | CodeSummaryResult:
+def get_code_summary(
+    code: str,
+    language: Optional[str] = None,
+    filename: Optional[str] = None,
+    format: str = 'dict',
+    template_dir: Optional[str] = None
+) -> str | dict[str, Any] | CodeSummaryResult:
     """Get a high-level summary of code structure.
-    
-    This function provides a quick overview of the code structure,
-    including counts of classes, functions, and variables.
-    
+
     Args:
         code: The source code to analyze.
         language: Optional language name. If not provided, will be detected.
         filename: Optional filename which may help with language detection.
         format: Output format ('dict', 'json', or 'markdown').
-        
+        template_dir: Optional path to a directory containing custom templates.
+
     Returns:
-        A summary of the code structure in the requested format.
+        Code summary in the specified format.
     """
-    result = _explorer.get_summary(code, language, filename)
-    
+    result: CodeSummaryResult = _explorer.get_summary(code, language, filename)
+
     if format == 'dict':
         return result.to_dict()
     elif format == 'json':
         return format_result_as_json(result)
     elif format == 'markdown':
-        return format_result_as_markdown(result)
+        formatter = _get_formatter(template_dir)
+        return formatter.format_summary(result, filename=filename)
     else:
         return result
 
+def get_code_context(
+    code: str,
+    language: Optional[str] = None,
+    filename: Optional[str] = None,
+    format: str = 'dict',
+    style: str = "compact",
+    template_dir: Optional[str] = None,
+) -> str | dict[str, Any] | ModuleExtractionResult:
+    """
+    Render a concise, agent-friendly module overview using external Jinja2 templates.
 
-def get_public_interface(code: str, language: Optional[str] = None,
-                        filename: Optional[str] = None, format: str = 'dict') -> str | dict[str, Any] | PublicInterfaceResult:
+    Args:
+        code: Source code to analyze.
+        language: Optional language override; if None, will be detected.
+        filename: Optional filename for detection and display.
+        format: 'dict' (default), 'json', or 'markdown'.
+        style: 'standard' (default) or 'compact' — maps to context_<style>.jinja2 template
+        template_dir: Optional path to a directory containing your jinja2 templates.
+                      If not provided, defaults to a 'templates' directory alongside this file.
+
+    Returns:
+        Markdown string rendered by the selected template.
+    """
+    # Get a full module parse
+    mod_result: ModuleExtractionResult = _explorer.explore_code(code, language, filename)
+
+    if format == 'dict':
+        return mod_result.to_dict()
+    elif format == 'json':
+        return format_result_as_json(mod_result)
+    elif format == 'markdown':
+        formatter = _get_formatter(template_dir)
+        return formatter.format_module(mod_result.module, source_code=code, style=style)
+    else:
+        return mod_result
+
+def get_public_interface(
+    code: str,
+    language: Optional[str] = None,
+    filename: Optional[str] = None,
+    format: str = 'dict',
+    template_dir: Optional[str] = None
+) -> str | dict[str, Any] | PublicInterfaceResult:
     """Extract the public interface from code.
-    
-    This function extracts only the public elements of the code, such as
-    public classes, functions, and constants.
-    
+
     Args:
         code: The source code to analyze.
         language: Optional language name. If not provided, will be detected.
         filename: Optional filename which may help with language detection.
         format: Output format ('dict', 'json', or 'markdown').
-        
+        template_dir: Optional path to a directory containing your jinja2 templates.
+                      If not provided, defaults to a 'templates' directory alongside this file.
+
     Returns:
-        The public interface in the requested format.
+        Public interface in the specified format.
     """
     result = _explorer.get_public_interface(code, language, filename)
-    
+
     if format == 'dict':
         return result.to_dict()
     elif format == 'json':
         return format_result_as_json(result)
     elif format == 'markdown':
-        return format_result_as_markdown(result)
+        formatter = _get_formatter(template_dir)
+        return formatter.format_public_interface(result, filename=filename)
     else:
         return result
 
 
-def get_entity(code: str, entity_type: str, entity_name: str, 
-              detail_level: str = 'full', language: Optional[str] = None,
-              filename: Optional[str] = None, format: str = 'dict') -> Union[Dict[str, Any], str]:
+
+def get_entity(
+    code: str,
+    entity_type: str,
+    entity_name: str,
+    detail_level: str = 'full',
+    language: Optional[str] = None,
+    filename: Optional[str] = None,
+    format: str = 'dict',
+    template_dir: Optional[str] = None
+) -> Union[Dict[str, Any], str]:
     """Get a specific entity from code.
-    
-    This function extracts a specific named entity from the code, such as
-    a class, function, or method, with the specified level of detail.
-    
+
     Args:
         code: The source code to analyze.
         entity_type: The type of entity to extract ('class', 'function', 'method', 'variable').
         entity_name: The name of the entity to extract.
-        detail_level: The level of detail to include ('summary', 'signature', 'full').
+        detail_level: Level of detail ('summary', 'signature', or 'full').
         language: Optional language name. If not provided, will be detected.
         filename: Optional filename which may help with language detection.
         format: Output format ('dict', 'json', or 'markdown').
-        
+        template_dir: Optional path to a directory containing your jinja2 templates.
+                      If not provided, defaults to a 'templates' directory alongside this file.
+
     Returns:
-        The extracted entity in the requested format.
+        Entity information in the specified format.
     """
     result = _explorer.get_entity(code, entity_type, entity_name, detail_level, language, filename)
-    
+
     if format == 'dict':
         return result.to_dict()
     elif format == 'json':
         return format_result_as_json(result)
     elif format == 'markdown':
-        return format_result_as_markdown(result)
+        formatter = _get_formatter(template_dir)
+        return formatter.format_entity(result, filename=filename)
     else:
-        raise ValueError(f"Unsupported format: {format}. Must be one of 'dict', 'json', or 'markdown'.")
+        raise ValueError("Unsupported format. Use 'dict', 'json', or 'markdown'.")
 
 
-def explore_code(code: str, language: Optional[str] = None,
-                filename: Optional[str] = None, format: str = 'dict') -> str | dict[str, Any] | ModuleExtractionResult:
+def explore_code(
+    code: str,
+    language: Optional[str] = None,
+    filename: Optional[str] = None,
+    format: str = 'dict',
+    style: str = 'standard',
+    template_dir: Optional[str] = None
+) -> str | dict[str, Any] | ModuleExtractionResult:
     """Explore code and extract its complete structure.
-    
-    This function parses the given code and extracts its complete structure,
-    including all classes, functions, and variables.
-    
+
     Args:
-        code: The source code to explore.
+        code: The source code to analyze.
         language: Optional language name. If not provided, will be detected.
         filename: Optional filename which may help with language detection.
         format: Output format ('dict', 'json', or 'markdown').
-        
+        style: For markdown format, the style to use ('standard' or 'compact'). Maps to explore_<style>.jinja2 template
+        template_dir: Optional path to a directory containing your jinja2 templates.
+                      If not provided, defaults to a 'templates' directory alongside this file.
+
     Returns:
-        The complete code structure in the requested format.
+        Complete module structure in the specified format.
     """
     result = _explorer.explore_code(code, language, filename)
-    
+
     if format == 'dict':
         return result.to_dict()
     elif format == 'json':
         return format_result_as_json(result)
     elif format == 'markdown':
-        return format_result_as_markdown(result)
+        formatter = _get_formatter(template_dir)
+        return formatter.format_explore(result, filename=filename, style=style)
     else:
         return result
 
-
-def get_source_code(code: str, entity_type: str, entity_name: str,
-                   language: Optional[str] = None, filename: Optional[str] = None) -> Optional[str]:
+def get_source_code(code: str,
+                    entity_type: str,
+                    entity_name: str,
+                    language: Optional[str] = None,
+                    filename: Optional[str] = None) -> Optional[str]:
     """Get the source code for a specific entity.
     
     This is a convenience function to directly get the source code
@@ -220,8 +253,11 @@ def get_source_code(code: str, entity_type: str, entity_name: str,
     return None
 
 
-def get_signature(code: str, entity_type: str, entity_name: str,
-                 language: Optional[str] = None, filename: Optional[str] = None) -> Optional[str]:
+def get_signature(code: str,
+                  entity_type: str,
+                  entity_name: str,
+                  language: Optional[str] = None,
+                  filename: Optional[str] = None) -> Optional[str]:
     """Get the signature for a specific entity.
     
     This is a convenience function to directly get the signature
@@ -246,8 +282,11 @@ def get_signature(code: str, entity_type: str, entity_name: str,
     return None
 
 
-def get_documentation(code: str, entity_type: str, entity_name: str,
-                     language: Optional[str] = None, filename: Optional[str] = None) -> Optional[str]:
+def get_documentation(code: str,
+                      entity_type: str,
+                      entity_name: str,
+                      language: Optional[str] = None,
+                      filename: Optional[str] = None) -> Optional[str]:
     """Get the documentation for a specific entity.
     
     This is a convenience function to directly get the documentation

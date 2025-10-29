@@ -14,17 +14,12 @@ setup(
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.10',
+    python_requires='>=3.12',
     install_requires=[
         "agent_c-core",
-        "mcp",
         "pyyaml",
         "playwright",
-    ],
-    entry_points={
-        'console_scripts': [
-            'mcp-tools-server=agent_c_tools.server.cli:main',
-        ],
-    },
+    ]
+
 )
 

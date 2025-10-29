@@ -25,6 +25,8 @@ class ParserManager:
         'python': [r'^#!/usr/bin/env python', r'^#!/usr/bin/python', r'^from\s+\w+\s+import\s+', r'^import\s+\w+'],
         'javascript': [r'^import\s+{.*}\s+from\s+[\'\"\']', r'^const\s+\w+\s*=\s*require\([\'\"\']'],
         'c_sharp': [r'^using\s+[\w\.]+;', r'^namespace\s+[\w\.]+', r'^\[?public\s+(class|interface|struct|enum)\s+\w+'],
+        'java': [r'^package\s+[\w\.]+;', r'^import\s+[\w\.]+;', r'^\s*public\s+(class|interface|enum)\s+\w+'],
+        'plsql': [r'(?i)\bCREATE\s+(OR\s+REPLACE\s+)?(PACKAGE|PROCEDURE|FUNCTION|TRIGGER)', r'(?i)\bDECLARE\b', r'(?i)\bBEGIN\s+.*\s+END\s*;', r'(?i)\bPACKAGE\s+BODY\b'],
         # Add more language detection patterns as needed
     }
     
@@ -44,6 +46,15 @@ class ParserManager:
         '.go': 'go',
         '.rs': 'rust',
         '.cs': 'c_sharp',
+        '.sql': 'plsql',
+        '.pls': 'plsql',
+        '.plb': 'plsql',
+        '.pkb': 'plsql',
+        '.pks': 'plsql',
+        '.pck': 'plsql',
+        '.fnc': 'plsql',
+        '.prc': 'plsql',
+        '.trg': 'plsql',
         # Add more extensions as needed
     }
     
@@ -54,32 +65,43 @@ class ParserManager:
     
     def get_parser(self, language_name: str) -> Parser:
         """Get a parser for the specified language.
-        
+
+        For languages without tree-sitter support (like PL/SQL), returns
+        a mock parser that performs text-based extraction.
+
         Args:
             language_name: The name of the language to get a parser for.
-            
+
         Returns:
-            A tree-sitter Parser configured for the specified language.
-            
+            A tree-sitter Parser configured for the specified language,
+            or a mock parser for languages without tree-sitter support.
+
         Raises:
             ImportError: If the language module cannot be loaded.
             ValueError: If the language is not supported.
         """
         language_name = language_name.lower()
-        
+
         # Return cached parser if available
         if language_name in self._parser_cache:
             return self._parser_cache[language_name]
-        
-        # Load language if not in cache
+
+        # Special handling for PL/SQL (no tree-sitter grammar available)
+        if language_name == 'plsql':
+            from ts_tool.languages.plsql_parser import MockPlsqlParser
+            parser = MockPlsqlParser()
+            self._parser_cache[language_name] = parser
+            return parser
+
+        # Standard tree-sitter path for other languages
         language = self._load_language(language_name)
-        
+
         # Create and configure parser
         parser = Parser(language)
-        
+
         # Cache the parser
         self._parser_cache[language_name] = parser
-        
+
         return parser
     
     def _load_language(self, language_name: str) -> Language:

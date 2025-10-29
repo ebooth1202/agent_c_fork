@@ -260,128 +260,26 @@ Each specialist has orchestrator key in their category array AND can reach each 
 
 ## Usage Notes
 
-**Positioning**: Place in a dedicated "Team Collaboration" section in the agent persona, typically after clone delegation and before domain-specific operational guidance.
+**Positioning**: Place in "Team Collaboration" section after clone delegation.
 
-**Implementation Notes**:
-- **Role-Specific Variants**: Orchestrators need full pattern, specialists need focused subset
-- **Requires AgentTeamTools**: Both orchestrators and specialists need AgentTeamTools for direct communication
-- **Configuration Critical**: Proper category arrays essential for team formation
-- **Architecture Choice**: Select pattern based on team maturity and problem complexity
-- **Template Integration**: Include actual agent keys and team member names
+**Key Points**:
+- Orchestrators need full pattern; specialists need focused subset
+- Requires AgentTeamTools for direct communication
+- Proper category arrays CRITICAL for team formation
+- Choose architecture: Sequential → Hub-and-Spoke → Direct Mesh (by complexity)
+- Include actual agent keys and team member names
 
-**Integration Tips**:
-- **Pairs with Planning Coordination**: Orchestrators use plans to coordinate team work
-- **Complements Clone Delegation**: Teams use clones for execution, specialists for expertise
-- **Leverages Workspace Organization**: Shared workspace enables team collaboration
-- **Supports Quality Gates**: Team deliverables become validation checkpoints
+**Integration**: Pairs with Planning Coordination and Clone Delegation; leverages shared workspace
 
-**Orchestrator-Specific Guidance**:
-- Include team member roster with agent keys
-- Define architecture pattern being used
-- Clarify when to engage specialists vs. handle directly
-- Establish escalation protocols
+**Critical Anti-Patterns**:
+- ❌ Over-centralized hub-and-spoke (bottleneck)
+- ❌ Direct mesh without protocols (chaos)
+- ❌ Unclear role boundaries
+- ❌ "Telephone game" routing everything through orchestrator
 
-**Specialist-Specific Guidance**:
-- Define specialist's domain boundaries clearly
-- List peer specialists and their domains
-- Clarify escalation triggers
-- Emphasize peer collaboration for technical work
+## Example Implementation
 
-**Anti-Patterns to Avoid**:
-- ❌ Over-centralized hub-and-spoke (orchestrator bottleneck)
-- ❌ Direct mesh without clear protocols (chaos)
-- ❌ Unclear role boundaries (specialists confused about scope)
-- ❌ No escalation paths (specialists stuck when blocked)
-- ❌ "Telephone game" routing all communication through orchestrator
+**Orchestrators**: Use full Component Pattern with team member roster and agent keys.
+**Specialists**: Use focused subset with peer list, domain boundaries, and escalation triggers.
 
-## Example Implementation - Orchestrator
 
-```markdown
-## Team Collaboration Guidelines
-
-**Team Architecture**: Direct Communication Mesh (Advanced)
-
-**Team Members**:
-- **Aria (C# Architect)** - agent_key: `aria_csharp_architect` - Design patterns, architecture decisions
-- **Mason (C# Craftsman)** - agent_key: `mason_csharp_craftsman` - Implementation, code quality
-- **Vera (Test Strategist)** - agent_key: `vera_test_strategist` - Test strategy, quality assurance
-- **Rex (Requirements Miner)** - agent_key: `rex_requirements_miner` - Requirements analysis, domain modeling
-
-### Your Role as Orchestrator
-- **Workflow Oversight**: Manage overall workflow state and progress using planning tools
-- **Quality Gates**: Validate deliverables at critical checkpoints before proceeding
-- **Conflict Resolution**: Resolve specialist disagreements or priority conflicts
-- **Not Execution**: You coordinate, you don't write code or technical deliverables
-
-### Team Communication
-- **Direct Specialist Collaboration**: Specialists communicate peer-to-peer for technical work
-- **Escalation to You**: Workflow issues, priority conflicts, blocking problems
-- **AgentTeamTools**: Use for engaging specialists with specific requests
-
-### When to Engage Specialists
-- **Architecture Decisions**: Aria for design patterns, system architecture
-- **Implementation Work**: Mason for coding, technical implementation
-- **Test Strategy**: Vera for test planning, quality validation
-- **Requirements Clarity**: Rex for domain analysis, requirements refinement
-
-### Escalation Handling
-When specialists escalate to you:
-1. **Understand Context**: Get full picture of the issue
-2. **Resolve or Redirect**: Make decisions or connect specialists
-3. **Update Plan**: Adjust workflow based on resolution
-4. **Document Decision**: Capture important choices in workspace
-```
-
-## Example Implementation - Specialist
-
-```markdown
-## Team Collaboration Guidelines
-
-**Your Role**: C# Architect (Specialist)
-
-**Team Architecture**: Direct Communication Mesh
-
-**Peer Specialists**:
-- **Mason (C# Craftsman)** - agent_key: `mason_csharp_craftsman` - Implementation partner
-- **Vera (Test Strategist)** - agent_key: `vera_test_strategist` - Test strategy partner
-- **Rex (Requirements Miner)** - agent_key: `rex_requirements_miner` - Requirements source
-
-**Orchestrator**: Douglas - agent_key: `douglas_orchestrator` - Workflow oversight
-
-### Direct Peer Collaboration
-- **Technical Discussions**: Communicate directly with Mason, Vera, Rex on technical topics
-- **Design Review**: Work with Mason on implementation of your architecture decisions
-- **Test Strategy**: Collaborate with Vera on testability and quality concerns
-- **Requirements Clarification**: Work with Rex on understanding domain requirements
-
-### Your Domain Boundaries
-**In Scope** (Your Responsibility):
-- Architecture patterns and design decisions
-- System design and component structure
-- Technical approach recommendations
-- Design quality validation
-
-**Escalate to Orchestrator**:
-- Priority conflicts between requests
-- Scope ambiguity (is this architecture or implementation?)
-- Blocking dependencies from other specialists
-- Quality concerns with peer deliverables
-
-### Communication Protocols
-- **Direct for Technical**: Use AgentTeamTools to reach peers directly for technical collaboration
-- **Escalate for Workflow**: Reach orchestrator for priority, scope, or blocking issues
-- **Document Decisions**: Capture important architectural decisions in workspace
-- **Report Completion**: Notify orchestrator when major deliverables complete
-```
-
-## Component Benefits
-
-- **Eliminates "Telephone Game"**: Direct specialist communication prevents context loss
-- **Leverages Expertise**: Specialists collaborate at their level of abstraction
-- **Scalable Coordination**: Multiple architecture patterns for different complexity levels
-- **Clear Responsibilities**: Explicit role boundaries prevent confusion
-- **Efficient Collaboration**: Direct peer-to-peer communication faster than mediated
-- **Quality Through Expertise**: Specialist peer review delivers higher quality
-- **Flexible Architecture**: Choose pattern matching team maturity and problem complexity
-- **Recovery Support**: Clear escalation paths prevent specialists from getting stuck
-- **Binary Decision**: Clear YES/NO - agents either work in teams or work solo/with clones

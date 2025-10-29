@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 from pydantic import Field
 from agent_c.models.base import BaseModel
 from agent_c.util import MnemonicSlugs
@@ -10,7 +12,7 @@ class RealtimeSession(BaseModel):
     """
     session_id: str = Field(..., description="Unique identifier for the real-time session")
     user_id: str = Field(..., description="The user ID associated with the session")
-    bridge: RealtimeBridge = Field(..., description="The real-time bridge instance for managing the session")
+    bridge: 'RealtimeBridge' = Field(..., description="The real-time bridge instance for managing the session")
 
     @classmethod
     def generate_session_id(cls, user_id: str) -> str:

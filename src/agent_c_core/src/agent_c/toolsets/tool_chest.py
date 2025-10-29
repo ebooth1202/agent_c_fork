@@ -1,64 +1,22 @@
 import asyncio
 import copy
 import json
-import logging
 from typing import Type, List, Union, Dict, Any, Tuple, Optional
-
-
-from agent_c.prompting.basic_sections.tool_guidelines import EndToolGuideLinesSection, BeginToolGuideLinesSection
-from agent_c.prompting.prompt_section import PromptSection
 from agent_c.toolsets.tool_set import Toolset
 from agent_c.util.logging_utils import LoggingManager
 
 
 class ToolChest:
-    """
-    A class representing a collection of toolsets that can be used by an agent.
-    
-    Attributes:
-        __toolset_instances (dict[str, Toolset]): A private dictionary to store all instantiated toolsets.
-        __active_toolset_instances (dict[str, Toolset]): A private dictionary to store currently active toolsets.
-        __essential_toolsets (list[str]): A private list to store names of toolsets that should always be active.
-        __available_toolset_classes (list[Type[Toolset]]): A private list to store all available toolset classes.
-        __toolsets_awaiting_init (dict[str, Toolset]): A private dictionary to store toolsets created but awaiting post_init.
-        __tool_opts (dict): A private dictionary to store the kwargs from the last init_tools call.
-        _active_tool_schemas (List[dict]): A private list to store OpenAI schemas for active toolsets.
-        _tool_name_to_instance_map (Dict[str, Toolset]): A mapping from tool function names to their toolset instance.
-        logger (logging.Logger): An instance of a logger.
-        
-    Methods:
-        activate_toolset(toolset_name_or_names: Union[str, List[str]], **kwargs) -> bool: Activate one or more toolsets by name.
-        deactivate_toolset(toolset_name_or_names: Union[str, List[str]]) -> bool: Deactivate one or more toolsets by name.
-        set_active_toolsets(toolset_names: List[str], **kwargs) -> bool: Set the complete list of active toolsets.
-        activate_tool(tool_name: str, **kwargs) -> bool: Backward compatibility method for activating a toolset.
-        add_tool_class(cls: Type[Toolset]): Add a new toolset class to the available toolsets.
-        add_tool_instance(instance: Toolset, activate: bool = True): Add a new toolset instance directly.
-        init_tools(**kwargs): Initialize toolsets based on essential toolsets configuration.
-        call_tools(tool_calls: List[dict], format_type: str) -> List[dict]: Execute multiple tool calls concurrently.
-        _execute_tool_call(function_id: str, function_args: Dict) -> Any: Execute a single tool call.
-    """
 
-    def __init__(self, **kwargs):
-        """
-        Initializes the ToolChest with toolset instances, toolset classes, and a logger.
-        
-        Args:
-            **kwargs: Arbitrary keyword arguments. Supports:
-                - available_toolset_classes: List of toolset classes available for activation
-                - essential_toolset_names: List of names of toolsets that should always be active
-                - (legacy) tool_classes: Alias for available_toolset_classes for backward compatibility
-                - tool_cache: Optional ToolCache instance to use
-                - session_manager: Optional SessionManager instance to use
-        """
-        logging_manager = LoggingManager(__name__)
-        self.logger = logging_manager.get_logger()
+    def __init__(self, tool_opts: Dict[str, any]):
+        self.logger = LoggingManager(__name__).get_logger()
         self.__toolset_instances: dict[str, Toolset] = {}  # All instantiated toolsets
-        self.__available_toolset_classes = kwargs.get('available_toolset_classes',
-                                                      kwargs.get('tool_classes', Toolset.tool_registry))
+        self.__available_toolset_classes = Toolset.tool_registry
+
         self.__toolsets_awaiting_init = {}
-        self.__tool_opts = {}
+        self.__tool_opts = tool_opts
         self._tool_name_to_instance_map: Dict[str, Toolset] = {}
-        self.tool_cache = kwargs.get('tool_cache')
+        self.tool_cache = tool_opts.get('tool_cache')
 
 
     @property
@@ -86,8 +44,7 @@ class ToolChest:
         Args:
             toolset_name_or_names: A single toolset name or list of toolset names to activate
             tool_opts: Additional arguments to pass to post_init if the toolset needs initialization
-            init_only: If True, only initialize the toolset without activating it
-            
+
         Returns:
             bool: True if all toolsets were activated successfully, False otherwise
         """
@@ -227,17 +184,6 @@ class ToolChest:
         """
         return self.__toolset_instances
 
-    @property
-    def active_open_ai_schemas(self) -> List[dict]:
-        """
-        Property that returns the active tool instances in Open AI format.
-
-        Returns:
-            List[dict]: List of OpenAI schemas for active toolsets.
-        """
-        return self._active_tool_schemas
-
-
 
     def add_tool_class(self, cls: Type[Toolset]):
         """
@@ -264,25 +210,7 @@ class ToolChest:
 
 
     async def init_tools(self, tool_opts: Dict[str, any]):
-        """
-        Initialize toolsets based on essential toolsets configuration.
-        
-        For backward compatibility, if no essential toolsets are specified,
-        this will initialize all available toolsets.
-        
-        Args:
-            tool_opts: Arguments to pass to toolset initialization.
-        """
-        # Create a copy of tool_opts to avoid modifying the original
-        local_tool_opts = {}
-        if tool_opts:
-            local_tool_opts.update(tool_opts)
-            
-        # Add tool_cache if available
-        if hasattr(self, 'tool_cache') and self.tool_cache is not None and 'tool_cache' not in local_tool_opts:
-            local_tool_opts['tool_cache'] = self.tool_cache
-            
-        self.__tool_opts = local_tool_opts
+        self.__tool_opts = tool_opts
 
 
     async def call_tool_internal(self, function_id: str, function_args: Dict[str,Any], tool_context: Dict[str,Any]) -> Optional[str]:

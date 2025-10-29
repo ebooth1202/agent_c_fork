@@ -1,6 +1,7 @@
+import asyncio
 import itertools
 import threading
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import yaml
 
@@ -27,6 +28,34 @@ class ReverseEngineeringTools(AgentAssistToolBase):
         self.recon_oneshot = self.agent_loader.catalog['recon_oneshot']
         self.recon_revise_oneshot = self.agent_loader.catalog['recon_revise_oneshot']
         self.recon_answers_oneshot = self.agent_loader.catalog['recon_answers_oneshot']
+
+    async def _parallel_agent_oneshots(
+        self,
+        messages: List[str],
+        persona: AgentConfiguration,
+        user_session_id: str,
+        tool_context: Dict[str, Any],
+        client_wants_cancel: threading.Event
+    ) -> List[Optional[List[Dict[str, Any]]]]:
+        """Run multiple agent oneshots in parallel using asyncio.gather."""
+        # Get the calling agent config for prime_agent_key
+        calling_agent_config = tool_context.get('agent_config', tool_context.get('active_agent'))
+        prime_agent_key = calling_agent_config.key if calling_agent_config else "unknown"
+        
+        tasks = [
+            self.agent_oneshot(
+                user_message=msg,
+                agent=persona,
+                parent_session_id=user_session_id,
+                user_session_id=user_session_id,
+                parent_tool_context=tool_context,
+                client_wants_cancel=client_wants_cancel,
+                sub_agent_type="tool",
+                prime_agent_key=prime_agent_key
+            )
+            for msg in messages
+        ]
+        return await asyncio.gather(*tasks)
 
     def is_explainable(self, file: str) -> bool:
         """
@@ -137,13 +166,27 @@ class ReverseEngineeringTools(AgentAssistToolBase):
         client_wants_cancel: threading.Event = tool_context["client_wants_cancel"]
         request: str = kwargs.get('request')
         workspace_name: str = kwargs.get('workspace')
+        
+        # Get the calling agent config for prime_agent_key
+        calling_agent_config = tool_context.get('agent_config', tool_context.get('active_agent'))
+        if calling_agent_config is None:
+            return "ERROR: No agent configuration found in tool context. This tool requires an active agent configuration to function."
 
         workspace = self.workspace_tool.find_workspace_by_name(workspace_name)
         agent_config = self.recon_answers_oneshot.model_dump()
         agent_config['persona'] = agent_config['persona'].replace('[workspace]', workspace_name).replace('[workspace_tree]', await workspace.tree('.scratch/analyze_source/enhanced', 10, 5))
         agent = AgentConfigurationV2(**agent_config)
 
-        messages = await self.agent_oneshot(request, agent, tool_context['session_id'], tool_context, client_wants_cancel=client_wants_cancel)
+        messages = await self.agent_oneshot(
+            user_message=request,
+            agent=agent,
+            parent_session_id=tool_context['session_id'],
+            user_session_id=tool_context['session_id'],
+            parent_tool_context=tool_context,
+            client_wants_cancel=client_wants_cancel,
+            sub_agent_type="tool",
+            prime_agent_key=calling_agent_config.key
+        )
         last_message = messages[-1] if messages else None
 
         return yaml.dump(last_message, allow_unicode=True) if last_message else "No response from agent."
@@ -168,11 +211,13 @@ class ReverseEngineeringTools(AgentAssistToolBase):
                 paths = "\n- ".join([f"//{workspace.name}/{file}" for file in batch])
                 await self._render_media_markdown(f"\n**Processing files (pass 1)**: {paths}... ", "analyze_source", tool_context=tool_context)
                 true_batch = [await self.__try_explain_code(f"//{workspace.name}/{file}") for file in batch]
-                results = await self.parallel_agent_oneshots(true_batch,
-                                                             persona=self.recon_oneshot,
-                                                             user_session_id=tool_context['session_id'],
-                                                             tool_context=tool_context,
-                                                             client_wants_cancel=client_wants_cancel)
+                results = await self._parallel_agent_oneshots(
+                    messages=true_batch,
+                    persona=self.recon_oneshot,
+                    user_session_id=tool_context['session_id'],
+                    tool_context=tool_context,
+                    client_wants_cancel=client_wants_cancel
+                )
                 await self._render_media_markdown(f"\nfinished processing files (pass 1):\n- {paths}", "analyze_source", tool_context=tool_context)
                 pass_one_results.extend(results)
         else:
@@ -182,11 +227,19 @@ class ReverseEngineeringTools(AgentAssistToolBase):
                     return pass_one_results
 
                 await self._render_media_markdown(f"n**Processing file (pass 1)**: {file}... ", "analyze_source", tool_context=tool_context)
-                result = await self.agent_oneshot(user_message=await self.__try_explain_code(f"//{workspace.name}/{file}"),
-                                                  persona=self.recon_oneshot,
-                                                  user_session_id=tool_context['session_id'],
-                                                  tool_context=tool_context,
-                                                  client_wants_cancel=client_wants_cancel)
+                # Get the calling agent config for prime_agent_key
+                calling_agent_config = tool_context.get('agent_config', tool_context.get('active_agent'))
+                
+                result = await self.agent_oneshot(
+                    user_message=await self.__try_explain_code(f"//{workspace.name}/{file}"),
+                    agent=self.recon_oneshot,
+                    parent_session_id=tool_context['session_id'],
+                    user_session_id=tool_context['session_id'],
+                    parent_tool_context=tool_context,
+                    client_wants_cancel=client_wants_cancel,
+                    sub_agent_type="tool",
+                    prime_agent_key=calling_agent_config.key if calling_agent_config else "unknown"
+                )
                 await self._render_media_markdown(f"\nDone processing file (pass 1): {file}", "analyze_source", tool_context=tool_context)
                 pass_one_results.append(result)
 
@@ -202,11 +255,19 @@ class ReverseEngineeringTools(AgentAssistToolBase):
                 return pass_two_results
 
             await self._render_media_markdown(f"\n**Processing file (pass 2)**: {file}... ", "analyze_source", tool_context=tool_context)
-            result = await self.agent_oneshot(user_message=f"//{workspace.name}/{file}",
-                                              persona=self.recon_revise_oneshot,
-                                              user_session_id=tool_context['session_id'],
-                                              tool_context=tool_context,
-                                              client_wants_cancel=client_wants_cancel)
+            # Get the calling agent config for prime_agent_key
+            calling_agent_config = tool_context.get('agent_config', tool_context.get('active_agent'))
+            
+            result = await self.agent_oneshot(
+                user_message=f"//{workspace.name}/{file}",
+                agent=self.recon_revise_oneshot,
+                parent_session_id=tool_context['session_id'],
+                user_session_id=tool_context['session_id'],
+                parent_tool_context=tool_context,
+                client_wants_cancel=client_wants_cancel,
+                sub_agent_type="tool",
+                prime_agent_key=calling_agent_config.key if calling_agent_config else "unknown"
+            )
             pass_two_results.append(result)
 
         return pass_two_results

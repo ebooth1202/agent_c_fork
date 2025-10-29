@@ -14,7 +14,7 @@ from markitdown import MarkItDown
 from agent_c.models.input.file_input import FileInput
 from agent_c.models.input.image_input import ImageInput
 from agent_c.models.input.audio_input import AudioInput
-from agent_c_api.core.util.logging_utils import LoggingManager
+from agent_c.util.logging_utils import LoggingManager
 
 
 if TYPE_CHECKING:
