@@ -48,8 +48,11 @@ def run():
     logger.info(f"Agent_C API server running on {settings.HOST}:{settings.PORT}")
     logger.info(f"Working Directory: {os.getcwd()}")
     config_path = locate_config_path()
+    logger.info(f"Agent C Config path: {config_path}")
     key_file_path = Path(config_path).joinpath("certs/dev_key.pem")
     cert_file_path = Path(config_path).joinpath("certs/dev_cert.pem")
+    logger.info(f"SSL Key File Path: {key_file_path}")
+    logger.info(f"SSL Cert File Path: {cert_file_path}")
     if os.environ.get("RUNNING_IN_DOCKER", "false").lower() == "true":
         logger.info("Detected running in Docker, disabling SSL for Uvicorn")
         uvicorn.run(

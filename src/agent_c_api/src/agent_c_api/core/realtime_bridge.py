@@ -55,11 +55,9 @@ if TYPE_CHECKING:
 DEFAULT_BACKEND = 'claude'
 DEFAULT_MODEL_NAME = 'claude-sonnet-4-20250514'
 DEFAULT_OUTPUT_FORMAT = 'raw'
-DEFAULT_TOOL_CACHE_DIR = '.tool_cache'
-DEFAULT_LOG_DIR = './logs/sessions'
 LOCAL_WORKSPACES_FILE = '.local_workspaces.json'
 DEFAULT_ENV_NAME = 'development'
-OPENAI_REASONING_MODELS = ['o1', 'o1-mini', 'o3', 'o3-mini']
+
 
 
 class RealtimeBridge(ClientEventHandler):
