@@ -5,9 +5,7 @@
 param(
     [switch]$Clean,
     [switch]$Verbose,
-    [switch]$OptimizeSize,
-    [switch]$SkipValidation,
-    [switch]$Full  # Include all ML libraries (larger build)
+    [switch]$SkipValidation
 )
 
 $ErrorActionPreference = "Stop"
@@ -179,89 +177,23 @@ if ($Clean) {
 
 $NUITKA_ARGS = @(
     # Core options
-    "--standalone"
-    "--assume-yes-for-downloads"
+    "--jobs=10"
 
     # Output
     "--output-dir=$OUTPUT_DIR"
-    "--output-filename=$OUTPUT_NAME.exe"
 
-    # Note: Cache location set via $env:NUITKA_CACHE_DIR below
-    
-    # Include packages
-    "--include-package=agent_c_api"
-    "--follow-import-to=agent_c"
-    "--follow-import-to=agent_c_tools"
-    "--include-package=passlib.handlers"
 
-    "--include-package-data=puremagic"
-    "--include-package-data=tiktoken"
-
-    # ============================================
-    # ALWAYS EXCLUDE (tests, dev tools)
-    # ============================================
-    "--nofollow-import-to=agent_c_api.tests"
-    "--nofollow-import-to=agent_c.tests"
-    "--nofollow-import-to=agent_c_tools.tests"
-    "--nofollow-import-to=pytest"
-    "--nofollow-import-to=_pytest"
-    "--nofollow-import-to=unittest"
-    "--nofollow-import-to=test"
-    
-    # ============================================
-    # PLUGINS
-    # ============================================
-    "--enable-plugin=anti-bloat"
-    "--enable-plugin=no-qt"
-    
-    # ============================================
-    # MODULE PARAMETERS
-    # ============================================
-    "--module-parameter=torch-disable-jit=yes"
-    
-    # Progress
-    "--show-progress"
-    
     # Main script
     $MAIN_SCRIPT
 )
 
-# ============================================
-# SIZE OPTIMIZATION: Exclude heavy ML libs
-# ============================================
 
-if (-not $Full) {
-    Write-Host "Building LITE version (excluding heavy ML libraries)" -ForegroundColor Yellow
-    Write-Host "  - Transformers, Torch, TensorFlow excluded" -ForegroundColor DarkGray
-    Write-Host "  - Tools using these will fail gracefully" -ForegroundColor DarkGray
-    Write-Host "  - Use -Full flag for complete build" -ForegroundColor DarkGray
-    Write-Host ""
-    
-    $NUITKA_ARGS += @(
-        "--nofollow-import-to=transformers"
-        "--nofollow-import-to=torch"
-        "--nofollow-import-to=tensorflow"
-        "--nofollow-import-to=tensorboard"
-        # Add more as needed:
-        # "--nofollow-import-to=selenium"
-        # "--nofollow-import-to=playwright"
-    )
-} else {
-    Write-Host "Building FULL version (including all dependencies)" -ForegroundColor Yellow
-    Write-Host "  - This will take longer and produce a larger executable" -ForegroundColor DarkGray
-    Write-Host ""
-}
-
-# LTO optimization
-if ($OptimizeSize) {
-    Write-Host "Link-time optimization enabled" -ForegroundColor Yellow
-    $NUITKA_ARGS += "--lto=yes"
-}
+Write-Host "Link-time optimization enabled" -ForegroundColor Yellow
+$NUITKA_ARGS += "--lto=yes"
 
 # Verbose output
 if ($Verbose) {
     $NUITKA_ARGS += "--show-memory"
-    $NUITKA_ARGS += "--show-modules"
 }
 
 # ==============================================
@@ -272,19 +204,9 @@ Write-Host "Build Configuration:" -ForegroundColor Cyan
 Write-Host "  Main Script:  $MAIN_SCRIPT" -ForegroundColor White
 Write-Host "  Output:       $OUTPUT_DIR\$OUTPUT_NAME.dist\" -ForegroundColor White
 Write-Host "  Cache:        $CACHE_DIR" -ForegroundColor White
-Write-Host "  Build Type:   $(if ($Full) { 'FULL' } else { 'LITE' })" -ForegroundColor White
-Write-Host "  Optimize:     $OptimizeSize" -ForegroundColor White
 Write-Host ""
 
-# Estimate build time
-$cacheExists = (Get-ChildItem $CACHE_DIR -Recurse -File -ErrorAction SilentlyContinue).Count -gt 100
-if ($cacheExists) {
-    Write-Host "Estimated build time: 5-15 minutes (cache warm)" -ForegroundColor Green
-} else {
-    Write-Host "Estimated build time: 30-60 minutes (first build)" -ForegroundColor Yellow
-    Write-Host "Subsequent builds will be MUCH faster!" -ForegroundColor Yellow
-}
-Write-Host ""
+
 
 $startTime = Get-Date
 
