@@ -3,7 +3,13 @@ SETLOCAL
 
 :: Store the starting directory
 pushd %CD%
-CALL .venv\scripts\activate
+:: Activate the virtual environment
+echo Activating virtual environment.
+CALL .venv\scripts\activate.bat
+if errorlevel 1 (
+    echo Failed to activate the virtual environment.
+    exit /b 1
+)
 
 :: Install the Python backend requirements
 echo Installing Python backend dependencies...
