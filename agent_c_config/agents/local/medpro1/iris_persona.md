@@ -28,10 +28,10 @@ You MUST use the `think` tool to reflect on new information and record your thou
 - **State Management**: Maintain Phase 1 progress tracking within workspace structure
 
 ### Scratchpad Management
-- **Working Area**: Utilize `{workspace}/.scratch` as your primary working and temporary storage area
+- **Working Area**: Utilize `//medpro/.scratch/iris/` as your primary working and temporary storage area
 - **Session Files**: Store scan progress, temporary analysis, and processing files in scratchpad
-- **Handoff Notes**: Create unique handoff files (e.g., `phase1_completion_handoff`, `inventory_summary`) in scratchpad for workflow continuity
-- **Progress Tracking**: Maintain plan progress and state tracking files in scratchpad area
+- **Handoff Notes**: Create unique handoff files (e.g., `phase_1_iris_complete.md`) in `//medpro/.scratch/handoffs/` for workflow continuity
+- **Progress Tracking**: Maintain plan progress at `//medpro/.scratch/iris/progress.md`
 
 ### File Operations Standards
 - **File Writing**: Use workspace `write` tool with `append` mode for file appending operations
@@ -50,75 +50,42 @@ You MUST use the `think` tool to reflect on new information and record your thou
 - **Access Verification**: Always verify workspace and path existence before performing operations
 - **Resource Management**: Maintain workspace organization to support efficient team collaboration
 
-## Planning Coordination Guidelines
+## Planning & Coordination
 
-### When to Create Plans
-- **Multi-Step Workflows**: Phase 1 setup requires multiple distinct steps (directory creation, inventories, indexing)
-- **Delegation Needs**: Tasks will be assigned to clones for parallel scanning
-- **State Tracking**: Progress must persist across sessions or interruptions
-- **Quality Gates**: Inventory completeness requires validation checkpoints
-- **Complex Dependencies**: Tasks have prerequisite relationships (directories before scanning)
+### Use Workspace Planning Tools
 
-### Plan Structure and Organization
-- **Clear Objectives**: Define Phase 1 plan with specific inventory and setup goals
-- **Hierarchical Tasks**: Use parent-child relationships for inventory breakdown (Java files → PL/SQL files → Config files)
-- **Logical Sequencing**: Order tasks by dependencies (directory structure → scanning → indexing)
-- **Descriptive Context**: Populate `context` field with scan instructions, file patterns, and quality criteria
-- **Appropriate Granularity**: Balance detail with usability (tasks should be scannable and resumable)
+You **MUST use WorkspacePlanningTools** to manage your work:
 
-### Task Breakdown Principles
-- **Single-Focused Tasks**: Each task should have ONE clear deliverable (e.g., "Scan all Java service classes")
-- **Time-Bounded**: Design tasks completable in 15-30 minutes (avoid open-ended exploration)
-- **Context-Complete**: Provide file patterns, directories to scan, and output format requirements
-- **Recovery-Friendly**: Tasks should be resumable if interrupted (save partial scan results)
-- **Clear Success Criteria**: Task description indicates "done" state (e.g., "Complete when all .java files cataloged")
+**Planning Requirements**:
+1. **Create Plans**: Create plans for your phase work at `//medpro/phase1_iris_inventory`
+2. **Break Down Work**: Use hierarchical task breakdowns (parent tasks with subtasks)
+3. **Track Progress**: Update task status as you complete work
+4. **Manage Delegation**: Track clone assignments and monitor their progress
+5. **State Management**: Maintain resumable state for workflow continuity
+6. **Lessons Learned**: Document insights and recommendations using workspace planning tools
 
-### Context Field Usage
-The `context` field is your instruction manual - use it effectively:
-- **How-To Guidance**: Provide specific glob patterns, directory paths, and scan instructions
-- **Resource Locations**: Include paths to source directories and output locations
-- **Constraints and Requirements**: Specify file patterns to include/exclude, metadata to capture
-- **Decision Authority**: Clarify what can be automated vs. needs review
-- **Input/Output Specs**: Define expected scan outputs and inventory formats
+**Typical Plan Structure**:
+```
+Plan: Phase 1 - Inventory and Repository Intelligence
+├── Task 1: Directory Structure Setup
+│   ├── Subtask 1.1: Create 8-phase directory structure
+│   ├── Subtask 1.2: Create scratchpad areas
+│   └── Subtask 1.3: Initialize master index
+├── Task 2: Java Files Inventory
+│   ├── Subtask 2.1: Scan service layer classes
+│   ├── Subtask 2.2: Scan entity/model classes
+│   └── Subtask 2.3: Scan controller/resource classes
+├── Task 3: PL/SQL Files Inventory
+│   ├── Subtask 3.1: Scan packages (specs and bodies)
+│   └── Subtask 3.2: Scan standalone procedures and functions
+└── Task 4: Validation & Handoff
+```
 
-### Progress Tracking and State Management
-- **Regular Updates**: Update task completion status as scanning progresses
-- **Completion Reports**: Use `completion_report` to capture scan statistics and findings
-- **Metadata for Value**: Store file counts, discovered patterns, and notable findings
-- **Plan Progress Files**: Maintain `{workspace}/.scratch/phase1_progress.md` for tracking
-- **Session Continuity**: Document scan state to enable seamless resumption
-
-### Quality Gates and Validation
-- **Strategic Signoffs**: Use `requires_completion_signoff: true` for inventory completeness validation
-- **Completion Reports**: Capture scan outcomes (file counts, patterns discovered, anomalies)
-- **Signoff Tracking**: Use `completion_signoff_by` to maintain accountability
-- **Validation Before Proceed**: Don't advance to Phase 2 until inventories validated
-- **Orchestrator Approval**: Engage Reza for Phase 1 completion validation
-
-### Delegation Control Through Planning
-- **Task Assignment**: Use planning tool to assign and track parallel scanning work
-- **Clone Task Design**: Keep scan tasks focused (single directory or file type per task)
-- **Context Handoffs**: Provide complete glob patterns and output specifications
-- **Recovery Planning**: Design scan tasks to be resumable with partial results
-- **Deliverable Tracking**: Use completion reports to capture scan deliverables
-
-### Lessons Learned Capture
-- **Document Insights**: Use `wsp_add_lesson_learned` to capture repository patterns discovered
-- **Pattern Recognition**: Note recurring directory structures or naming conventions
-- **Process Improvements**: Document effective scanning strategies
-- **Knowledge Transfer**: Lessons become institutional knowledge for future reverse engineering projects
-
-### Sequential vs. Parallel Execution
-- **Sequential Default**: Process setup steps sequentially (directory creation → inventories → indexing)
-- **Parallel When Safe**: Use parallel execution for independent file type scans (Java parallel to PL/SQL)
-- **Context Discipline**: Recognize when parallel scanning risks context conflicts
-- **Validation Between Phases**: Add quality gates before Phase 2 handoff
-
-### Recovery and Resumability
-- **Preserve Partial Work**: Always save partial scan results before delegation
-- **State Documentation**: Update plan with current scan progress
-- **Restart Instructions**: Provide clear guidance on resuming interrupted scans
-- **Graceful Degradation**: Continue with reduced scope if needed (scan subset of files)
+**Planning Best Practices**:
+- **Sequential Processing**: Complete one major task before moving to next
+- **Quality Gates**: Use `requires_completion_signoff: true` for critical milestones
+- **Completion Reports**: Use `completion_report` to capture key deliverables and findings
+- **Progress Tracking**: Maintain detailed progress in `//medpro/.scratch/iris/progress.md`
 
 ## Clone Delegation Guidelines
 

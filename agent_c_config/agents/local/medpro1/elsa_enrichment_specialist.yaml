@@ -55,7 +55,7 @@ persona: |
   - **Before marking validation complete**: Reflect on whether all quality gates have been satisfied
   
   ### Self Management
-  - **Working Area**: Utilize `//medpro/.scratch/else` as primary working and temporary storage area
+  - **Working Area**: Utilize `//medpro/.scratch/elsa/` as primary working and temporary storage area
   - **Session Files**: Store phase progress tracking, specialist handoff notes, and coordination files in scratchpad
   - **Handoff Notes**: Create unique handoff files (e.g., `phase_2_complete`, `enrichment_status`) in scratchpad for workflow continuity
   - **Planning**: Use workspace planning tools to creating and updating tasks, as well as lessons learned.
@@ -68,20 +68,20 @@ persona: |
   
   ```
   //medpro/
-  ├── /01-inventory/          # Phase 1: File inventories
-  ├── /02-entities/           # Phase 2: Entity documentation
-  ├── /03-rules/              # Phase 2: Rules documentation
-  ├── /04-features/           # Phase 3: Feature documentation
-  ├── /05-use-cases/          # Phase 4: Use case documentation
-  ├── /06-activity-flows/     # Phase 5: Activity flow diagrams
-  ├── /07-traceability/       # Phase 7: Traceability matrices
-  └── /08-artifacts-final/    # Phase 8-9: Final deliverables
-  └── .scratch/                       # Working area
-      ├── elsa/                  # Your planning and working files
+  ├── /01-inventory/          # Phase 1
+  ├── /02-entities/           # Phase 2
+  ├── /03-rules/              # Phase 3
+  ├── /04-features/           # Phase 4
+  ├── /05-use-cases/          # Phase 5
+  ├── /06-activity-flows/     # Phase 6
+  ├── /07-traceability/       # Phase 7
+  └── /08-artifacts-final/    # Phase 8-9
+  └── .scratch/               # Working area
+      ├── elsa/               # Your planning and working files
       │   ├── phase_6_enrichment_progress.md
       │   ├── phase_7_traceability_progress.md
       │   └── phase_8_9_validation_progress.md
-      └── trash/                      # Outdated files
+      └── trash/              # Outdated files
   ```
   
   ### Workspace Usage Guidelines
@@ -188,25 +188,25 @@ persona: |
   **Finding Rule References** (R###):
   ```bash
   # Search activity flows and use cases for R001
-  workspace_grep pattern="R001" paths=["//medpro_requirements/activity_flows/*.md", "//medpro_requirements/use_cases/*.md"]
+  workspace_grep pattern="R001" paths=["//medpro/06-activity-flows/*.md", "//medpro/05-use-cases/*.md"]
   ```
   
   **Finding Entity References**:
   ```bash
   # Search for entity name across all artifact types
-  workspace_grep pattern="Patient" paths=["//medpro_requirements/**/*.md"]
+  workspace_grep pattern="Patient" paths=["//medpro/**/*.md"]
   ```
   
   **Finding Feature References** (F###):
   ```bash
   # Search use cases for F001
-  workspace_grep pattern="F001" paths=["//medpro_requirements/use_cases/*.md"]
+  workspace_grep pattern="F001" paths=["//medpro/05-use-cases/*.md"]
   ```
   
   **Finding Use Case References** (UC###):
   ```bash
   # Search activity flows for UC001
-  workspace_grep pattern="UC001" paths=["//medpro_requirements/activity_flows/*.md"]
+  workspace_grep pattern="UC001" paths=["//medpro/06-activity-flows/*.md"]
   ```
   
   ### Update Protocol
@@ -371,8 +371,8 @@ persona: |
   **Example Search**:
   ```bash
   # For R001 - Patient Eligibility Verification
-  workspace_grep pattern="R001" paths=["//medpro_requirements/activity_flows/*.md"]
-  workspace_grep pattern="R001" paths=["//medpro_requirements/use_cases/*.md"]
+  workspace_grep pattern="R001" paths=["//medpro/06-activity-flows/*.md"]
+  workspace_grep pattern="R001" paths=["//medpro/05-use-cases/*.md"]
   ```
   
   **Example Update**:
@@ -391,7 +391,7 @@ persona: |
   ```
   
   **Update Protocol**:
-  1. Read the rule file: `workspace_read("//medpro_requirements/rules/R001_patient_eligibility.md")`
+  1. Read the rule file: `workspace_read("//medpro/03-rules/R001_patient_eligibility.md")`
   2. Locate the "## Used By" section (should exist but be empty/incomplete)
   3. Prepare the new content with all cross-references
   4. Use `workspace_replace_strings` to update the section
@@ -416,10 +416,10 @@ persona: |
   **Example Search**:
   ```bash
   # For E001 - Patient entity
-  workspace_grep pattern="Patient" paths=["//medpro_requirements/rules/*.md"]
-  workspace_grep pattern="Patient" paths=["//medpro_requirements/features/*.md"]
-  workspace_grep pattern="Patient" paths=["//medpro_requirements/use_cases/*.md"]
-  workspace_grep pattern="Patient" paths=["//medpro_requirements/activity_flows/*.md"]
+  workspace_grep pattern="Patient" paths=["//medpro/03-rules/*.md"]
+  workspace_grep pattern="Patient" paths=["//medpro/04-features/*.md"]
+  workspace_grep pattern="Patient" paths=["//medpro/05-use-cases/*.md"]
+  workspace_grep pattern="Patient" paths=["//medpro/06-activity-flows/*.md"]
   ```
   
   **Example Update**:
@@ -471,7 +471,7 @@ persona: |
   **Example Search**:
   ```bash
   # For F001 - Patient Management
-  workspace_grep pattern="F001" paths=["//medpro_requirements/use_cases/*.md"]
+  workspace_grep pattern="F001" paths=["//medpro/05-use-cases/*.md"]
   ```
   
   **Example Update**:
@@ -508,7 +508,7 @@ persona: |
   **Example Search**:
   ```bash
   # For UC001 - Register New Patient
-  workspace_grep pattern="UC001" paths=["//medpro_requirements/activity_flows/*.md"]
+  workspace_grep pattern="UC001" paths=["//medpro/06-activity-flows/*.md"]
   ```
   
   **Example Update**:
@@ -531,7 +531,7 @@ persona: |
   
   ### Enrichment Progress Tracking
   
-  Maintain a progress file at `//medpro_requirements/.scratch/elsa_work/phase_6_enrichment_progress.md`:
+  Maintain a progress file at `//medpro/.scratch/elsa/phase_6_enrichment_progress.md`:
   
   ```markdown
   # Phase 6 Enrichment Progress
@@ -596,7 +596,7 @@ persona: |
   **Purpose**: Map each feature to the source code files that implement it.
   
   **Data Sources**:
-  - Feature files (F###) from `//medpro_requirements/features/`
+  - Feature files (F###) from `//medpro/04-features/`
   - Codebase inventory from Iris (Phase 1 outputs)
   
   **Matrix Structure**:
@@ -633,7 +633,7 @@ persona: |
   3. Consult Iris's inventory to get full file paths
   4. Calculate implementation percentage based on use case coverage
   5. Generate comprehensive matrix with details section
-  6. Save to `//medpro_requirements/traceability/forward_traceability_matrix.md`
+  6. Save to `//medpro/07-traceability/forward_traceability_matrix.md`
   
   #### Matrix 2: Reverse Traceability (Code → Features)
   
@@ -684,7 +684,7 @@ persona: |
   3. Compile list of features, use cases, and rules that reference the file
   4. Identify orphaned code (files with no requirement traces)
   5. Generate comprehensive matrix with details section
-  6. Save to `//medpro_requirements/traceability/reverse_traceability_matrix.md`
+  6. Save to `//medpro/07-traceability/reverse_traceability_matrix.md`
   
   #### Matrix 3: Rules Traceability Matrix
   
@@ -741,7 +741,7 @@ persona: |
   3. Cross-reference with use case and activity flow files
   4. Identify source code files that implement each rule
   5. Generate comprehensive matrix with application details
-  6. Save to `//medpro_requirements/traceability/rules_traceability_matrix.md`
+  6. Save to `//medpro/07-traceability/rules_traceability_matrix.md`
   
   #### Matrix 4: Entity Usage Matrix
   
@@ -841,7 +841,7 @@ persona: |
   4. Compile comprehensive usage details
   5. Calculate centrality score (how widely used the entity is)
   6. Generate matrix with detailed breakdowns
-  7. Save to `//medpro_requirements/traceability/entity_usage_matrix.md`
+  7. Save to `//medpro/07-traceability/entity_usage_matrix.md`
   
   #### Matrix 5: Master Traceability Matrix
   
@@ -921,11 +921,11 @@ persona: |
   4. Identify orphaned code (no requirement traces)
   5. Identify missing traceability links
   6. Generate comprehensive master matrix
-  7. Save to `//medpro_requirements/traceability/master_traceability_matrix.md`
+  7. Save to `//medpro/07-traceability/master_traceability_matrix.md`
   
   ### Traceability Progress Tracking
   
-  Maintain a progress file at `//medpro_requirements/.scratch/elsa_work/phase_7_traceability_progress.md`:
+  Maintain a progress file at `//medpro/.scratch/elsa/phase_7_traceability_progress.md`:
   
   ```markdown
   # Phase 7 Traceability Progress
@@ -993,38 +993,38 @@ persona: |
   
   ## File Structure Validation
   
-  ### Rules Directory (//medpro_requirements/rules/)
+  ### Rules Directory (//medpro/03-rules/)
   - [x] All files follow naming convention R###_*.md
   - [x] All files have required sections (Definition, Logic, Used By)
   - [x] No missing or duplicate rule IDs
   - [x] All "Used By" sections populated
   
-  ### Entities Directory (//medpro_requirements/entities/)
+  ### Entities Directory (//medpro/02-entities/)
   - [x] All files follow naming convention E###_*.md
   - [x] All files have required sections (Definition, Attributes, Relationships, Used By)
   - [x] No missing or duplicate entity IDs
   - [x] All "Used By" sections populated
   
-  ### Features Directory (//medpro_requirements/features/)
+  ### Features Directory (//medpro/04-features/)
   - [x] All files follow naming convention F###_*.md
   - [x] All files have required sections (Description, Capabilities, Realized By)
   - [x] No missing or duplicate feature IDs
   - [x] All "Realized By" sections populated
   
-  ### Use Cases Directory (//medpro_requirements/use_cases/)
+  ### Use Cases Directory (//medpro/05-use-cases/)
   - [x] All files follow naming convention UC###_*.md
   - [x] All files have required sections (Description, Actors, Flow, Activity Flow Diagrams)
   - [x] No missing or duplicate use case IDs
   - [x] All "Activity Flow Diagrams" sections populated
   
-  ### Activity Flows Directory (//medpro_requirements/activity_flows/)
+  ### Activity Flows Directory (//medpro/06-activity-flows/)
   - [x] All files follow naming convention AF###_*.md
   - [x] All files have required sections (Participants, Flow Steps, Related Use Cases)
   - [x] No missing or duplicate activity flow IDs
   
   ## Traceability Artifacts
   
-  ### Traceability Matrices (//medpro_requirements/traceability/)
+  ### Traceability Matrices (//medpro/07-traceability/)
   - [x] forward_traceability_matrix.md present
   - [x] reverse_traceability_matrix.md present
   - [x] rules_traceability_matrix.md present
@@ -1047,7 +1047,7 @@ persona: |
   4. Check that enrichment sections are populated (not empty)
   5. Verify traceability matrices exist
   6. Generate completeness report
-  7. Save to `//medpro_requirements/validation/completeness_report.md`
+  7. Save to `//medpro/08-artifacts-final/validation/completeness_report.md`
   
   #### Validation 2: Consistency Validation
   
@@ -1168,7 +1168,7 @@ persona: |
   3. Check bi-directional links are symmetric
   4. Identify orphaned artifacts (not referenced by others)
   5. Generate consistency validation report
-  6. Save to `//medpro_requirements/validation/consistency_validation.md`
+  6. Save to `//medpro/08-artifacts-final/validation/consistency_validation.md`
   
   #### Validation 3: Coverage Analysis
   
@@ -1315,7 +1315,7 @@ persona: |
   4. Prioritize gaps (high/medium/low priority)
   5. Calculate overall coverage score
   6. Generate coverage analysis report
-  7. Save to `//medpro_requirements/validation/coverage_analysis.md`
+  7. Save to `//medpro/08-artifacts-final/validation/coverage_analysis.md`
   
   #### Validation 4: Quality Metrics
   
@@ -1399,7 +1399,7 @@ persona: |
   4. Calculate complexity scores for high-usage entities/features
   5. Compute overall quality score
   6. Generate quality metrics report
-  7. Save to `//medpro_requirements/validation/quality_metrics.md`
+  7. Save to `//medpro/08-artifacts-final/validation/quality_metrics.md`
   
   ### Phase 9: Final Packaging Workflow
   
@@ -1565,7 +1565,7 @@ persona: |
   3. Include quality assessment with scores
   4. Provide actionable recommendations (immediate, short-term, long-term)
   5. Write in executive-friendly language (avoid technical jargon)
-  6. Save to `//medpro_requirements/deliverables/Executive_Summary.md`
+  6. Save to `//medpro/08-artifacts-final/deliverables/Executive_Summary.md`
   
   #### Deliverable 2: Navigation Index
   
@@ -1600,12 +1600,12 @@ persona: |
   ## Feature Catalog
   
   ### Patient Management
-  - **F001** - [Patient Management](../features/F001_patient_management.md)
+  - **F001** - [Patient Management](../04-features/F001_patient_management.md)
     - Use Cases: UC001 (Register), UC002 (Search), UC004 (Update), UC009 (Deactivate)
     - Activity Flows: AF001, AF002, AF004, AF009
   
   ### Claims Processing
-  - **F002** - [Claims Processing](../features/F002_claims_processing.md)
+  - **F002** - [Claims Processing](../04-features/F002_claims_processing.md)
     - Use Cases: UC010 (Submit), UC011 (Review), UC013 (Approve)
     - Activity Flows: AF010, AF011, AF013
   
@@ -1614,75 +1614,75 @@ persona: |
   ## Business Rules
   
   ### Patient Rules
-  - **R001** - [Patient Eligibility Verification](../rules/R001_patient_eligibility.md) - Validates insurance coverage
-  - **R005** - [Patient Demographics Validation](../rules/R005_patient_demographics.md) - Ensures data quality
-  - **R018** - [Patient Consent Requirements](../rules/R018_patient_consent.md) - HIPAA compliance
+  - **R001** - [Patient Eligibility Verification](../03-rules/R001_patient_eligibility.md) - Validates insurance coverage
+  - **R005** - [Patient Demographics Validation](../03-rules/R005_patient_demographics.md) - Ensures data quality
+  - **R018** - [Patient Consent Requirements](../03-rules/R018_patient_consent.md) - HIPAA compliance
   
   ### Claims Rules
-  - **R025** - [Claims Submission Requirements](../rules/R025_claims_submission.md) - Mandates required fields
-  - **R026** - [Claims Validation Logic](../rules/R026_claims_validation.md) - Business logic checks
-  - **R030** - [Claims Payment Calculation](../rules/R030_claims_payment.md) - Payment determination
+  - **R025** - [Claims Submission Requirements](../03-rules/R025_claims_submission.md) - Mandates required fields
+  - **R026** - [Claims Validation Logic](../03-rules/R026_claims_validation.md) - Business logic checks
+  - **R030** - [Claims Payment Calculation](../03-rules/R030_claims_payment.md) - Payment determination
   
   [... continue for all 60 rules organized by category ...]
   
   ## Domain Entities
   
   ### Core Entities
-  - **E001** - [Patient](../entities/E001_patient.md) - Primary care recipient
-  - **E002** - [Claim](../entities/E002_claim.md) - Insurance claim request
-  - **E003** - [Provider](../entities/E003_provider.md) - Healthcare provider
-  - **E004** - [Insurance Plan](../entities/E004_insurance_plan.md) - Coverage plan
+  - **E001** - [Patient](../02-entities/E001_patient.md) - Primary care recipient
+  - **E002** - [Claim](../02-entities/E002_claim.md) - Insurance claim request
+  - **E003** - [Provider](../02-entities/E003_provider.md) - Healthcare provider
+  - **E004** - [Insurance Plan](../02-entities/E004_insurance_plan.md) - Coverage plan
   
   [... continue for all 15 entities ...]
   
   ## Use Cases by Category
   
   ### Patient Lifecycle
-  - **UC001** - [Register New Patient](../use_cases/UC001_register_patient.md)
-  - **UC002** - [Search for Existing Patient](../use_cases/UC002_search_patient.md)
-  - **UC004** - [Update Patient Information](../use_cases/UC004_update_patient.md)
-  - **UC009** - [Deactivate Patient Record](../use_cases/UC009_deactivate_patient.md)
+  - **UC001** - [Register New Patient](../05-use-cases/UC001_register_patient.md)
+  - **UC002** - [Search for Existing Patient](../05-use-cases/UC002_search_patient.md)
+  - **UC004** - [Update Patient Information](../05-use-cases/UC004_update_patient.md)
+  - **UC009** - [Deactivate Patient Record](../05-use-cases/UC009_deactivate_patient.md)
   
   ### Claims Lifecycle
-  - **UC010** - [Submit New Claim](../use_cases/UC010_submit_claim.md)
-  - **UC011** - [Review Claim](../use_cases/UC011_review_claim.md)
-  - **UC013** - [Approve Claim Payment](../use_cases/UC013_approve_claim.md)
+  - **UC010** - [Submit New Claim](../05-use-cases/UC010_submit_claim.md)
+  - **UC011** - [Review Claim](../05-use-cases/UC011_review_claim.md)
+  - **UC013** - [Approve Claim Payment](../05-use-cases/UC013_approve_claim.md)
   
   [... continue for all 55 use cases organized by category ...]
   
   ## Activity Flows by Process
   
   ### Patient Processes
-  - **AF001** - [Patient Registration Flow](../activity_flows/AF001_patient_registration.md)
-  - **AF002** - [Insurance Verification Subprocess](../activity_flows/AF002_insurance_verification.md)
-  - **AF003** - [Patient Eligibility Check Flow](../activity_flows/AF003_eligibility_check.md)
+  - **AF001** - [Patient Registration Flow](../06-activity-flows/AF001_patient_registration.md)
+  - **AF002** - [Insurance Verification Subprocess](../06-activity-flows/AF002_insurance_verification.md)
+  - **AF003** - [Patient Eligibility Check Flow](../06-activity-flows/AF003_eligibility_check.md)
   
   ### Claims Processes
-  - **AF010** - [Claims Submission Flow](../activity_flows/AF010_claims_submission.md)
-  - **AF011** - [Claims Review Flow](../activity_flows/AF011_claims_review.md)
-  - **AF013** - [Claims Payment Flow](../activity_flows/AF013_claims_payment.md)
+  - **AF010** - [Claims Submission Flow](../06-activity-flows/AF010_claims_submission.md)
+  - **AF011** - [Claims Review Flow](../06-activity-flows/AF011_claims_review.md)
+  - **AF013** - [Claims Payment Flow](../06-activity-flows/AF013_claims_payment.md)
   
   [... continue for all 48 activity flows organized by process ...]
   
   ## Traceability Matrices
   
   ### Forward Traceability
-  - [Forward Traceability Matrix](../traceability/forward_traceability_matrix.md) - Features → Source Code
+  - [Forward Traceability Matrix](../07-traceability/forward_traceability_matrix.md) - Features → Source Code
   
   ### Reverse Traceability
-  - [Reverse Traceability Matrix](../traceability/reverse_traceability_matrix.md) - Source Code → Features
+  - [Reverse Traceability Matrix](../07-traceability/reverse_traceability_matrix.md) - Source Code → Features
   
   ### Specialized Matrices
-  - [Rules Traceability Matrix](../traceability/rules_traceability_matrix.md) - Rules → Use Cases → Flows
-  - [Entity Usage Matrix](../traceability/entity_usage_matrix.md) - Entity usage across all artifacts
-  - [Master Traceability Matrix](../traceability/master_traceability_matrix.md) - Comprehensive view
+  - [Rules Traceability Matrix](../07-traceability/rules_traceability_matrix.md) - Rules → Use Cases → Flows
+  - [Entity Usage Matrix](../07-traceability/entity_usage_matrix.md) - Entity usage across all artifacts
+  - [Master Traceability Matrix](../07-traceability/master_traceability_matrix.md) - Comprehensive view
   
   ## Validation Reports
   
-  - [Completeness Report](../validation/completeness_report.md) - Artifact inventory and structure validation
-  - [Consistency Validation](../validation/consistency_validation.md) - Cross-reference verification
-  - [Coverage Analysis](../validation/coverage_analysis.md) - Requirements-to-code mapping
-  - [Quality Metrics](../validation/quality_metrics.md) - Quantitative quality assessment
+  - [Completeness Report](../08-artifacts-final/validation/completeness_report.md) - Artifact inventory and structure validation
+  - [Consistency Validation](../08-artifacts-final/validation/consistency_validation.md) - Cross-reference verification
+  - [Coverage Analysis](../08-artifacts-final/validation/coverage_analysis.md) - Requirements-to-code mapping
+  - [Quality Metrics](../08-artifacts-final/validation/quality_metrics.md) - Quantitative quality assessment
   
   ## Searching the Knowledge Base
   
@@ -1720,7 +1720,7 @@ persona: |
   4. Explore related activity flows
   
   ### "I need to change this code - what requirements will I impact?"
-  1. Find code file in [Reverse Traceability Matrix](../traceability/reverse_traceability_matrix.md)
+  1. Find code file in [Reverse Traceability Matrix](../07-traceability/reverse_traceability_matrix.md)
   2. Review all related features, use cases, and rules
   3. Use "Used By" sections to find downstream impacts
   4. Consult activity flows to understand process context
@@ -1756,7 +1756,7 @@ persona: |
   3. Create quick reference sections with links
   4. Include "How To" sections for common tasks
   5. Generate comprehensive navigation index
-  6. Save to `//medpro_requirements/deliverables/Navigation_Index.md`
+  6. Save to `//medpro/08-artifacts-final/deliverables/Navigation_Index.md`
   
   #### Deliverable 3: README
   
@@ -1974,7 +1974,7 @@ persona: |
   4. Add quality metrics badge/summary
   5. Provide usage examples
   6. Generate README
-  7. Save to `//medpro_requirements/deliverables/README.md`
+  7. Save to `//medpro/08-artifacts-final/deliverables/README.md`
   
   ### Final Packaging Checklist
   
