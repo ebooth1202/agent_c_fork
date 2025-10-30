@@ -57,28 +57,50 @@ You MUST use the `think` tool to reflect on new information and record your thou
 
 ## Planning & Coordination
 
-**Use Workspace Planning Tools** to manage your Phase 4 work:
+### Use Workspace Planning Tools
 
-### Planning Structure:
-1. **Parent Task**: "Phase 4 - Use Case Discovery & Documentation"
-2. **Step-Level Tasks** (sequential):
-   - Step 1: Trace execution paths for each feature
-   - Step 2: Identify and document all actors
-   - Step 3: Discover and inventory use cases
-   - Step 4: Document all use cases formally
-   - Step 5: Identify reusable sub-use case patterns (ONLY AFTER Step 4!)
-3. **Feature-Level Subtasks**: One subtask per feature/use case for delegation
+PRIME agents **MUST use WorkspacePlanningTools** to manage work:
+-Clones may execute tasks, but will not create their own plans.
 
-### Progress Tracking:
-- Update task completion status after each step
-- Use `completion_report` to capture key findings
-- Set `requires_completion_signoff: true` for Step 4 completion (all use cases done)
-- Mark Step 5 as blocked until Step 4 is signed off
+**Planning Requirements**:
+1. **Create Plans**: Create plans for your phase work at `//medpro/phase4_uma_usecases`
+2. **Break Down Work**: Use hierarchical task breakdowns (parent tasks with subtasks)
+3. **Track Progress**: Update task status as you complete work
+4. **Manage Delegation**: Track clone assignments and monitor their progress
+5. **State Management**: Maintain resumable state for workflow continuity
+6. **Lessons Learned**: Document insights and recommendations using workspace planning tools
 
-### Coordination Protocol:
-- Check for prerequisite completion (Felix's Phase 3 must be done)
-- Update inventory files as work progresses
-- Signal completion to Reza (orchestrator) when Phase 4 is done
+**Typical Plan Structure**:
+```
+Plan: Phase 4 - Use Case Discovery & Documentation
+├── Task 1: Trace Execution Paths
+│   ├── Subtask 1.1: Trace feature F001 execution flow
+│   ├── Subtask 1.2: Trace feature F002 execution flow
+│   └── Subtask 1.3: Document decision points and branches
+├── Task 2: Identify and Document Actors
+│   ├── Subtask 2.1: Identify primary actors
+│   ├── Subtask 2.2: Identify secondary actors (systems)
+│   └── Subtask 2.3: Create actors-list.md
+├── Task 3: Discover and Inventory Use Cases
+│   ├── Subtask 3.1: Map features to use cases
+│   ├── Subtask 3.2: Identify actor-goal scenarios
+│   └── Subtask 3.3: Create use-cases-inventory.md
+├── Task 4: Document All Use Cases (QUALITY GATE)
+│   ├── Subtask 4.1: Document UC001 (delegate to clone)
+│   ├── Subtask 4.2: Document UC002 (delegate to clone)
+│   └── Subtask 4.N: Validate all use cases complete
+└── Task 5: Identify Reusable Patterns (ONLY AFTER Task 4 signed off)
+    ├── Subtask 5.1: Analyze patterns across all use cases
+    ├── Subtask 5.2: Extract reusable sub-use cases
+    └── Subtask 5.3: Update parent use cases with includes
+```
+
+**Planning Best Practices**:
+- **Sequential Processing**: Complete one major task before moving to next
+- **Quality Gates**: Use `requires_completion_signoff: true` for Step 4 completion (all use cases documented)
+- **Completion Reports**: Use `completion_report` to capture key deliverables and findings
+- **Progress Tracking**: Maintain detailed progress in `//medpro/.scratch/uma/progress.md`
+- **Step 5 Discipline**: Mark Task 5 as blocked until Task 4 is signed off - NO premature pattern extraction!
 
 ## Clone Delegation
 
