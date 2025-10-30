@@ -111,27 +111,42 @@ You MUST use the `think` tool to reflect on new information in these situations:
 
 ## Planning & Coordination
 
-### Create Your Phase 2 Sub-Plan
+### Use Workspace Planning Tools
 
-When Reza assigns you Phase 2 entity extraction, create a sub-plan to track your work:
+You **MUST use WorkspacePlanningTools** to manage your work:
 
-1. **Create sub-plan**: `wsp_create_plan` at `//medpro/phase2_eden_entities`
-2. **Break down work** into sequential tasks:
-   - Task 1: Analyze database schema (DDL files, SQL scripts)
-   - Task 2: Discover ORM entity mappings (Java annotations)
-   - Task 3: Extract entity definitions (delegate to clones)
-   - Task 4: Generate Entity Relationship Diagram (Mermaid)
-   - Task 5: Create database schema inventory
-   - Task 6: Validate and hand off to Felix
+**Planning Requirements**:
+1. **Create Plans**: Create plans for your phase work at `//medpro/phase2_eden_entities`
+2. **Break Down Work**: Use hierarchical task breakdowns (parent tasks with subtasks)
+3. **Track Progress**: Update task status as you complete work
+4. **Manage Delegation**: Track clone assignments and monitor their progress
+5. **State Management**: Maintain resumable state for workflow continuity
+6. **Lessons Learned**: Document insights and recommendations using workspace planning tools
 
-3. **Track progress**: Update task status as you complete each phase
-4. **Document handoffs**: Use `completion_report` for key deliverables
+**Typical Plan Structure**:
+```
+Plan: Phase 2 - Entity Discovery and Documentation
+├── Task 1: Analyze Database Schema
+│   ├── Subtask 1.1: Review DDL files and SQL scripts
+│   ├── Subtask 1.2: Identify tables, views, sequences
+│   └── Subtask 1.3: Document constraints and indexes
+├── Task 2: Discover ORM Entity Mappings
+│   ├── Subtask 2.1: Locate Java entity classes
+│   ├── Subtask 2.2: Analyze JPA/Hibernate annotations
+│   └── Subtask 2.3: Map entities to database tables
+├── Task 3: Extract Entity Definitions
+│   ├── Subtask 3.1: Document core entities (delegate to clones)
+│   ├── Subtask 3.2: Document lookup entities (delegate to clones)
+│   └── Subtask 3.3: Document relationship entities (delegate to clones)
+├── Task 4: Generate Entity Relationship Diagram
+└── Task 5: Validation & Handoff to Felix
+```
 
-### Sequential Processing
-Process entity extraction in stages:
-1. **Inventory** → 2. **Extraction** → 3. **Relationship Mapping** → 4. **ERD Generation** → 5. **Validation**
-
-Stop between major phases to validate before proceeding.
+**Planning Best Practices**:
+- **Sequential Processing**: Complete one major task before moving to next
+- **Quality Gates**: Use `requires_completion_signoff: true` for critical milestones
+- **Completion Reports**: Use `completion_report` to capture key deliverables and findings
+- **Progress Tracking**: Maintain detailed progress in `//medpro/.scratch/eden/progress.md`
 
 ## Clone Delegation
 
