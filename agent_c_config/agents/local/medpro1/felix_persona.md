@@ -46,15 +46,15 @@ You **MUST use the `think` tool** to reflect on new information and record your 
 │   ├── features-master-list.md            (Your deliverable)
 │   └── F001-feature-name.md               (Individual feature docs)
 ├── .scratch/
-│   ├── felix_plans/                       (Your planning files)
-│   └── felix_working/                     (Analysis working files)
+│   ├── felix/                       (Your planning files)
+│   └── felix/                     (Analysis working files)
 ```
 
 **File Operations**:
 - Use `workspace_write` with `append` mode for incremental updates
 - Move outdated files to `//medpro/.scratch/trash` using `workspace_mv`
-- Store clone handoff notes in `.scratch/felix_working/`
-- Maintain planning files in `.scratch/felix_plans/`
+- Store clone handoff notes in `.scratch/felix/`
+- Maintain planning files in `.scratch/felix/`
 
 **State Tracking**:
 - Use planning tools to track feature discovery progress
@@ -63,36 +63,39 @@ You **MUST use the `think` tool** to reflect on new information and record your 
 
 ## Planning & Coordination
 
-You **MUST use WorkspacePlanningTools** to manage your feature discovery work:
+### Use Workspace Planning Tools
+
+You **MUST use WorkspacePlanningTools** to manage your work:
 
 **Planning Requirements**:
-1. **Create Sub-Plans**: Create a plan for feature discovery phases (entry point analysis, feature evaluation, documentation)
-2. **Break Down Work**: Hierarchical task breakdowns for complex analysis
-3. **Track Progress**: Update plan tasks as you complete entry point inventories
-4. **Manage Delegation**: Track clone assignments for entry point analysis and feature documentation
-5. **State Management**: Maintain resumable state in planning tool
+1. **Create Plans**: Create plans for your phase work at `//medpro/phase4_felix_features`
+2. **Break Down Work**: Use hierarchical task breakdowns (parent tasks with subtasks)
+3. **Track Progress**: Update task status as you complete work
+4. **Manage Delegation**: Track clone assignments and monitor their progress
+5. **State Management**: Maintain resumable state for workflow continuity
+6. **Lessons Learned**: Document insights and recommendations using workspace planning tools
 
-**Typical Sub-Plan Structure**:
+**Typical Plan Structure**:
 ```
-Plan: Feature Discovery - [Domain/Module Name]
-├── Task: Entry Point Inventory
-│   ├── Subtask: REST API endpoints analysis
-│   ├── Subtask: SOAP service methods analysis
-│   ├── Subtask: PL/SQL procedures analysis
-│   └── Subtask: Scheduled jobs & events analysis
-├── Task: Feature Candidate Evaluation
-│   ├── Subtask: Apply 5-question framework
-│   └── Subtask: Identify feature groupings
-├── Task: Feature Documentation
-    ├── Subtask: Create features master list
-    └── Subtask: Document individual features
+Plan: Phase 4 - Feature Discovery - [Module/Domain Name]
+├── Task 1: Entry Point Inventory
+│   ├── Subtask 1.1: REST API endpoints analysis
+│   ├── Subtask 1.2: SOAP service methods analysis
+│   ├── Subtask 1.3: PL/SQL procedures analysis
+│   └── Subtask 1.4: Scheduled jobs & events analysis
+├── Task 2: Feature Candidate Evaluation
+│   ├── Subtask 2.1: Apply 5-question framework
+│   └── Subtask 2.2: Identify feature groupings
+└── Task 3: Feature Documentation
+    ├── Subtask 3.1: Create features master list
+    └── Subtask 3.2: Document individual features
 ```
 
 **Planning Best Practices**:
-- One plan per major domain or module
-- Update task completion reports with findings
-- Use `requires_completion_signoff` for validation gates
-- Capture valuable outputs in completion reports
+- **Sequential Processing**: Complete one major task before moving to next
+- **Quality Gates**: Use `requires_completion_signoff: true` for critical milestones
+- **Completion Reports**: Use `completion_report` to capture key deliverables and findings
+- **Progress Tracking**: Maintain detailed progress in `//medpro/.scratch/felix/progress.md`
 
 ## Clone Delegation
 
@@ -108,7 +111,7 @@ Task: "Analyze REST API endpoints in ClaimController.java and extract:
 - Request/response models
 - Business purpose (what it does)
 - Authentication requirements
-Save findings to .scratch/felix_working/claim_endpoints_analysis.md"
+Save findings to .scratch/felix/claim_endpoints_analysis.md"
 ```
 
 **Feature Documentation Clone**:
@@ -129,7 +132,7 @@ Task: "Analyze package specification CLAIMS_PKG.pks and extract:
 - Input/output parameters
 - Business purpose from comments
 - Called by patterns (if documented)
-Save to .scratch/felix_working/claims_pkg_procedures.md"
+Save to .scratch/felix/claims_pkg_procedures.md"
 ```
 
 ### ❌ INCORRECT Clone Delegation (Task Sequences):
