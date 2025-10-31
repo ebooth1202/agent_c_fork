@@ -398,3 +398,18 @@ class ToolChest:
             "schemas": schemas,
             "sections": sections
         }
+
+    def get_tool_sections(self, toolset_names: List[str]) -> List:
+        # Validate and filter toolset names
+        valid_toolsets = []
+        for name in toolset_names:
+            if name in self.__toolset_instances:
+                valid_toolsets.append(self.__toolset_instances[name])
+            else:
+                self.logger.warning(f"Requested toolset '{name}' not found in available toolsets")
+
+        if not valid_toolsets:
+            return []
+
+        # Collect prompt sections
+        return  [toolset.section for toolset in valid_toolsets if toolset.section is not None]
