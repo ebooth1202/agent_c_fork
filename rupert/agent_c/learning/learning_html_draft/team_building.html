@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent C - Building Agent Teams</title>
+    
+    <!-- Marked.js for markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/powershell.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        #sidebar {
+            width: 320px;
+            background: #f8f9fa;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+            position: relative;
+            flex-shrink: 0;
+        }
+        
+        #sidebar-header {
+            padding: 50px 20px 20px 20px;
+            background: #2c1a5d;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        #sidebar-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        #toggle-sidebar {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            color: white;
+            transition: all 0.2s;
+        }
+        
+        #toggle-sidebar:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        #toc {
+            list-style: none;
+            padding: 20px;
+        }
+        
+        #toc li {
+            margin: 0;
+        }
+        
+        #toc a {
+            color: #333;
+            text-decoration: none;
+            display: block;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+        
+        #toc a:hover {
+            background: #e9ecef;
+            transform: translateX(3px);
+        }
+        
+        #toc a.active {
+            background: rgba(44, 26, 93, 0.1);
+            color: #2c1a5d;
+            font-weight: 600;
+            border-left: 3px solid #fdb825;
+        }
+        
+        #toc .h1 {
+            font-weight: 600;
+            font-size: 14px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        #toc .h1:first-child {
+            margin-top: 0;
+            padding-top: 0;
+            border-top: none;
+        }
+        
+        #toc .h2 {
+            margin-left: 15px;
+            font-size: 13px;
+        }
+        
+        #toc .h3 {
+            margin-left: 30px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        #content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px 80px;
+            scroll-behavior: smooth;
+        }
+        
+        #markdown-content {
+            max-width: 900px;
+        }
+        
+        #markdown-content h1 {
+            color: #2c1a5d;
+            border-bottom: 3px solid #fdb825;
+            padding-bottom: 12px;
+            margin: 40px 0 20px 0;
+            font-size: 2em;
+        }
+        
+        #markdown-content h2 {
+            color: #2c1a5d;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            margin: 32px 0 16px 0;
+            font-size: 1.6em;
+        }
+        
+        #markdown-content h3 {
+            color: #2c1a5d;
+            margin: 24px 0 12px 0;
+            font-size: 1.3em;
+        }
+        
+        #markdown-content h4 {
+            color: #555;
+            margin: 20px 0 10px 0;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+        
+        #markdown-content code {
+            background: #f8f9fa;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #e83e8c;
+        }
+        
+        #markdown-content pre {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-left: 4px solid #fdb825;
+            border-radius: 6px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        
+        #markdown-content pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+        
+        #markdown-content ul, #markdown-content ol {
+            margin: 16px 0 16px 30px;
+        }
+        
+        #markdown-content li {
+            margin: 8px 0;
+        }
+        
+        #markdown-content p {
+            margin: 16px 0;
+        }
+        
+        #markdown-content strong {
+            color: #2c1a5d;
+            font-weight: 600;
+        }
+        
+        #markdown-content blockquote {
+            border-left: 4px solid #fdb825;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #666;
+            font-style: italic;
+        }
+        
+        #markdown-content hr {
+            border: none;
+            border-top: 2px solid #e9ecef;
+            margin: 40px 0;
+        }
+        
+        /* Table Styling */
+        #markdown-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        
+        #markdown-content th,
+        #markdown-content td {
+            border: 1px solid #e0e0e0;
+            padding: 12px 15px;
+            text-align: left;
+        }
+        
+        #markdown-content th {
+            background-color: #f5f5f5;
+            font-weight: 600;
+            color: #2c1a5d;
+            border-bottom: 2px solid #fdb825;
+        }
+        
+        #markdown-content tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+        
+        #markdown-content tr:hover {
+            background-color: #f0f0f0;
+            transition: background-color 0.2s;
+        }
+        
+        #back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #2c1a5d;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            font-size: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 999;
+        }
+        
+        #back-to-top.visible {
+            opacity: 0.8;
+        }
+        
+        #back-to-top:hover {
+            opacity: 1;
+            transform: translateY(-4px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
+        
+        #logo {
+            position: fixed;
+            bottom: 100px;
+            right: 40px;
+            opacity: 0.6;
+            z-index: 998;
+            transition: opacity 0.3s;
+        }
+        
+        #logo:hover {
+            opacity: 0.9;
+        }
+        
+        #logo img {
+            width: 55px;
+            height: auto;
+        }
+        
+        body.sidebar-hidden #sidebar {
+            margin-left: -320px;
+        }
+        
+        body.sidebar-hidden #content {
+            margin-left: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <div id="sidebar-header">
+            <button id="toggle-sidebar">Hide</button>
+            <h2>Agent C Guide</h2>
+        </div>
+        <ul id="toc"></ul>
+    </div>
+    
+    <div id="content">
+        <div id="markdown-content"></div>
+    </div>
+    
+    <div id="back-to-top">↑</div>
+    
+    <div id="logo">
+        <img src="data:image/png;base64,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" alt="Centric Consulting">
+    </div>
+    
+    <script>
+        // Embedded markdown content
+        const markdownContent = "# Building Agent Teams in Agent C\n\nA practical guide to creating effective multi-agent systems.\n\n---\n\n## When Do You Need a Team?\n\n**Single Agent Works When:**\n- Task is straightforward with clear steps\n- No specialized domain expertise required\n- Token budget fits comfortably in one agent (under 10K)\n- No need for independent validation\n- One perspective is sufficient\n\n**Team Becomes Necessary When:**\n- **Multiple specialized domains** involved (architecture + compliance + quality)\n- **Deep expertise required** in specific areas (regulatory knowledge, technical patterns)\n- **Independent validation needed** (someone must check the work objectively)\n- **Token efficiency matters** (specialization prevents bloated agents)\n- **Clear role separation** improves quality (analyst shouldn't validate their own analysis)\n\n### The Signal: \"This Needs a Team\"\n\nAsk yourself:\n- Would a single agent need 12K+ tokens to do this well?\n- Do we need someone to validate this work independently?\n- Does this require deep expertise in multiple distinct domains?\n- Will role confusion create quality issues? (e.g., \"extract requirements\" vs \"validate compliance\")\n\n**If yes to 2+ questions**: Consider a team.\n\n---\n\n## When Teams Excel: Scenarios and Complexity Thresholds\n\n### Teams Outperform Single Agents When:\n\n**1. Specialization Prevents Errors**\n\n*Example: Insurance Analysis*\n- **With Specialist**: Deep regulatory knowledge catches \"This violates aggregate limit rules\"\n- **Without Specialist**: General agent misses compliance nuances, issues reach stakeholders\n\n**2. Independent Validation Matters**\n\n*Example: Quality Oversight*\n- **With Independent Validator**: Fresh eyes catch \"requirements lack source evidence\"\n- **Without Independence**: Coordinator validates own work, misses issues (judge and jury problem)\n\n**3. Token Efficiency Through Focus**\n\n*Real Pattern*:\n- **Before**: 72-84K token mega-agent (bloated, unfocused)\n- **After**: 37-45K specialized team (46-54% reduction)\n- **How**: Each agent 5-8K focused tokens vs. one 80K+ generalist\n\n### Complexity Thresholds\n\n**Under 3 Specialized Domains**: Single agent usually sufficient\n\n**3-5 Specialized Domains**: Team starts making sense\n- Example: Pattern Discovery + Requirements + Architecture + Domain Validation + Quality\n\n**6+ Specialized Domains**: Team almost certainly better\n- Coordination overhead worth the specialization benefits\n\n---\n\n## Why Utilize a Team: Core Benefits\n\n### 1. Token Efficiency Through Specialization\n\n**Counter-Intuitive Truth**: Teams can be MORE token-efficient than single agents.\n\n**The Math**:\n- **Bloated Single Agent**: 70-80K tokens trying to cover everything\n- **Focused Team (6 agents)**: 37-45K total\n  - Pattern Analyzer: 5K\n  - Requirements Extractor: 7K\n  - Architect: 6K\n  - Domain Specialist: 6K (with 2.6K deep expertise)\n  - Quality Validator: 6K\n  - Orchestrator: 7.5K\n\n**Why This Works**:\n- Each agent carries ONLY what it needs\n- No redundant context across domains\n- Deep expertise concentrated where needed\n- Clear handoffs minimize context overlap\n\n### 2. Specialization Prevents Errors\n\n**Role Confusion Creates Quality Issues**:\n\n| Scenario | Problem | Result |\n|----------|---------|--------|\n| Analyst also validates | Can't be neutral extractor AND critical validator | Misses own extraction errors |\n| Architect also validates compliance | Lacks deep domain expertise | Misses regulatory nuances |\n| Coordinator also validates quality | Judge and jury problem | Overlooks coordination issues |\n\n**Specialization Solution**: Each agent does ONE thing deeply, with independent gates between roles.\n\n### 3. Clear Role Separation\n\n**What Each Agent Should Own**:\n- **Discovery Agent**: WHAT exists (patterns, structure)\n- **Extraction Agent**: WHAT it means (business requirements)\n- **Design Agent**: HOW to build it (architecture, modernization)\n- **Domain Specialist**: IF it meets specialized requirements (compliance, regulations)\n- **Quality Agent**: IF quality is sufficient (evidence, completeness)\n- **Orchestrator**: WHO does WHAT and WHEN (workflow, recovery)\n\n**No Overlap = No Confusion**\n\n### 4. Independent Validation Gates\n\n**Why Independence Matters**:\n- Analyst can't catch own extraction errors\n- Coordinator can't objectively validate work they assigned\n- Designer needs someone to challenge assumptions\n\n**How to Structure**:\n- Quality validator not involved in analysis/coordination\n- Domain specialist focused on specialized validation only\n- Clear separation between \"do the work\" and \"validate the work\"\n\n---\n\n## How Bobb Helps You Build Teams\n\nBobb is Agent C's meta-agent for designing agent systems. Here's how to leverage Bobb effectively:\n\n### What Questions to Ask Bobb\n\n**Start High-Level**:\n- \"I need to analyze [domain] and produce [deliverable]. Should this be one agent or a team?\"\n- \"What specialized roles are needed for [specific workflow]?\"\n- \"Where should independent validation happen in this workflow?\"\n\n**Get Specific About Roles**:\n- \"What expertise should the [domain] specialist have?\"\n- \"How should the orchestrator coordinate between [Agent A] and [Agent B]?\"\n- \"What handoff points need validation gates?\"\n\n**Refine Coordination**:\n- \"How should error recovery work in this team?\"\n- \"What should the orchestrator delegate vs. handle directly?\"\n- \"Where do we risk token bloat in these roles?\"\n\n### How to Ask (Specifics Matter!)\n\n**\u274c Too Vague**: \"I need agents for my project\"\n\n**\u2705 Specific Context**:\n\"I need to analyze legacy insurance systems and create modernization requirements. The analysis must validate regulatory compliance. Stakeholders need clear, documented recommendations.\"\n\n**\u274c Missing Constraints**: \"Design me a team\"\n\n**\u2705 Include Constraints**:\n\"Token budget: 50K total. Must include independent quality validation. Regulatory compliance is critical - we can't miss requirements.\"\n\n**\u274c Unclear Workflow**: \"What agents do I need?\"\n\n**\u2705 Clear Workflow**:\n\"Workflow: Discover patterns in code \u2192 Extract requirements \u2192 Design architecture \u2192 Validate compliance \u2192 Certify quality \u2192 Deliver to stakeholders\"\n\n### What Information Bobb Needs\n\n**1. Domain Context**:\n- What field/industry? (insurance, finance, healthcare, etc.)\n- What specialized knowledge required? (regulatory, technical, business)\n\n**2. Workflow Clarity**:\n- Input \u2192 Processing \u2192 Output sequence\n- Where validation gates needed\n- Who consumes the final output\n\n**3. Constraints**:\n- Token budget (be realistic)\n- Quality requirements\n- Coordination complexity tolerance\n\n**4. Risk Areas**:\n- What errors would be costly? (compliance violations, quality issues)\n- Where do you need independent oversight?\n- What expertise gaps exist?\n\n### How Bobb Designs Coordination Patterns\n\nBobb will structure teams around:\n\n**1. Sequential Workflows** (most common):\n```\nOrchestrator \u2192 Discover \u2192 Extract \u2192 Design \u2192 Validate \u2192 Certify \u2192 Deliver\n```\n\n**2. Validation Gates**:\n- After critical work products\n- Before stakeholder delivery\n- Where specialized expertise needed\n\n**3. Error Recovery**:\n- Orchestrator monitors progress\n- Validation gates catch issues early\n- Clear escalation paths for problems\n\n**4. Token Optimization**:\n- Each agent carries only necessary context\n- Handoffs minimize redundancy\n- Deep expertise concentrated in specialists\n\n### The Component Reference Library: Your Safety Net\n\nHere's an important truth: **mistakes in team building are expected**. Hierarchy issues, positioning errors, role confusion\u2014these are part of the learning process as you develop your \"agent driving\" skills.\n\nBut you're not learning in a vacuum. **The component reference library is a crucial safety net.**\n\nWhen you work with Bobb to design agents, Bobb references this library of proven patterns, structures, and positioning strategies. Think of it as:\n- \u2705 **Tested templates** for common agent types (analyzers, validators, orchestrators)\n- \u2705 **Positioning patterns** that prevent common mistakes\n- \u2705 **Hierarchy structures** that keep critical rules visible\n- \u2705 **Coordination blueprints** for team workflows\n\nBobb uses these components to ensure:\n- Your personas are structured properly (critical rules at top, not buried)\n- Agents are positioned appropriately (clear roles, no confusion)\n- Common failure patterns are avoided (learned from previous builds)\n- Token efficiency best practices are applied\n\n**What This Means for You**: You don't need to memorize every positioning rule or hierarchy principle. Bobb handles that by pulling from the component library. Your job is to describe your needs clearly\u2014Bobb applies the proven patterns.\n\n**As you gain experience**, you'll start recognizing these patterns yourself and can request specific components or adjustments. But early on, trust the library. It's built from real-world experience with what works and what fails.\n\n---\n\n## How Teams Falter: Hierarchy and Positioning Principles\n\nEven with Bobb's help and the component reference library, understanding WHY certain patterns work helps you make better decisions. Here's what happens when teams falter:\n\nEven well-designed teams can fail due to poor persona structure. Here's how hierarchy and positioning affect agent behavior:\n\n### Why Order and Emphasis Matter\n\n**Agent C Processes Personas Top-to-Bottom**:\n- **Top = Primary Focus**: Agent prioritizes these instructions\n- **Middle = Secondary**: Agent considers but may deprioritize under pressure\n- **Bottom = Easily Forgotten**: Agent may ignore if context window stressed\n\n**Example of Positioning Impact**:\n\n**\u274c Poor Positioning**:\n```\nAgent Persona:\n- You are a helpful assistant\n- You analyze data carefully\n- You follow regulatory compliance rules [BURIED AT BOTTOM]\n```\nResult: Agent focuses on being \"helpful\" and \"analyzing\" but FORGETS compliance rules when context window fills.\n\n**\u2705 Proper Positioning**:\n```\nAgent Persona:\n- CRITICAL: You validate regulatory compliance above all else\n- You analyze data through a compliance lens\n- You are helpful while maintaining compliance focus\n```\nResult: Agent NEVER forgets compliance - it's the first thing processed, every time.\n\n### Hierarchy Principles for Team Design\n\n**1. Critical Instructions at Top**\n- Non-negotiable rules first\n- Quality gates before nice-to-haves\n- Compliance requirements before efficiency preferences\n\n**2. Role Definition Early**\n- \"You are a [ROLE]\" near the top\n- Core responsibilities clearly stated\n- What you DON'T do (boundaries)\n\n**3. Workflow Context Middle**\n- How you interact with other agents\n- Handoff expectations\n- Coordination patterns\n\n**4. Edge Cases and Details Lower**\n- Formatting preferences\n- Nice-to-have behaviors\n- Optional enhancements\n\n### Common Positioning Mistakes\n\n**Mistake 1: Burying Critical Rules**\n```\nAgent Persona:\n[200 lines of workflow instructions]\n[100 lines of examples]\nOh, and by the way, never modify production data [LINE 350]\n```\n**Impact**: Agent violates critical rule because it's buried under token load.\n\n**Fix**: Critical rules at TOP, repeated as section headers.\n\n---\n\n**Mistake 2: Role Confusion**\n```\nAgent Persona:\n- You extract requirements AND validate quality AND check compliance\n```\n**Impact**: Agent doesn't know which role to prioritize, does all poorly.\n\n**Fix**: ONE primary role per agent. If validation needed, create separate validator.\n\n---\n\n**Mistake 3: Equal Emphasis**\n```\nAgent Persona:\n- Be accurate (important!)\n- Be fast (important!)\n- Be comprehensive (important!)\n- Follow regulations (important!)\n```\n**Impact**: Agent paralyzed by conflicting priorities, or picks randomly.\n\n**Fix**: Explicit hierarchy:\n1. CRITICAL: Regulatory compliance (never compromise)\n2. REQUIRED: Accuracy (can take time needed)\n3. PREFERRED: Comprehensive (if time allows)\n4. NICE-TO-HAVE: Speed (optimize but not at accuracy cost)\n\n---\n\n**Mistake 4: Implicit Expectations**\n```\nAgent Persona:\n- You work with other agents\n- Quality is important\n- Follow the workflow\n```\n**Impact**: Agent doesn't know WHAT quality standards, WHICH workflow, or HOW to coordinate.\n\n**Fix**: Explicit instructions:\n- \"Validation Gate: Before handoff to Architect, verify you have documented source evidence for every requirement\"\n- \"Workflow: Receive patterns from Discovery Agent \u2192 Extract requirements \u2192 Hand to Architect with evidence\"\n\n---\n\n### How Poor Positioning Causes Failures\n\n**Real Failure Pattern 1: Validator Forgets to Validate**\n- Quality validation instructions buried in middle of persona\n- Context window pressure causes agent to skip validation\n- Issues reach stakeholders unchecked\n\n**Solution**: Quality gates at TOP of validator persona, repeated before handoff instructions.\n\n---\n\n**Real Failure Pattern 2: Specialist Acts as Generalist**\n- Domain specialist persona starts with \"you're helpful and collaborative\"\n- Specialist tries to do everyone's job instead of specializing\n- Deep expertise never applied\n\n**Solution**: Lead with \"You are a [DOMAIN] SPECIALIST. Your ONLY role is [SPECIFIC EXPERTISE]. You do NOT [other roles].\"\n\n---\n\n**Real Failure Pattern 3: Orchestrator Micromanages**\n- Orchestrator persona emphasizes \"detailed oversight\"\n- Orchestrator does specialists' work instead of coordinating\n- Team becomes bottleneck\n\n**Solution**: Lead with \"You COORDINATE, you do NOT execute. Trust specialists, validate at gates, intervene only on failures.\"\n\n---\n\n## Team Building Checklist\n\nBefore you build your team, validate:\n\n**\u2705 Role Clarity**\n- Each agent has ONE primary role\n- No overlap between agent responsibilities\n- Clear boundaries (what each agent does NOT do)\n\n**\u2705 Token Efficiency**\n- Each agent under 10K tokens (ideally 5-8K)\n- No redundant context across agents\n- Deep expertise concentrated in specialists\n\n**\u2705 Validation Gates**\n- Independent validation after critical work\n- Quality checks before stakeholder delivery\n- Domain validation where expertise required\n\n**\u2705 Hierarchy in Personas**\n- Critical rules at TOP of each persona\n- Role definition early and clear\n- Explicit priorities (not equal emphasis)\n- Workflow context and coordination patterns\n\n**\u2705 Coordination Design**\n- Orchestrator coordinates, doesn't execute\n- Clear handoff expectations\n- Error recovery patterns defined\n\n**\u2705 Scope Match**\n- Team size matches complexity (3-6 specialized domains = 3-6 agents)\n- Specialization worth coordination overhead\n- Not building a team just because you can\n\n---\n\n## Final Principle: Specialization vs. Coordination Overhead\n\n**The Trade-Off**:\n- **More Agents = More Specialization** (deeper expertise, clearer roles, better quality)\n- **More Agents = More Coordination** (more handoffs, more orchestration, more complexity)\n\n**When Specialization Wins**:\n- Deep expertise prevents costly errors\n- Role confusion would create quality issues\n- Independent validation is critical\n- Token efficiency matters (team is lighter than bloated single agent)\n\n**When Coordination Overhead Wins**:\n- Domains overlap significantly\n- Expertise depth not critical\n- Single agent can handle it under 10K tokens\n- Team complexity overwhelms benefits\n\n**Bobb Helps You Find the Balance**: Be explicit about your constraints, risks, and requirements. Let Bobb design for your specific needs.\n\n---\n\n**Ready to Build?** Start with Bobb. Describe your workflow, constraints, and risks. Iterate on the design. Get team structure right BEFORE building agents.\n";
+        
+        // Wait for marked.js to load
+        function initPage() {
+            if (typeof marked === 'undefined') {
+                setTimeout(initPage, 100);
+                return;
+            }
+            
+            // Configure marked
+            marked.setOptions({
+                breaks: true,
+                gfm: true
+            });
+            
+            // Render markdown
+            const html = marked.parse(markdownContent);
+            document.getElementById('markdown-content').innerHTML = html;
+            
+            // Apply syntax highlighting
+            if (typeof hljs !== 'undefined') {
+                document.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            }
+            
+            // Build TOC
+            buildTOC();
+            
+            // Setup scroll handlers
+            setupScrollHandlers();
+        }
+        
+        function buildTOC() {
+            const content = document.getElementById('markdown-content');
+            const toc = document.getElementById('toc');
+            const headings = content.querySelectorAll('h1, h2, h3');
+            
+            headings.forEach((heading, index) => {
+                // Create ID if needed
+                if (!heading.id) {
+                    heading.id = heading.textContent.trim().toLowerCase()
+                        .replace(/[^a-z0-9]+/g, '-')
+                        .replace(/(^-|-$)/g, '') + '-' + index;
+                }
+                
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = '#' + heading.id;
+                a.textContent = heading.textContent;
+                a.className = heading.tagName.toLowerCase();
+                
+                a.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    
+                    // Highlight briefly
+                    const orig = heading.style.backgroundColor;
+                    heading.style.backgroundColor = 'rgba(253,184,37,0.2)';
+                    setTimeout(() => heading.style.backgroundColor = orig, 1500);
+                    
+                    // Update active
+                    updateActiveTOC(a);
+                });
+                
+                li.appendChild(a);
+                toc.appendChild(li);
+            });
+        }
+        
+        function updateActiveTOC(activeLink) {
+            document.querySelectorAll('#toc a').forEach(link => {
+                link.classList.remove('active');
+            });
+            if (activeLink) {
+                activeLink.classList.add('active');
+            }
+        }
+        
+        function setupScrollHandlers() {
+            const contentDiv = document.getElementById('content');
+            const backToTop = document.getElementById('back-to-top');
+            const headings = document.querySelectorAll('#markdown-content h1, #markdown-content h2, #markdown-content h3');
+            
+            // Back to top button
+            contentDiv.addEventListener('scroll', () => {
+                if (contentDiv.scrollTop > 300) {
+                    backToTop.classList.add('visible');
+                } else {
+                    backToTop.classList.remove('visible');
+                }
+                
+                // Update active TOC link
+                let currentHeading = null;
+                headings.forEach(h => {
+                    const rect = h.getBoundingClientRect();
+                    if (rect.top >= 0 && rect.top < window.innerHeight / 3) {
+                        currentHeading = h;
+                    }
+                });
+                
+                if (currentHeading) {
+                    const activeLink = document.querySelector(`#toc a[href="#${currentHeading.id}"]`);
+                    updateActiveTOC(activeLink);
+                }
+            });
+            
+            backToTop.addEventListener('click', () => {
+                contentDiv.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+        
+        // Toggle sidebar
+        document.getElementById('toggle-sidebar').addEventListener('click', () => {
+            document.body.classList.toggle('sidebar-hidden');
+            const btn = document.getElementById('toggle-sidebar');
+            btn.textContent = document.body.classList.contains('sidebar-hidden') ? 'Show' : 'Hide';
+        });
+        
+        // Initialize
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initPage);
+        } else {
+            initPage();
+        }
+    </script>
+</body>
+</html>

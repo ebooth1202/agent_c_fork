@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent C - Master Guide</title>
+    
+    <!-- Marked.js for markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/powershell.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        #sidebar {
+            width: 320px;
+            background: #f8f9fa;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+            position: relative;
+            flex-shrink: 0;
+        }
+        
+        #sidebar-header {
+            padding: 50px 20px 20px 20px;
+            background: #2c1a5d;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        #sidebar-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        #toggle-sidebar {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            color: white;
+            transition: background-color 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
+        
+        #toggle-sidebar:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        #toc {
+            list-style: none;
+            padding: 20px;
+        }
+        
+        /* TOC Item Structure */
+        .toc-item {
+            margin: 0;
+        }
+        
+        .toc-h1 {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        .toc-h1:first-child {
+            margin-top: 0;
+            padding-top: 0;
+            border-top: none;
+        }
+        
+        .toc-h1-header {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: background-color 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
+        
+        .toc-h1-header:hover {
+            background: #e9ecef;
+        }
+        
+        .toggle-icon {
+            margin-right: 8px;
+            font-size: 12px;
+            color: #666;
+            transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+            display: inline-block;
+            width: 16px;
+        }
+        
+        .toc-h1.collapsed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+        
+        .toc-h1-header a {
+            color: #333;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            flex: 1;
+        }
+        
+        /* TOC Children Container */
+        .toc-children {
+            overflow: hidden;
+            max-height: 2000px;
+            opacity: 1;
+            transition: max-height 0.5s cubic-bezier(0.4, 0.0, 0.2, 1), 
+                        opacity 0.45s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
+        
+        .toc-h1.collapsed .toc-children {
+            max-height: 0;
+            opacity: 0;
+        }
+        
+        /* H2 and H3 Styles */
+        .toc-h2, .toc-h3 {
+            margin: 0;
+        }
+        
+        .toc-h2 a {
+            color: #333;
+            text-decoration: none;
+            display: block;
+            padding: 6px 12px 6px 27px;
+            border-radius: 4px;
+            transition: background-color 0.25s cubic-bezier(0.4, 0.0, 0.2, 1),
+                        transform 0.25s cubic-bezier(0.4, 0.0, 0.2, 1);
+            font-size: 13px;
+        }
+        
+        .toc-h3 a {
+            color: #666;
+            text-decoration: none;
+            display: block;
+            padding: 6px 12px 6px 42px;
+            border-radius: 4px;
+            transition: background-color 0.25s cubic-bezier(0.4, 0.0, 0.2, 1),
+                        transform 0.25s cubic-bezier(0.4, 0.0, 0.2, 1);
+            font-size: 12px;
+        }
+        
+        .toc-h2 a:hover, .toc-h3 a:hover {
+            background: #e9ecef;
+            transform: translateX(3px);
+        }
+        
+        /* Active States - Visual Indicators */
+        #toc a.active {
+            color: #fdb825;
+            font-weight: bold;
+            border-left: 3px solid #fdb825;
+            padding-left: 15px;
+            background-color: rgba(253, 184, 37, 0.1);
+        }
+        
+        #content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px 80px;
+            scroll-behavior: smooth;
+        }
+        
+        #markdown-content {
+            max-width: 900px;
+        }
+        
+        #markdown-content h1 {
+            color: #2c1a5d;
+            border-bottom: 3px solid #fdb825;
+            padding-bottom: 12px;
+            margin: 40px 0 20px 0;
+            font-size: 2em;
+        }
+        
+        #markdown-content h2 {
+            color: #2c1a5d;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            margin: 32px 0 16px 0;
+            font-size: 1.6em;
+        }
+        
+        #markdown-content h3 {
+            color: #2c1a5d;
+            margin: 24px 0 12px 0;
+            font-size: 1.3em;
+        }
+        
+        #markdown-content h4 {
+            color: #555;
+            margin: 20px 0 10px 0;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+        
+        #markdown-content code {
+            background: #f8f9fa;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #e83e8c;
+        }
+        
+        #markdown-content pre {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-left: 4px solid #fdb825;
+            border-radius: 6px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        
+        #markdown-content pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+        
+        #markdown-content ul, #markdown-content ol {
+            margin: 16px 0 16px 30px;
+        }
+        
+        #markdown-content li {
+            margin: 8px 0;
+        }
+        
+        #markdown-content p {
+            margin: 16px 0;
+        }
+        
+        #markdown-content strong {
+            color: #2c1a5d;
+            font-weight: 600;
+        }
+        
+        #markdown-content blockquote {
+            border-left: 4px solid #fdb825;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #666;
+            font-style: italic;
+        }
+        
+        #markdown-content hr {
+            border: none;
+            border-top: 2px solid #e9ecef;
+            margin: 40px 0;
+        }
+        
+        /* Table Styling */
+        #markdown-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        
+        #markdown-content th,
+        #markdown-content td {
+            border: 1px solid #e0e0e0;
+            padding: 12px 15px;
+            text-align: left;
+        }
+        
+        #markdown-content th {
+            background-color: #f5f5f5;
+            font-weight: 600;
+            color: #2c1a5d;
+            border-bottom: 2px solid #fdb825;
+        }
+        
+        #markdown-content tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+        
+        #markdown-content tr:hover {
+            background-color: #f0f0f0;
+            transition: background-color 0.2s;
+        }
+        
+        #back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #2c1a5d;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.4s cubic-bezier(0.4, 0.0, 0.2, 1), 
+                        transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+            font-size: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 999;
+        }
+        
+        #back-to-top.visible {
+            opacity: 0.8;
+        }
+        
+        #back-to-top:hover {
+            opacity: 1;
+            transform: translateY(-4px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
+        
+        #logo {
+            position: fixed;
+            bottom: 100px;
+            right: 40px;
+            opacity: 0.6;
+            z-index: 998;
+            transition: opacity 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
+        
+        #logo:hover {
+            opacity: 0.9;
+        }
+        
+        #logo img {
+            width: 55px;
+            height: auto;
+        }
+        
+        body.sidebar-hidden #sidebar {
+            margin-left: -320px;
+        }
+        
+        body.sidebar-hidden #content {
+            margin-left: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <div id="sidebar-header">
+            <button id="toggle-sidebar">Hide</button>
+            <h2>Agent C Master Guide</h2>
+        </div>
+        <div id="toc"></div>
+    </div>
+    
+    <div id="content">
+        <div id="markdown-content"></div>
+    </div>
+    
+    <div id="back-to-top">↑</div>
+    
+    <div id="logo">
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIYAAACGCAYAAAAYefKRAAAACXBIWXMAAC4jAAAuIwF4pT92AAAJaklEQVR4nO2dTW4aSRTHK2H25ABIdiS2KJ4TxFmxNLkAQ04wzgnsnGCcEwRzgcFLVnFOMLbYIgVLHCAcAGVU9ivcdL3urm8a9/8nIUc0Me3qf7+vqn716vfv3wKAPK+1d0DjERAGKALCACwQBmCBMAALhAFYIAzAAmEAFggDsEAYgAXCACwQBmCBMAALhAFYIAzAAmEAFggDsEAYgAXCACwQBmCBMAALhAFYIAzAAmEAFggDsEAYgAXCACwQBmCJLozNrPtmM+tebmbdK+0gsBnHY+3NiEQVxmbWPRdCLIUQ8uel9gFgg7zBlptZd5Ri1KK0QdjMuqdCiLEQ4oje+tzqL2AxPJGWVwhxIYR4kDdaq78Yx/quoMKQboMEcZZ5+77VX5xoHwau43uXueF+CCFGrf5iqX3Yk2CuhKzEXU4UgtwICECrv/iVG8/3QoifZEmCEsRiUCzxj3ZAiJtWfzHQ3q05vc5QWrg3Bme5nK8mwe/WKjaz7i2JIou0HgMSjzfewtjMutJ1/KUdeOJtDDMXil5nKC++tHQn9PM4Y6ZtWJO1VK/bmIIh6/xdO/B0Hqet/uJOO2KJszDI30nlvtMOPnHd6i+SRNA2kDUYkRCKzj0EDzQ+4/lqchv6l29m3SnjthWffANTJ2EYiELUyVqQZRiQfy4751hIkZyGtCJU1/ipHXjGSxzWwaehKG7qIAopiF5neEm1lG8V5xwT6Z6C+H4Fje+NduCZbz41D5espEoUkr3XLDKCkHl/W/tAWu7nq0lQYRBV4+wsDithUKBZJQpZtwjuU02RMUSvM7yriSAUUcaDxvmHdmAXJ3EYC4NS0qLsI8verAVZif/26DKKmBa8HwKTOEKKw6rIaBR8lqRHeWS6dBwqlzaFgst8xbU2zFeTVzHPZTPr/jKwjlbXptJiULBpqvjpnkRxW1dRGJj6EJhYjbaN5TJxJWMLX53UjWREUTfXkSWmG1GYjvt70/J5qTDIhZjeiQ8hKm6mHIgoRKzAMwulrvfaAZ4Lk3ijVBiGJkqR4s7IkloUD+SnbVjPV5NUN4vNtaq0MH9o7xBkcmzmDZIJo9cZXkUSxZoEd6vmPcrqD73OUM2vnBSU2FOm7dOCiUwO6VJGZZVRNiuhgHNpEVusW/2FyWykN73OUJa2/w38a2WAeDVfTbzEnSm9D8gFf5qvJoWDH5rNrHvHiLOI0iylyGKcWxaHktwZmbQ0FFIQl6Emuci6yPMb9zrD49BlcANs3Gu7bMmlZjEcrIUIMZtnArmQvwP8qjUJ4kUtN7SoNykKrQYXfA4cSsnRLQbdgaFEcfrSRCGeS+Q2tOl6a3DCsF2Kt040k8qaPEuUKJKl1XvAtqDGjuuOMCi/tY32U1kLk3maMpogCuFwPY7IBe2QtxguU7QpBjrEguJRA0QhHK+Hdt3zwmD9TQUpMhLtxC258U1FDwgXYWjXfSsMWirmshA2anxBdQvfdRWNeYSB4j3bCm07706yFkPzMxYnEhNNzZZc72OJ/57xthq+wjCduPHBSbAZ2Kj7heMijKAWQyuMhISyERf3prhvoLUQjtdlJxvNCsPlAsQOPH2tRbJ5iprhdF2yccbr/Bs1w7cnxN4WJR8o23UaymK4zozGniTyEmxD6hYcru5zeyMqYbi2KYg98D4WI8Vay1rikSlqFqOu+ASeTQw6g+FrMeoMhGHPtrWCb4wRDUpVgTteNaY6uxIIww+vxAB9PgELhAFYIAzAooRRxwqhb1ZRu4A6MV4xWm0tRoDJr6b3FnVtMveIEobrRajzXYmsxp5tJdtXGLHvSp9c/Ai1EHeUMOo62eQ7SVfXWeOo2HbPybCNNR+FQU8i2a4TFAkshm9QfHBdiQPh6uK3niMbfLpchNgxhq8lO6PnXZuGqwvVYgzhKIzYFiOEi2tik3snYWQb3/gKo00PQUeBUtYHz9993kCr4SKMnfUrW2GQWuoYZ/g+KNRuoNVwEcbOOOcLXC4XIbYwQizovaDm8k0hv2WFCTseo/bCoHWbvu5EMm2CS3FMVbXGejvCaPUXU4eLkKJWEKKXhSwR3zZAHC7C0KwyN1eifaiCo5gBaOacXOKfPO8aII7aCEPEthrU2ypUBxwpjiV13HuJ2P5d7BYimjDoQ9fafy8nRYXxKpDVEJSpfO91huOXNJ9Cltu28Q17w2nN2YTZ7jl5ZPASfYB7nWHRpny+XFM7R++CWq6l4zRxO0fbVpeFW5+ywhDVm+Bx/JmiZXSvM+R2EAzFA2Vmqvlr6d9DIjgpaQL7db6aJKuhOFyzj5RwaBT1+RRUFLJpWnKaaJZ2RN8TY5Oao2xnwF5nqP6Zf6rtxPD72bsxIjYu/UeRKAQXYyhoxpX1PwUk2TGRyuSpZ03f516mokwmDKpf2NwspX1DCoUhnsRxabFY5h3FJtGhTr6fUnyXJ+2Ewa3Njfm1qidoqTAcvjDZPqsU1B2COFIJw9SKrk26DFUKgwLKz9oBnqQb8B6IOKLXSygbMV38a7TNt9Eq8VZ/cVWxx6fiiE4yGSSOjwFrHKFJEWeYjnmlC1HYPD4wMow3km/bTT08TxI1i7MlqiuhopZJiiprFsaps7EwyPwMDO7Ms1RBaBaZrcxXEymOLzWzHrF3YTK52A+2Ls3qgSMql58aDPzeFsbMV5NLsh62Zf1oRJ6XqbLQa9O4Iov1k2gUjFaJY5RgxrUQsh5ywN6SQMrONQVRxoJ2YC4LOh8b67tUpJ0eUTQQRy2W02UEckzZi0kAHYo1ifJDxD7mZWmnsyhE2VyJCRRLTAv8aOHuOfuG+pOruY1Q8y73ao5FrvmI3TGQrMU37cATXqIQvsIQuzs5cwP8haqntYaqk9mX4k0m3cyneUv12kf34c2suyxwI/cUU3idk7cwFLQd54V2QIi3iXZAagwl1kK6ylEIKx1MGOK5w/A4p2S5QqipjwoGhyz0HWMtPlMhMghB+2NQVU3VEhRnNW5JfYic50RxT2thgm7+F9RiZKHAdEyxR5IVXi8dGlO1FuVxMiy0IBTROurIuKLVX0hL8UEGaBSDAD/GJIpryviibREazWLkkWpHEOoOTU4OyEpEH8dkwgCHBdo5AhYIA7BAGIAFwgAsEAZggTAAC4QBWCAMwAJhABYIA7BAGIAFwgAsEAZggTAAC4QBWCAMwAJhABYIA7BAGIAFwgAsEAZggTAAC4QBWCAMwAJhAB0hxP/QYC5kgRuJdwAAAABJRU5ErkJggg==" alt="Centric Consulting">
+    </div>
+    
+    <script>
+        // Embedded markdown content
+        const markdownContent = "# Welcome to Agent C\n\nIf you've heard about Agent C and wondered what makes it different from the dozens of other AI agent frameworks out there, you're in the right place. This isn't just another wrapper around an LLM\u2014Agent C represents a fundamentally different approach to working with AI agents, one that's been battle-tested in professional consulting environments since the days of GPT-3.\n\n## What Makes Agent C Different?\n\nWhile most frameworks chase the capabilities of models they *wish* they had, Agent C focuses on building reliable solutions with the models we *actually* have. The result? A framework that evolves rapidly alongside model improvements while maintaining rock-solid reliability.\n\nThe secret isn't in any single revolutionary feature\u2014it's in how many thoughtful design decisions work together to create something greater than the sum of its parts.\n\n## The \"Instruction First\" Philosophy\n\nHere's a paradigm shift that changes everything: **What if you started with what you can accomplish through clear instructions, then designed tools specifically to support those instructions?**\n\nThat's \"instruction first\" in a nutshell. Instead of building rigid patterns and forcing models to fit them, Agent C provides capable models with excellent instructions and purpose-built tools that enhance what those instructions can accomplish.\n\nHere's why this matters: **Everything you learn about building agents in Agent C transfers to any other framework or platform.** You're learning how to communicate effectively with language models, not how to use a specific tool. The coordination patterns, quality frameworks, and delegation strategies you'll master? They're all expressed in natural language instructions that work with any sufficiently capable model.\n\nYou're learning a universal skill, not framework-specific tricks.\n\n## Agent C's Special Sauce\n\nLet's break down what makes Agent C exceptional:\n\n### Interleaved Thinking: The Game Changer\n\nTraditional agent interactions go something like: *Think \u2192 Act \u2192 Hope it worked*. Agent C agents think *while* they act, adapting to new information instead of blindly following a predetermined course.\n\nWhen an agent reads a file and discovers it's not what was expected, it doesn't just report the problem\u2014it thinks through the implications and adjusts its approach on the fly. This continuous reasoning is what transforms reactive tools into proactive problem-solvers.\n\n*(We'll dive deeper into how to leverage interleaved thinking in later sections)*\n\n### Tools That Actually Work Together\n\nAgent C's tools were designed from the ground up to be \"dirt simple\" for developers while packing sophisticated capabilities. Here's what sets them apart:\n\n**Performance**: In-process tools with minimal overhead and countless micro-optimizations based on real-world agent usage. Every token counts\u2014and we mean it. Agent C tools are built and continuously refined with token conservation as a top priority. Tokens aren't frivolously consumed; instead, we operate with a mentality of being great stewards for our clients, keeping the incurred token costs at the forefront of every design decision.\n\n**Integration**: Tools can depend on other tools. The workspace tool manages file systems (local, S3, Azure), and *other tools use it* to share data\u2014no agent middleman required. Tools can even communicate directly with users, bypassing the agent entirely when appropriate.\n\n**Dynamic Content**: Tools can inject context into the agent's system prompt\u2014rendered fresh for each interaction, then discarded. This gives you precise control over what information persists versus what gets \"house cleaned\" by context management.\n\n### Planning: Working Like Professionals, Not Software\n\nAgent C agents don't just execute commands\u2014they plan, follow through, and report back. The patterns mirror how human professionals manage complex work: break it into manageable pieces, provide clear instructions, define \"done,\" and track progress.\n\nOriginally designed to support multi-session work without introducing errors, the planning system guides agents to:\n- Manage context window limitations intelligently\n- Reduce cognitive load on human verifiers (that's you!)\n- Maintain rich context: technical, business, implementation, and risk considerations\n- Organize tasks hierarchically with parent-child relationships\n- Integrate human oversight with sign-offs and audit trails\n- Generate automated reports without consuming agent context\n\n*(Don't worry\u2014we'll explore planning patterns thoroughly in dedicated sections)*\n\n### Delegation: Where Single Agents Become Teams\n\nThis is where Agent C truly shines. Traditional single-agent approaches hit a wall: either your agent tries to do everything and burns through its context window, or you manually juggle multiple agents and coordinate them yourself.\n\nAgent C provides three powerful delegation patterns:\n\n**Agent Clone Tools**: Your agent creates exact copies of itself for focused work, each with specific instructions that transform generic capability into specialized execution.\n\n**Agent Assist Tools**: Collaboration with specialized agents from a broader ecosystem. Need expert analysis or domain-specific capabilities? Agents can consult specialists without you managing the coordination.\n\n**Agent Team Tools**: Structured collaboration with predefined teams. For complex projects, orchestrator agents coordinate focused experts, each handling specific aspects with clear handoff procedures.\n\nThe sophistication here\u2014delegation rules, handoff procedures, recovery protocols, quality gates\u2014might seem overwhelming. But here's the key: **you don't design these coordination patterns alone.**\n\n## Meet Bobb: Your Expert Guide\n\nRemember \"instruction first\"? If you can express something in a system prompt, an agent can create that system prompt. Enter **Bobb the Agent Builder**\u2014a specialized agent who designs other agents.\n\nNeed a coding assistant for your new project? Just tell Bobb what you want to accomplish. Bobb will:\n- Analyze your project structure\n- Identify appropriate tools and guide you to equip them\n- Extract domain guidelines from your documentation\n- Compose instruction patterns from proven quality frameworks\n- Design coordination protocols if multi-agent workflows are needed\n- Implement appropriate safeguards based on complexity\n\nBobb has access to comprehensive agent design patterns\u2014all those complex coordination strategies and quality frameworks. You focus on *what* you want; Bobb handles the intricate *how*.\n\n*(We'll introduce you to Bobb properly in a dedicated section\u2014he's eager to help you build!)*\n\n## The Mindset Shift You Need to Make\n\nHere's the hardest part for most people, and the most important: **Stop thinking about software. Start thinking about interns.**\n\nAgent C agents aren't programs following rigid logic\u2014they're more like capable interns who need clear direction, appropriate context, and thoughtful delegation. \"Driving\" agents effectively is a skill that takes time to develop, but once you make this mental shift, everything else falls into place.\n\nYou wouldn't hand an intern a 500-page specification and say \"do all of this.\" You'd break it down, provide context, check in regularly, and adjust based on results. Agent C gives you the tools to manage AI agents the same way\u2014because it works.\n\n---\n\n## From Concepts to Consulting: Putting Agent C to Work\n\nNow that you understand what Agent C *is* and the philosophy behind it, let's shift gears to what really matters in your world: **what can you actually do with this at Centric?** The capabilities we just explored\u2014interleaved thinking, delegation, planning, and specialized tools\u2014aren't just interesting technical features. They're the foundation for transforming how you deliver consulting projects. Let's see Agent C in action.\n\n---\n\n# Agent C in Action: Your New Consulting Superpowers\n\n## From \"Interesting Technology\" to \"I Need This Yesterday\"\n\nYou understand what Agent C is. Now let's talk about what you can *do* with it.\n\nPicture this: You're three weeks into a modernization project for a financial services client. The system you're analyzing was built in the early 2000s, the original architects retired years ago, and the documentation consists of scattered Word docs and code comments in three different languages. Your client needs answers by Friday.\n\nThis is where Agent C changes the game.\n\n## What Agent C Unlocks for Your Projects\n\n### \ud83d\udd0d **Legacy Code Analysis & Modernization: Making the Invisible Visible**\n\nRemember that \"archeological dig\" you did on that healthcare system? The one where you spent two weeks just trying to understand the data flow? Agent C does that analysis in *hours*, not weeks.\n\n**Real Scenario**: A large financial institution has a 15-year-old transaction processing system. Compliance needs to know exactly how PII flows through the system. Traditional analysis: weeks of manual code review. With Agent C: comprehensive data flow analysis with visual diagrams by end of day.\n\nAgent C doesn't just read code\u2014it *understands* it. It maps dependencies, identifies patterns, spots potential issues, and explains complex logic in plain English. That cryptic stored procedure your client can't touch because \"nobody knows what it does\"? Agent C can tell you exactly what it does, why it matters, and what breaks if you change it.\n\n### \ud83d\udccb **Requirements Extraction: Finding Order in Chaos**\n\nYour client hands you:\n- 47 PowerPoint decks from various stakeholders\n- A 200-page business process document from 2015\n- Meeting transcripts from six different departments\n- That one email thread everyone references but nobody can find\n\nThey need a clear, consolidated requirements document by Monday.\n\nAgent C excels at synthesizing disparate sources into coherent requirements. It reads through everything, identifies conflicts, spots gaps, and produces structured requirements documentation that actually makes sense. It even flags where stakeholders contradicted each other (diplomatically, of course).\n\n**The Magic**: Agent C doesn't just extract\u2014it *understands context*. It knows that when the CFO says \"real-time\" and IT says \"real-time,\" they might mean very different things. It surfaces those nuances for you to resolve.\n\n### \u2728 **High-Accuracy Deliverable Generation: From Zero to Review-Ready**\n\nHere's where consultants get really excited: Agent C produces *high-quality* deliverables at speeds that seem impossible.\n\nNeed a technical architecture document? A data migration strategy? A detailed test plan? An API specification? Agent C generates drafts that are genuinely good\u2014not just \"AI generated a thing,\" but \"this looks like a senior consultant wrote it.\"\n\n**Real Scenario**: A manufacturing client needs a comprehensive cloud migration strategy document for their board meeting. The document needs to cover current state, target architecture, migration approach, risk mitigation, timeline, and costs. Agent C produces a 35-page draft in two hours. Your team spends the afternoon refining and customizing it instead of staring at a blank page until midnight.\n\nThe key word is *accuracy*. Agent C doesn't hallucinate. It doesn't make up AWS services that don't exist or cite APIs that aren't real. When it doesn't know something, it tells you. This makes it trustworthy for client-facing deliverables.\n\n### \ud83e\udde9 **Component Reference Library: Your Adaptable Agent Toolkit**\n\nHere's where it gets even better: Agent C isn't a single tool\u2014it's a *platform* for building specialized agent workflows.\n\nThink of components as LEGO blocks for intelligent automation. Need an agent that analyzes database schemas? There's a component for that. Need one that reviews infrastructure-as-code? Another component. Need to combine them into a custom workflow for your specific engagement? That's the magic.\n\n**The Power Move**: You're not just using Agent C\u2014you're building *your own specialized consulting agents* that understand your client's specific domain, their technology stack, and their business rules. Each engagement becomes more powerful as you build and refine these components.\n\n## The Real Magic: Team Workflows That Think\n\nNow here's where minds start to explode: Agent C doesn't work alone.\n\nImagine this: One agent analyzes the legacy codebase and identifies the modernization candidates. Another agent researches current best practices and modern architectural patterns. A third agent generates the migration strategy. A fourth reviews everything for risks and inconsistencies. An orchestrator coordinates the whole thing, ensuring quality and coherence.\n\n**What traditionally takes a team of consultants 2-3 weeks is completed in a coordinated workflow that runs overnight.**\n\nYou wake up to a comprehensive, multi-perspective analysis that's ready for your expert review and refinement. You spend your time on high-value activities: client strategy, relationship building, and applying your judgment to the analysis\u2014not on the mechanical work of gathering and synthesizing information.\n\nThis isn't science fiction. This is what Agent C enables *today*.\n\n## Let's Be Real: The Learning Journey\n\nHere's the part nobody mentions in the glossy demos: Agent C isn't magic that works perfectly 100% of the time without adjustments.\n\nThink about it this way: You wouldn't hand a new intern a 200-page technical manual and expect them to execute flawlessly without asking questions or making some mistakes. **And you certainly wouldn't hand them that manual with roles jumbled around, critical priorities buried in the middle, and the most important instructions hidden in the back.** They're capable, they're intelligent, but they need guidance, feedback, and *well-organized* direction. **Agent C is the same.**\n\nAs you learn to \"drive\" agents and orchestrate teams, you'll discover nuances: what details to emphasize, what context to provide, when to break work into smaller pieces, how to structure quality gates. You'll learn what works brilliantly for your specific type of project and what needs adjustment. Some agent configurations will surprise you with their insight. Others will need refinement.\n\nThis learning curve isn't a flaw\u2014it's part of the partnership. The agents get better as you get better at directing them *and* structuring their instructions. And the payoff? Once you've learned how to orchestrate effectively\u2014how to organize priorities, position information, and structure agent personas\u2014you've gained a capability multiplier that compounds with every engagement. *(We'll dive deep into hierarchy, positioning, and orchestration patterns in later sections\u2014these nuances are where the real power emerges.)*\n\n## What This Means for You\n\nAs a Centric consultant, Agent C fundamentally changes what's possible:\n\n**Velocity**: Deliver in days what used to take weeks. **Quality**: Consistently high-quality, review-ready deliverables. **Capability**: Take on projects you might have declined before. **Leverage**: Scale your expertise across multiple concurrent engagements. **Client Value**: More time on strategy and relationships, less on mechanical work.\n\n---\n\n## From Understanding to Action: Building the Teams\n\nYou've seen what Agent C can do and how it applies to consulting work. Now let's get practical: **how do you actually build the agent teams that make this magic happen?** \n\nBuilding effective teams requires understanding when you need them, how to structure them, and why certain patterns succeed while others fail. The team workflows you just read about\u2014the ones that analyze codebases overnight and produce multi-perspective strategies\u2014don't happen by accident. They're the result of thoughtful design decisions about roles, coordination, and quality gates.\n\nLet's dive into the art and science of building agent teams.\n\n---\n\n# Building Agent Teams in Agent C\n\nA practical guide to creating effective multi-agent systems.\n\n---\n\n## When Do You Need a Team?\n\n**Single Agent Works When:**\n- Task is straightforward with clear steps\n- No specialized domain expertise required\n- Token budget fits comfortably in one agent (under 10K)\n- No need for independent validation\n- One perspective is sufficient\n\n**Team Becomes Necessary When:**\n- **Multiple specialized domains** involved (architecture + compliance + quality)\n- **Deep expertise required** in specific areas (regulatory knowledge, technical patterns)\n- **Independent validation needed** (someone must check the work objectively)\n- **Token efficiency matters** (specialization prevents bloated agents)\n- **Clear role separation** improves quality (analyst shouldn't validate their own analysis)\n\n### The Signal: \"This Needs a Team\"\n\nAsk yourself:\n- Would a single agent need 12K+ tokens to do this well?\n- Do we need someone to validate this work independently?\n- Does this require deep expertise in multiple distinct domains?\n- Will role confusion create quality issues? (e.g., \"extract requirements\" vs \"validate compliance\")\n\n**If yes to 2+ questions**: Consider a team.\n\n---\n\n## When Teams Excel: Scenarios and Complexity Thresholds\n\n### Teams Outperform Single Agents When:\n\n**1. Specialization Prevents Errors**\n\n*Example: Insurance Analysis*\n- **With Specialist**: Deep regulatory knowledge catches \"This violates aggregate limit rules\"\n- **Without Specialist**: General agent misses compliance nuances, issues reach stakeholders\n\n**2. Independent Validation Matters**\n\n*Example: Quality Oversight*\n- **With Independent Validator**: Fresh eyes catch \"requirements lack source evidence\"\n- **Without Independence**: Coordinator validates own work, misses issues (judge and jury problem)\n\n**3. Token Efficiency Through Focus**\n\n*Real Pattern*:\n- **Before**: 72-84K token mega-agent (bloated, unfocused)\n- **After**: 37-45K specialized team (46-54% reduction)\n- **How**: Each agent 5-8K focused tokens vs. one 80K+ generalist\n\n### Complexity Thresholds\n\n**Under 3 Specialized Domains**: Single agent usually sufficient\n\n**3-5 Specialized Domains**: Team starts making sense\n- Example: Pattern Discovery + Requirements + Architecture + Domain Validation + Quality\n\n**6+ Specialized Domains**: Team almost certainly better\n- Coordination overhead worth the specialization benefits\n\n---\n\n## Why Utilize a Team: Core Benefits\n\n### 1. Token Efficiency Through Specialization\n\n**Counter-Intuitive Truth**: Teams can be MORE token-efficient than single agents.\n\n**The Math**:\n- **Bloated Single Agent**: 70-80K tokens trying to cover everything\n- **Focused Team (6 agents)**: 37-45K total\n  - Pattern Analyzer: 5K\n  - Requirements Extractor: 7K\n  - Architect: 6K\n  - Domain Specialist: 6K (with 2.6K deep expertise)\n  - Quality Validator: 6K\n  - Orchestrator: 7.5K\n\n**Why This Works**:\n- Each agent carries ONLY what it needs\n- No redundant context across domains\n- Deep expertise concentrated where needed\n- Clear handoffs minimize context overlap\n\n### 2. Specialization Prevents Errors\n\n**Role Confusion Creates Quality Issues**:\n\n| Scenario | Problem | Result |\n|----------|---------|--------|\n| Analyst also validates | Can't be neutral extractor AND critical validator | Misses own extraction errors |\n| Architect also validates compliance | Lacks deep domain expertise | Misses regulatory nuances |\n| Coordinator also validates quality | Judge and jury problem | Overlooks coordination issues |\n\n**Specialization Solution**: Each agent does ONE thing deeply, with independent gates between roles.\n\n### 3. Clear Role Separation\n\n**What Each Agent Should Own**:\n- **Discovery Agent**: WHAT exists (patterns, structure)\n- **Extraction Agent**: WHAT it means (business requirements)\n- **Design Agent**: HOW to build it (architecture, modernization)\n- **Domain Specialist**: IF it meets specialized requirements (compliance, regulations)\n- **Quality Agent**: IF quality is sufficient (evidence, completeness)\n- **Orchestrator**: WHO does WHAT and WHEN (workflow, recovery)\n\n**No Overlap = No Confusion**\n\n### 4. Independent Validation Gates\n\n**Why Independence Matters**:\n- Analyst can't catch own extraction errors\n- Coordinator can't objectively validate work they assigned\n- Designer needs someone to challenge assumptions\n\n**How to Structure**:\n- Quality validator not involved in analysis/coordination\n- Domain specialist focused on specialized validation only\n- Clear separation between \"do the work\" and \"validate the work\"\n\n---\n\n## How Bobb Helps You Build Teams\n\nBobb is Agent C's meta-agent for designing agent systems. Here's how to leverage Bobb effectively:\n\n### What Questions to Ask Bobb\n\n**Start High-Level**:\n- \"I need to analyze [domain] and produce [deliverable]. Should this be one agent or a team?\"\n- \"What specialized roles are needed for [specific workflow]?\"\n- \"Where should independent validation happen in this workflow?\"\n\n**Get Specific About Roles**:\n- \"What expertise should the [domain] specialist have?\"\n- \"How should the orchestrator coordinate between [Agent A] and [Agent B]?\"\n- \"What handoff points need validation gates?\"\n\n**Refine Coordination**:\n- \"How should error recovery work in this team?\"\n- \"What should the orchestrator delegate vs. handle directly?\"\n- \"Where do we risk token bloat in these roles?\"\n\n### How to Ask (Specifics Matter!)\n\n**\u274c Too Vague**: \"I need agents for my project\"\n\n**\u2705 Specific Context**:\n\"I need to analyze legacy insurance systems and create modernization requirements. The analysis must validate regulatory compliance. Stakeholders need clear, documented recommendations.\"\n\n**\u274c Missing Constraints**: \"Design me a team\"\n\n**\u2705 Include Constraints**:\n\"Token budget: 50K total. Must include independent quality validation. Regulatory compliance is critical - we can't miss requirements.\"\n\n**\u274c Unclear Workflow**: \"What agents do I need?\"\n\n**\u2705 Clear Workflow**:\n\"Workflow: Discover patterns in code \u2192 Extract requirements \u2192 Design architecture \u2192 Validate compliance \u2192 Certify quality \u2192 Deliver to stakeholders\"\n\n### What Information Bobb Needs\n\n**1. Domain Context**:\n- What field/industry? (insurance, finance, healthcare, etc.)\n- What specialized knowledge required? (regulatory, technical, business)\n\n**2. Workflow Clarity**:\n- Input \u2192 Processing \u2192 Output sequence\n- Where validation gates needed\n- Who consumes the final output\n\n**3. Constraints**:\n- Token budget (be realistic)\n- Quality requirements\n- Coordination complexity tolerance\n\n**4. Risk Areas**:\n- What errors would be costly? (compliance violations, quality issues)\n- Where do you need independent oversight?\n- What expertise gaps exist?\n\n### How Bobb Designs Coordination Patterns\n\nBobb will structure teams around:\n\n**1. Sequential Workflows** (most common):\n```\nOrchestrator \u2192 Discover \u2192 Extract \u2192 Design \u2192 Validate \u2192 Certify \u2192 Deliver\n```\n\n**2. Validation Gates**:\n- After critical work products\n- Before stakeholder delivery\n- Where specialized expertise needed\n\n**3. Error Recovery**:\n- Orchestrator monitors progress\n- Validation gates catch issues early\n- Clear escalation paths for problems\n\n**4. Token Optimization**:\n- Each agent carries only necessary context\n- Handoffs minimize redundancy\n- Deep expertise concentrated in specialists\n\n### The Component Reference Library: Your Safety Net\n\nHere's an important truth: **mistakes in team building are expected**. Hierarchy issues, positioning errors, role confusion\u2014these are part of the learning process as you develop your \"agent driving\" skills.\n\nBut you're not learning in a vacuum. **The component reference library is a crucial safety net.**\n\nWhen you work with Bobb to design agents, Bobb references this library of proven patterns, structures, and positioning strategies. Think of it as:\n- \u2705 **Tested templates** for common agent types (analyzers, validators, orchestrators)\n- \u2705 **Positioning patterns** that prevent common mistakes\n- \u2705 **Hierarchy structures** that keep critical rules visible\n- \u2705 **Coordination blueprints** for team workflows\n\nBobb uses these components to ensure:\n- Your personas are structured properly (critical rules at top, not buried)\n- Agents are positioned appropriately (clear roles, no confusion)\n- Common failure patterns are avoided (learned from previous builds)\n- Token efficiency best practices are applied\n\n**What This Means for You**: You don't need to memorize every positioning rule or hierarchy principle. Bobb handles that by pulling from the component library. Your job is to describe your needs clearly\u2014Bobb applies the proven patterns.\n\n**As you gain experience**, you'll start recognizing these patterns yourself and can request specific components or adjustments. But early on, trust the library. It's built from real-world experience with what works and what fails.\n\n---\n\n## How Teams Falter: Hierarchy and Positioning Principles\n\nEven with Bobb's help and the component reference library, understanding WHY certain patterns work helps you make better decisions. Here's what happens when teams falter:\n\nEven well-designed teams can fail due to poor persona structure. Here's how hierarchy and positioning affect agent behavior:\n\n### Why Order and Emphasis Matter\n\n**Agent C Processes Personas Top-to-Bottom**:\n- **Top = Primary Focus**: Agent prioritizes these instructions\n- **Middle = Secondary**: Agent considers but may deprioritize under pressure\n- **Bottom = Easily Forgotten**: Agent may ignore if context window stressed\n\n**Example of Positioning Impact**:\n\n**\u274c Poor Positioning**:\n```\nAgent Persona:\n- You are a helpful assistant\n- You analyze data carefully\n- You follow regulatory compliance rules [BURIED AT BOTTOM]\n```\nResult: Agent focuses on being \"helpful\" and \"analyzing\" but FORGETS compliance rules when context window fills.\n\n**\u2705 Proper Positioning**:\n```\nAgent Persona:\n- CRITICAL: You validate regulatory compliance above all else\n- You analyze data through a compliance lens\n- You are helpful while maintaining compliance focus\n```\nResult: Agent NEVER forgets compliance - it's the first thing processed, every time.\n\n### Hierarchy Principles for Team Design\n\n**1. Critical Instructions at Top**\n- Non-negotiable rules first\n- Quality gates before nice-to-haves\n- Compliance requirements before efficiency preferences\n\n**2. Role Definition Early**\n- \"You are a [ROLE]\" near the top\n- Core responsibilities clearly stated\n- What you DON'T do (boundaries)\n\n**3. Workflow Context Middle**\n- How you interact with other agents\n- Handoff expectations\n- Coordination patterns\n\n**4. Edge Cases and Details Lower**\n- Formatting preferences\n- Nice-to-have behaviors\n- Optional enhancements\n\n### Common Positioning Mistakes\n\n**Mistake 1: Burying Critical Rules**\n```\nAgent Persona:\n[200 lines of workflow instructions]\n[100 lines of examples]\nOh, and by the way, never modify production data [LINE 350]\n```\n**Impact**: Agent violates critical rule because it's buried under token load.\n\n**Fix**: Critical rules at TOP, repeated as section headers.\n\n---\n\n**Mistake 2: Role Confusion**\n```\nAgent Persona:\n- You extract requirements AND validate quality AND check compliance\n```\n**Impact**: Agent doesn't know which role to prioritize, does all poorly.\n\n**Fix**: ONE primary role per agent. If validation needed, create separate validator.\n\n---\n\n**Mistake 3: Equal Emphasis**\n```\nAgent Persona:\n- Be accurate (important!)\n- Be fast (important!)\n- Be comprehensive (important!)\n- Follow regulations (important!)\n```\n**Impact**: Agent paralyzed by conflicting priorities, or picks randomly.\n\n**Fix**: Explicit hierarchy:\n1. CRITICAL: Regulatory compliance (never compromise)\n2. REQUIRED: Accuracy (can take time needed)\n3. PREFERRED: Comprehensive (if time allows)\n4. NICE-TO-HAVE: Speed (optimize but not at accuracy cost)\n\n---\n\n**Mistake 4: Implicit Expectations**\n```\nAgent Persona:\n- You work with other agents\n- Quality is important\n- Follow the workflow\n```\n**Impact**: Agent doesn't know WHAT quality standards, WHICH workflow, or HOW to coordinate.\n\n**Fix**: Explicit instructions:\n- \"Validation Gate: Before handoff to Architect, verify you have documented source evidence for every requirement\"\n- \"Workflow: Receive patterns from Discovery Agent \u2192 Extract requirements \u2192 Hand to Architect with evidence\"\n\n---\n\n### How Poor Positioning Causes Failures\n\n**Real Failure Pattern 1: Validator Forgets to Validate**\n- Quality validation instructions buried in middle of persona\n- Context window pressure causes agent to skip validation\n- Issues reach stakeholders unchecked\n\n**Solution**: Quality gates at TOP of validator persona, repeated before handoff instructions.\n\n---\n\n**Real Failure Pattern 2: Specialist Acts as Generalist**\n- Domain specialist persona starts with \"you're helpful and collaborative\"\n- Specialist tries to do everyone's job instead of specializing\n- Deep expertise never applied\n\n**Solution**: Lead with \"You are a [DOMAIN] SPECIALIST. Your ONLY role is [SPECIFIC EXPERTISE]. You do NOT [other roles].\"\n\n---\n\n**Real Failure Pattern 3: Orchestrator Micromanages**\n- Orchestrator persona emphasizes \"detailed oversight\"\n- Orchestrator does specialists' work instead of coordinating\n- Team becomes bottleneck\n\n**Solution**: Lead with \"You COORDINATE, you do NOT execute. Trust specialists, validate at gates, intervene only on failures.\"\n\n---\n\n## Team Building Checklist\n\nBefore you build your team, validate:\n\n**\u2705 Role Clarity**\n- Each agent has ONE primary role\n- No overlap between agent responsibilities\n- Clear boundaries (what each agent does NOT do)\n\n**\u2705 Token Efficiency**\n- Each agent under 10K tokens (ideally 5-8K)\n- No redundant context across agents\n- Deep expertise concentrated in specialists\n\n**\u2705 Validation Gates**\n- Independent validation after critical work\n- Quality checks before stakeholder delivery\n- Domain validation where expertise required\n\n**\u2705 Hierarchy in Personas**\n- Critical rules at TOP of each persona\n- Role definition early and clear\n- Explicit priorities (not equal emphasis)\n- Workflow context and coordination patterns\n\n**\u2705 Coordination Design**\n- Orchestrator coordinates, doesn't execute\n- Clear handoff expectations\n- Error recovery patterns defined\n\n**\u2705 Scope Match**\n- Team size matches complexity (3-6 specialized domains = 3-6 agents)\n- Specialization worth coordination overhead\n- Not building a team just because you can\n\n---\n\n## Final Principle: Specialization vs. Coordination Overhead\n\n**The Trade-Off**:\n- **More Agents = More Specialization** (deeper expertise, clearer roles, better quality)\n- **More Agents = More Coordination** (more handoffs, more orchestration, more complexity)\n\n**When Specialization Wins**:\n- Deep expertise prevents costly errors\n- Role confusion would create quality issues\n- Independent validation is critical\n- Token efficiency matters (team is lighter than bloated single agent)\n\n**When Coordination Overhead Wins**:\n- Domains overlap significantly\n- Expertise depth not critical\n- Single agent can handle it under 10K tokens\n- Team complexity overwhelms benefits\n\n**Bobb Helps You Find the Balance**: Be explicit about your constraints, risks, and requirements. Let Bobb design for your specific needs.\n\n---\n\n## Your Next Steps\n\nThis is just the beginning. Agent C represents a fundamental shift in how consulting work gets done. You've seen what it is, you've glimpsed what it can do, and you now understand how to build the teams that make it possible.\n\nNext, you'll want to understand:\n- **Working with Bobb to design your first team** - Hands-on agent building\n- **Building your own components** - Customizing Agent C for your specific needs\n- **Advanced integration patterns** - Connecting Agent C to your client's systems and tools\n- **Quality assurance and validation** - Ensuring everything meets client standards\n\nBut start with this: Think about your current project. What analysis are you dreading? What deliverable is looming? What would you attempt if you had 10x the analysis capability?\n\nThat's what Agent C makes possible.\n\n**Ready to Build?** Start with Bobb. Describe your workflow, constraints, and risks. Iterate on the design. Get team structure right BEFORE building agents.\n\n**Welcome to the future of consulting. Let's build something incredible.** \ud83d\ude80\n\n---\n\n*Ready to dive deeper? The next guides will show you exactly HOW to work with Bobb and orchestrate these powerful workflows.*\n";
+        
+        // Wait for marked.js to load
+        function initPage() {
+            if (typeof marked === 'undefined') {
+                setTimeout(initPage, 100);
+                return;
+            }
+            
+            // Configure marked
+            marked.setOptions({
+                breaks: true,
+                gfm: true
+            });
+            
+            // Render markdown
+            const html = marked.parse(markdownContent);
+            document.getElementById('markdown-content').innerHTML = html;
+            
+            // Apply syntax highlighting
+            if (typeof hljs !== 'undefined') {
+                document.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            }
+            
+            // Build TOC
+            buildTOC();
+            
+            // Setup scroll handlers
+            setupScrollHandlers();
+        }
+        
+        function buildTOC() {
+            const content = document.getElementById('markdown-content');
+            const toc = document.getElementById('toc');
+            const headings = content.querySelectorAll('h1, h2, h3');
+            
+            let currentH1 = null;
+            let currentH1Children = null;
+            let firstH1 = null;
+            
+            headings.forEach((heading, index) => {
+                // Create ID if needed
+                if (!heading.id) {
+                    heading.id = heading.textContent.trim().toLowerCase()
+                        .replace(/[^a-z0-9]+/g, '-')
+                        .replace(/(^-|-$)/g, '') + '-' + index;
+                }
+                
+                const level = heading.tagName.toLowerCase();
+                
+                if (level === 'h1') {
+                    // Create H1 container
+                    currentH1 = document.createElement('div');
+                    currentH1.className = 'toc-item toc-h1';
+                    
+                    // Track first H1 for default expansion
+                    if (!firstH1) {
+                        firstH1 = currentH1;
+                        currentH1.classList.add('expanded');
+                    } else {
+                        currentH1.classList.add('collapsed');
+                    }
+                    
+                    // Create H1 header with toggle
+                    const h1Header = document.createElement('div');
+                    h1Header.className = 'toc-h1-header';
+                    
+                    const toggleIcon = document.createElement('span');
+                    toggleIcon.className = 'toggle-icon';
+                    toggleIcon.textContent = '\u25bc';
+                    
+                    const a = document.createElement('a');
+                    a.href = '#' + heading.id;
+                    a.textContent = heading.textContent;
+                    a.setAttribute('data-heading-id', heading.id);
+                    
+                    // Click on toggle or header to expand/collapse
+                    h1Header.addEventListener('click', (e) => {
+                        if (e.target.tagName !== 'A') {
+                            e.preventDefault();
+                            const h1Container = e.currentTarget.closest('.toc-h1');
+                            toggleH1Section(h1Container);
+                        }
+                    });
+                    
+                    // Click on link to navigate
+                    a.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        
+                        // Expand this section
+                        const h1Container = e.currentTarget.closest('.toc-h1');
+                        expandH1Section(h1Container);
+                        
+                        // Highlight briefly
+                        const orig = heading.style.backgroundColor;
+                        heading.style.backgroundColor = 'rgba(253,184,37,0.2)';
+                        setTimeout(() => heading.style.backgroundColor = orig, 1500);
+                        
+                        // Update active
+                        updateActiveTOC(a);
+                    });
+                    
+                    h1Header.appendChild(toggleIcon);
+                    h1Header.appendChild(a);
+                    currentH1.appendChild(h1Header);
+                    
+                    // Create children container
+                    currentH1Children = document.createElement('div');
+                    currentH1Children.className = 'toc-children';
+                    currentH1.appendChild(currentH1Children);
+                    
+                    toc.appendChild(currentH1);
+                    
+                } else if (level === 'h2' || level === 'h3') {
+                    // Create H2/H3 item
+                    const item = document.createElement('div');
+                    item.className = `toc-item toc-${level}`;
+                    
+                    const a = document.createElement('a');
+                    a.href = '#' + heading.id;
+                    a.textContent = heading.textContent;
+                    a.setAttribute('data-heading-id', heading.id);
+                    
+                    a.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        
+                        // Expand parent H1 section
+                        const h1Container = e.currentTarget.closest('.toc-h1');
+                        if (h1Container) {
+                            expandH1Section(h1Container);
+                        }
+                        
+                        // Highlight briefly
+                        const orig = heading.style.backgroundColor;
+                        heading.style.backgroundColor = 'rgba(253,184,37,0.2)';
+                        setTimeout(() => heading.style.backgroundColor = orig, 1500);
+                        
+                        // Update active
+                        updateActiveTOC(a);
+                    });
+                    
+                    item.appendChild(a);
+                    
+                    // Add to current H1's children
+                    if (currentH1Children) {
+                        currentH1Children.appendChild(item);
+                    }
+                }
+            });
+        }
+        
+        function toggleH1Section(h1Element) {
+            h1Element.classList.toggle('collapsed');
+            h1Element.classList.toggle('expanded');
+        }
+        
+        function expandH1Section(h1Element) {
+            if (h1Element.classList.contains('collapsed')) {
+                h1Element.classList.remove('collapsed');
+                h1Element.classList.add('expanded');
+            }
+        }
+        
+        function collapseH1Section(h1Element) {
+            if (h1Element.classList.contains('expanded')) {
+                h1Element.classList.remove('expanded');
+                h1Element.classList.add('collapsed');
+            }
+        }
+        
+        function updateActiveTOC(activeLink) {
+            document.querySelectorAll('#toc a').forEach(link => {
+                link.classList.remove('active');
+            });
+            if (activeLink) {
+                activeLink.classList.add('active');
+            }
+        }
+        
+        function collapseAllH1Sections() {
+            document.querySelectorAll('.toc-h1').forEach(h1 => {
+                collapseH1Section(h1);
+            });
+        }
+        
+        function setupScrollHandlers() {
+            const contentDiv = document.getElementById('content');
+            const backToTop = document.getElementById('back-to-top');
+            const headings = document.querySelectorAll('#markdown-content h1, #markdown-content h2, #markdown-content h3');
+            
+            // Track the currently active H1 section
+            let currentActiveH1 = null;
+            let lastScrollUpdate = 0;
+            const SCROLL_THROTTLE = 50; // Update every 50ms during scrolling
+            
+            // Function to update TOC and sections based on scroll position
+            function updateTOCOnScroll() {
+                // Find the current heading in view
+                let currentHeading = null;
+                headings.forEach(h => {
+                    const rect = h.getBoundingClientRect();
+                    if (rect.top >= 0 && rect.top < window.innerHeight / 3) {
+                        currentHeading = h;
+                    }
+                });
+                
+                if (currentHeading) {
+                    const activeLink = document.querySelector(`#toc a[data-heading-id="${currentHeading.id}"]`);
+                    updateActiveTOC(activeLink);
+                    
+                    // Determine which H1 section this heading belongs to
+                    let newActiveH1 = null;
+                    if (currentHeading.tagName.toLowerCase() === 'h1') {
+                        // Current heading is an H1
+                        newActiveH1 = activeLink ? activeLink.closest('.toc-h1') : null;
+                    } else {
+                        // Current heading is H2/H3, find parent H1
+                        newActiveH1 = activeLink ? activeLink.closest('.toc-h1') : null;
+                    }
+                    
+                    // Auto-collapse previous section and expand new section
+                    if (newActiveH1 && newActiveH1 !== currentActiveH1) {
+                        // New H1 section detected - collapse all others
+                        collapseAllH1Sections();
+                        
+                        // Expand only the new current H1 section
+                        expandH1Section(newActiveH1);
+                        
+                        // Update tracker
+                        currentActiveH1 = newActiveH1;
+                    }
+                }
+            }
+            
+            // Back to top button and THROTTLED scroll updates
+            contentDiv.addEventListener('scroll', () => {
+                // Back to top button
+                if (contentDiv.scrollTop > 300) {
+                    backToTop.classList.add('visible');
+                } else {
+                    backToTop.classList.remove('visible');
+                }
+                
+                // Throttle scroll updates - execute every 50ms DURING scrolling
+                const now = Date.now();
+                if (now - lastScrollUpdate >= SCROLL_THROTTLE) {
+                    lastScrollUpdate = now;
+                    updateTOCOnScroll();
+                }
+            });
+            
+            backToTop.addEventListener('click', () => {
+                contentDiv.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+        
+        // Toggle sidebar
+        document.getElementById('toggle-sidebar').addEventListener('click', () => {
+            document.body.classList.toggle('sidebar-hidden');
+            const btn = document.getElementById('toggle-sidebar');
+            btn.textContent = document.body.classList.contains('sidebar-hidden') ? 'Show' : 'Hide';
+        });
+        
+        // Initialize
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initPage);
+        } else {
+            initPage();
+        }
+    </script>
+</body>
+</html>

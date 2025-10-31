@@ -3,51 +3,46 @@
 ## Prerequisites
 
 **Check What's Already Installed:**
+
+1. **Download Rancher Desktop**:
+   - Go to https://rancherdesktop.io/
+   - Click download and install for Windows
+   - Choose 'dockerd' as the container engine
 ```
 Open PowerShell as Admin (Windows + X → "PowerShell (Admin)")
 ```
 
 ```powershell
 wsl --version
-git --version
 ```
 
-If both show versions, skip to Step 1. Otherwise, continue below.
+If this shows a version, skip to Step 1. Otherwise, continue below.
 
 **Pre-Installation Steps (IN ORDER):**
 
-1. **Install WSL** (MUST BE FIRST - skip if already installed):
-   2. Windows Subsystem for Linux
+2. **Install WSL** (MUST BE FIRST - skip if already installed):
+   1. Windows Subsystem for Linux
 ```powershell
 wsl --install
 ```
 
-2. **Install Git** (skip if already installed):
-```powershell
-winget install Git.Git
-```
-
-3. **Download Rancher Desktop**:
-   - Go to https://rancherdesktop.io/
-   - Click download and install for Windows
-   - Choose 'dockerd' as the container engine
-
-
-4. **RESTART COMPUTER** (required after WSL + Rancher) then verify:
+3. **RESTART COMPUTER** (required after WSL + Rancher) then verify:
 
 ```powershell
 wsl --version
-git --version
 ```
 
 ---
 
 ## Step 1: Download Agent C
-
+```
+Open PowerShell as Admin (Windows + X → "PowerShell (Admin)")
+```
 ```powershell
 cd $env:USERPROFILE
+```
+```powershell
 git clone https://github.com/centricconsulting/agent_c_framework.git
-cd agent_c
 ```
 
 ---
@@ -55,15 +50,14 @@ cd agent_c
 ## Step 2: Navigate to Agent C Framework
 
 ```powershell
-cd agent_c
+cd agent_c_framework
 ```
-
 ---
 
-## Step 3: Initialize Local Storage
+## Step 3: Navigate to Agent C Framework
 
 ```powershell
-agentc up
+.\scripts\initial_setup.ps1
 ```
 1. This creates the `.agent_c` folder with:
    2. Config file, User db, Chat session index, Agents, Saved chat files
@@ -72,11 +66,13 @@ agentc up
 
 ---
 
-## Step 4: Run Startup Again
+## Step 4: Run Startup 
 
 ```powershell
-agentc up
+.\agentc up
 ```
+- This will initiate the container builds and initiate the client
+
 
 ---
 
