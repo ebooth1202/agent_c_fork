@@ -1,7 +1,10 @@
+from pydantic import Field
+
 from agent_c.prompting import PromptSection, property_bag_item
 
 class RSSSection(PromptSection):
     feeds: str
+    section_type: str = Field("rss_tool", description="The type of the prompt section, used for registration and identification.")
 
     def __init__(self, **data):
         TEMPLATE = ("The RSS tool provides access multiple RSS feeds via a feed ID.  The IDs for the avaliale feed as well as their "
