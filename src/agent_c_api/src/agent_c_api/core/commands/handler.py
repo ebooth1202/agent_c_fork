@@ -2,9 +2,12 @@ from typing import TYPE_CHECKING, List
 
 from agent_c_api.core.commands.agents import ReloadAgentsCommand
 from agent_c_api.core.commands.base_command import Command
+from agent_c_api.core.commands.blocks import ReloadBlocksCommand
 from agent_c_api.core.commands.help import HelpCommand
 from agent_c_api.core.commands.history import ForkCommand, RewindCommand
+from agent_c_api.core.commands.prompt import PreviewPromptCommand
 from agent_c_api.core.commands.tools import EquipToolCommand, RemoveToolCommand, CallToolCommand, ToolInfoCommand
+from agent_c_api.core.commands.workspace import AddLocalWorkspaceCommand
 
 if TYPE_CHECKING:
     from agent_c_api.core.realtime_bridge import RealtimeBridge
@@ -14,13 +17,14 @@ class ChatCommandHandler:
     def __init__(self):
         self.commands: List[Command] = []
         self.command_map: dict[str, Command] = {}
-
-        # Register all your commands
         self._register_commands([
             HelpCommand(),
             ForkCommand(),
             RewindCommand(),
+            AddLocalWorkspaceCommand(),
             ReloadAgentsCommand(),
+            ReloadBlocksCommand(),
+            PreviewPromptCommand(),
             ToolInfoCommand(),
             EquipToolCommand(),
             RemoveToolCommand(),
@@ -52,7 +56,8 @@ class ChatCommandHandler:
         args_string = parts[1] if len(parts) > 1 else ""
 
         if command_name not in self.command_map:
-            return False
+            await context.send_system_message(f"Unknown command: {command_name}", severity="error")
+            return True # Unknown command, ignore
 
         command = self.command_map[command_name]
 

@@ -5,7 +5,6 @@ from . import web
 from . import web_search
 from . import memory
 from . import think
-from . import mermaid_chart
 from . import user_bio
 from . import weather
 from . import random_number

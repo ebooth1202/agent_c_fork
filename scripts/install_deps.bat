@@ -26,7 +26,8 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo Installing agent_c_tools (includes playwright)...
+echo Installing agent_c_tools...
+pip install -e ace_proto
 pip install -e agent_c_tools
 
 if errorlevel 1 (
@@ -49,15 +50,6 @@ playwright install
 
 if errorlevel 1 (
     echo Failed to install Playwright browsers.
-    popd
-    exit /b 1
-)
-
-echo Installing ace_proto...
-pip install -e ace_proto
-
-if errorlevel 1 (
-    echo Failed to install ace_proto.
     popd
     exit /b 1
 )

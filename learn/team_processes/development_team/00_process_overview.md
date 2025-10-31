@@ -93,20 +93,6 @@ Demo Package Coordinator
 3. **Quality Review** → Coordinator approval and quality gate validation
 4. **Delivery** → Complete feature delivery with documentation updates
 
-## Key Process Documents
-
-### Foundation Processes
-- **[01_reference_material_through_line.md](./01_reference_material_through_line.md)**: Preserving user context without filtering
-- **[02_new_feature_design_process.md](./02_new_feature_design_process.md)**: Design-first development with human signoff
-
-### Execution Processes  
-- **[03_coordinator_to_specialist_workflow.md](./03_coordinator_to_specialist_workflow.md)**: Work unit management and assignment
-- **[04_dev_to_test_handoff_protocol.md](./04_dev_to_test_handoff_protocol.md)**: Excellence in dev-to-test transitions
-
-### Coordination Processes
-- **[05_cross_package_coordination.md](./05_cross_package_coordination.md)**: Managing work across package boundaries
-- **[06_quality_control_procedures.md](./06_quality_control_procedures.md)**: Built-in quality assurance and improvement
-
 ## Success Criteria
 
 ### User Outcome Quality

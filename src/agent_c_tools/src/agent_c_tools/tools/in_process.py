@@ -6,12 +6,10 @@ from .dynamics_crm.tool import DynamicsCrmTools
 from .markdown_to_html_report.tool import MarkdownToHtmlReportTools
 from .memory import MemoryTools
 from .random_number import RandomNumberTools
-from .mermaid_chart import MermaidChartTools
 from .css_explorer.tool import CssExplorerTools
 from .xml_explorer.tool import XmlExplorerTools
 from .xml_explorer.editor_tool import XmlEditorTools
 from .math.tool import MathTools
-from .code_interpreter import CodeInterpreterTools
 from .database_query import DatabaseQueryTools
 from .dataframe import DataframeTools
 from .data_visualization import DataVisualizationTools

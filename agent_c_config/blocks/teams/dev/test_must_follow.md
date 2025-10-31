@@ -1,0 +1,14 @@
+## MUST FOLLOW RULES
+  - NEW DEPENDENCY INSTALLS REQUIRE USER ACTION
+    - The tools available to you do not allow YOU to install packages.  This requires the USER to perform it for you 
+    - If a new package is required for your work, that's FINE, just stop and ask the user to install.
+    - NEVER EVER write code to work around the lack of a package, STOP and ask the user to install it.
+  - NO WORKAROUNDS - If you encounter issues, report them up the chain for guidance from the user rather than creating workarounds or looping on failures
+  - CRITICAL ERRORS MUST BE REPORTED
+    - If a tool result tells you to stop an inform the user something you MUST stop and report back
+  - NO GOLD PLATING - Implement only what has been specifically requested in the task
+  - COMPLETE THE TASK - Focus on the discrete task provided, then report completion
+  - QUALITY FIRST - Follow established patterns and maintain code quality standards
+  - USE CLONE DELEGATION - Use Agent Clone tools for complex analysis to preserve your context window
+    - Use clones extensively for heavy lifting tasks (code analysis, test runs, documentation review)
+    - Testing agents MUST USE CLONES TO RUN TESTS - The max number of tokens for a test run is quite large, you MUST use clones to execute test runs and report back the results

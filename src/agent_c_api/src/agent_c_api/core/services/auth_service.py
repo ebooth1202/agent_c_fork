@@ -50,16 +50,12 @@ class AuthService:
         is created but before it's used.
         """
         try:
-            self.logger.info("auth_service_initializing")
-            
             # Get database configuration and create session
             db_config = get_database_config()
             self.db_session = db_config.async_session_factory()
             
             # Initialize repository with the session
             self.auth_repo = AuthRepository(self.db_session)
-            
-            self.logger.info("auth_service_initialized")
 
             user = await self.auth_repo.get_user_by_username("admin")
             if not user:
@@ -299,8 +295,7 @@ class AuthService:
             Optional[LoginResponse]: Login response with token and user data, or None if failed
         """
         self._ensure_initialized()
-        start_time = time.time()
-        
+
         try:
             # Authenticate user
             user = await self.authenticate_user(username, password)
@@ -308,32 +303,24 @@ class AuthService:
                 return None
             
             # Generate JWT token
-            token = create_jwt_token(
-                user=user,
-                time_delta=timedelta(days=31)  # 24-hour token expiration
-            )
+            token = create_jwt_token(user=user, time_delta=timedelta(days=8))
             
             # Prepare response
             user_response = ChatUserResponse.from_chat_user(user)
 
-            duration = time.time() - start_time
-            self.logger.info(
-                "auth_login_successful",
+            self.logger.info("auth_login_successful",
                 username=username,
                 user_id=user.user_id,
-                token_created=True,
-                duration_ms=round(duration * 1000, 2)
+                token_created=True
             )
             
             return LoginResponse(token=token, user=user_response)
             
         except Exception as e:
-            duration = time.time() - start_time
             self.logger.error(
                 "auth_login_error",
                 username=username,
-                error=str(e),
-                duration_ms=round(duration * 1000, 2)
+                error=str(e)
             )
             raise
     

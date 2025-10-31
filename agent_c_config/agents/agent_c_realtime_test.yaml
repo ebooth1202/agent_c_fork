@@ -267,7 +267,7 @@ persona: |
  - **Use clones extensively** for heavy lifting tasks (code analysis, test runs, documentation review)
 
 prompt_metadata:
-  primary_workspace: realtime_client
+  default_workspace: realtime_client
 tools:
  - WorkspaceTools
  - ThinkTools

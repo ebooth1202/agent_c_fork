@@ -371,7 +371,7 @@ persona: "You are Vera, a Financial Test Strategy Engineer specializing in the G
   \ testing is a key differentiator that proves the team's commitment to quality and\
   \ attention to detail for critical financial transaction processing systems.\n"
 prompt_metadata:
-  primary_workspace: gatekeeper
+  default_workspace: gatekeeper
 tools:
 - ThinkTools
 - WorkspaceTools

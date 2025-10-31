@@ -82,7 +82,7 @@ class LoggingManager:
     # Class variables for shared configuration
     # LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    LOG_LEVEL = os.getenv('LOG_LEVEL', 'DEBUG').upper() # This is where we can change debug log levels.
+    LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO').upper() # This is where we can change debug log levels.
     FILE_LOG_ENABLED = os.getenv('FILE_LOG_ENABLED', 'true').lower() == 'true'
     LOG_FILE = os.getenv('LOG_FILE', 'logs\\agent_c_core.log')
 
@@ -213,11 +213,14 @@ class LoggingManager:
             "httpx": "WARNING",
             "urllib3": "WARNING",
             "uvicorn.access": "WARNING",
+            "uvicorn.error": "ERROR",
             "asyncio": "WARNING",
             "httpcore": "WARNING",
             "python_multipart": "WARNING",
             "anthropic": "WARNING",
             "openai": "WARNING",
+            "uvicorn": "INFO",
+            "fastapi": "INFO",
             # Add others as needed
         }
 

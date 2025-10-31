@@ -1,8 +1,11 @@
-from typing import List
+from typing import List, TYPE_CHECKING
 from abc import ABC, abstractmethod
 
 from agent_c.util.string import pascal_to_spaced
 from .parsers import CommandParser, NoArgsParser
+
+if TYPE_CHECKING:
+    from agent_c_api.core.realtime_bridge import RealtimeBridge
 
 
 class Command(ABC):
@@ -27,5 +30,5 @@ class Command(ABC):
         pass
 
     @abstractmethod
-    async def execute(self, context, **kwargs):
+    async def execute(self, context: 'RealtimeBridge', **kwargs):
         pass

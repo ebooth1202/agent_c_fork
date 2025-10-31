@@ -27,7 +27,7 @@ class EnvironmentInfoSection(PromptSection):
                           This can include overrides for the 'template', 'voice_tools', and 'env_rules' attributes.
         """
         TEMPLATE: str = (
-            "Current time: ${timestamp}.\n${session_info}"
+            "Current time: ${timestamp}.\n\n${session_info}"
         )
         super().__init__(template=TEMPLATE, name="Runtime Environment", **data)
 
@@ -50,14 +50,14 @@ class EnvironmentInfoSection(PromptSection):
         session_data = f"Session ID: {chat_session.session_id}\nSession Name: {session_name}\n"
         chat_user: 'ChatUser' = context['chat_user']
         groups: str = ", ".join(chat_user.groups) if chat_user.groups else "None"
-        user_data = f"User Name: {chat_user.user_name}\nGroups: {groups}\n"
+        user_data = f"- User Name: {chat_user.user_name}\n- Groups: {groups}\n"
 
-        prefix = ""
+        prefix = "\n"
 
         if chat_session.session_name is None:
-            prefix = "ALERT! This session has no name!  Use `bridge_set_session_name` to set a name once you know the topic of the session. BEFORE BEGGING WORK!\nn"
+            prefix = "\nALERT! This session has no name!  Use `bridge_set_session_name` to set a name once you know the topic of the session. BEFORE BEGGING WORK!\n\n"
 
-        return  f"{prefix}### Session Info\n{session_data}\n{user_data}"
+        return  f"{prefix}### Session Info\n\n{session_data}\n\n{user_data}"
 
 
     @property_bag_item
@@ -74,9 +74,9 @@ class EnvironmentInfoSection(PromptSection):
         try:
             local_time_with_tz = datetime.datetime.now(datetime.timezone.utc).astimezone()
             if platform.system() == "Windows":
-                formatted_timestamp = local_time_with_tz.strftime('%A %B %#d, %Y %#I:%M%p (%Z %z)')
+                formatted_timestamp = local_time_with_tz.strftime('%A %B %#d, %Y %#I:%M%p (UTC %z)')
             else:
-                formatted_timestamp = local_time_with_tz.strftime('%A %B %-d, %Y %-I:%M%p (%Z %z)')
+                formatted_timestamp = local_time_with_tz.strftime('%A %B %-d, %Y %-I:%M%p (UTC %z)')
             return formatted_timestamp
         except Exception:
             self._logger.error("An error occurred when formatting the timestamp.", exc_info=True)

@@ -1,10 +1,9 @@
 import re
 import json
-import base64
 import mimetypes
 from pathlib import Path
 
-from typing import Any, List, Tuple, Optional, Callable, Awaitable, Union
+from typing import Any, List, Tuple, Optional, Callable, Awaitable, Union, Dict
 
 from agent_c.toolsets.tool_set import Toolset
 from agent_c.models.context.base import BaseContext
@@ -608,44 +607,45 @@ class WorkspaceTools(Toolset):
                 exc_info=True)
             return f'Error reading file lines, for {unc_path}: {str(e)}'
 
-    # @json_schema(
-    #     'Inspects a code file and returns details about its contents and usage.',
-    #     {
-    #         'path': {
-    #             'type': 'string',
-    #             'description': 'UNC-style path (//WORKSPACE/path) to the file to read',
-    #             'required': True
-    #         }
-    #     }
-    # )
-    # async def inspect_code(self, **kwargs: Any) -> str:
-    #     """Uses CodeExplorer to prepare code overviews.
-    #
-    #     Args:
-    #         path (str): UNC-style path (//WORKSPACE/path) to the file to read
-    #
-    #     Returns:
-    #         str: A markdown overview of the code
-    #     """
-    #     unc_path = kwargs.get('path', '')
-    #
-    #     error, workspace, relative_path = self.validate_and_get_workspace_path(unc_path)
-    #     if error:
-    #         return f'Error: {str(error)}'
-    #
-    #     try:
-    #         file_content = await workspace.read_internal(relative_path)
-    #     except Exception as e:
-    #         self.logger.exception(f'Error fetching file {unc_path}: {str(e)}', exc_info=True)
-    #         return f'Error fetching {unc_path}: {str(e)}'
-    #
-    #     try:
-    #         context = api.get_code_context(file_content, format='markdown', filename=unc_path)
-    #     except Exception as e:
-    #         self.logger.warning(f'Error inspecting code {unc_path}: {str(e)}')
-    #         return f'Error inspecting code {unc_path}: {str(e)}'
-    #
-    #     return context
+    @json_schema(
+        'Inspects a code file and returns details about its contents and usage.',
+        {
+            'path': {
+                'type': 'string',
+                'description': 'UNC-style path (//WORKSPACE/path) to the file to read',
+                'required': True
+            }
+        }
+    )
+    async def inspect_code(self, **kwargs: Any) -> str:
+        """Uses CodeExplorer to prepare code overviews.
+
+        Args:
+            path (str): UNC-style path (//WORKSPACE/path) to the file to read
+
+        Returns:
+            str: A markdown overview of the code
+        """
+        unc_path = kwargs.get('path', '')
+
+        error, workspace, relative_path = self.validate_and_get_workspace_path(unc_path)
+        if error:
+            return f'Error: {str(error)}'
+
+        try:
+            from ts_tool import api
+            file_content = await workspace.read_internal(relative_path)
+        except Exception as e:
+            self.logger.exception(f'Error fetching file {unc_path}: {str(e)}', exc_info=True)
+            return f'Error fetching {unc_path}: {str(e)}'
+
+        try:
+            context = api.get_code_context(file_content, format='markdown', filename=unc_path)
+        except Exception as e:
+            self.logger.warning(f'Error inspecting code {unc_path}: {str(e)}')
+            return f'Error inspecting code {unc_path}: {str(e)}'
+
+        return context
 
     @json_schema(
         description="Find files matching a glob pattern in a workspace. Equivalent to `glob.glob` in Python",
@@ -979,6 +979,27 @@ class WorkspaceTools(Toolset):
             return f"Saved metadata to '{key}' in {workspace.name} workspace."
         except Exception as e:
             return f"Failed to write metadata to '{key}' in {workspace.name} workspace: {str(e)}"
+
+    @json_schema(
+        description="Set a workspace as the active workspace for this chat session",
+        params={
+            "workspace_name": {
+                "type": "string",
+                "description": "Name of the workspace to make the active workspace",
+                "required": True
+            }
+        }
+    )
+    async def set_active(self, **kwargs: Any) -> str:
+        tool_context: Dict[str, Any] = kwargs.get("tool_context")
+        workspace_name = kwargs.get("workspace_name")
+        if self.find_workspace_by_name(workspace_name):
+            tool_context['chat_session'].meta['active_workspace'] = workspace_name
+            await tool_context['bridge'].send_system_message(f"Active workspace set to {workspace_name}", severity="info")
+            return f"Workspace '{workspace_name}' is now the active workspace for this chat session."
+
+        return f"ERROR: Workspace '{workspace_name}' not found."
+
 
     @json_schema(
         description="Send a render media event to the UI to display file content from the workspace. "

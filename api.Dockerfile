@@ -20,6 +20,7 @@ COPY agent_c_config /app/agent_c_config
 
 # Upgrade pip
 RUN pip install --no-cache-dir --upgrade pip
+RUN pip install --no-cache-dir --upgrade setuptools
 USER root
 RUN chown -R agent_c:agent_c /app
 
@@ -29,8 +30,8 @@ RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 USER agent_c
 # Install Python dependencies
 WORKDIR /app/src
-#RUN pip install ace_proto/ts_tool-0.1.0-py3-none-any.whl
-RUN pip install  -e agent_c_core \
+RUN pip install -e ace_proto \
+    && pip install  -e agent_c_core \
     && pip install -e agent_c_tools \
     && pip install -e agent_c_api
 

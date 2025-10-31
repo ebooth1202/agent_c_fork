@@ -7,7 +7,7 @@ from agent_c.prompting.prompt_section import PromptSection, property_bag_item
 class AssistantBehaviorSection(PromptSection):
     def __init__(self, **data: Any):
         TEMPLATE = """**Important**: Agent Assist mode has been activated.\n\n# Assistant Operating Context\n\n
-                You are being contacted via the Agent Assist Tool by another agent  to handle a specific delegated task. Important operating guidelines:\n
+                You are being contacted via the Agent Assist Tool by another agent  to handle a specific delegated task. Important operating guidelines:\n\n
 
                 - You are operating as a specialized clone with focused responsibilities\n
                 - Your role is to complete the specific task assigned by your requesting agent\n
@@ -16,8 +16,7 @@ class AssistantBehaviorSection(PromptSection):
                 - Focus on delivering complete, actionable results within your assigned scope\n
                 - Do not attempt to expand beyond your delegated responsibilities\n
                 - Provide thorough, high-quality output that addresses the specific request\n
-                \n\n$agent_process_directive\n
-                
+                \n\n$agent_process_directive\n\n                
                 """
         super().__init__(template=TEMPLATE, required=True, name="AGENT ASSIST MODE ACTIVE", render_section_header=True, **data)
 
@@ -41,14 +40,13 @@ class AgentAssistSection(PromptSection):
         TEMPLATE = ("The Agent Assist Toolset (aa) allows you to leverage other agents to perform tasks, answer questions "
                     "on behalf of the user or to execute your plans..These are highly capable agents with very specialized knowledge, they will allow "
                     "you to ensure both high quality and token efficiency by offloading the 'heavy lifting' to subject matter experts.\n\n"
-                    "## Available Agent IDS:\n${agent_ids}\n\n"
-                    "## Interaction Guidelines:\n"
+                    "## Available Agent IDS:\n\n${agent_ids}\n\n"
+                    "## Interaction Guidelines:\n\n"
                     "- The user will often use casual languages such as `ask cora to do X`.\n"
-                    "  - If only one agent persona matches that name than use that agent ID to "
-                    "make an`aa_` tool call.\n"
+                    "  - If only one agent persona matches that name than use that agent ID to make an`aa_` tool call.\n"
                     "  - If more than one name matches, inform the user of the ambiguity and list the roles available.\n"
                     "    - For example: I'm sorry, do you mean 'Cora the Agent C core dev' or 'Cora the Fast API dev'?\n"
-                    "$aa_sessions\n\n**IMPORTANT**: You may only use one delegation tool at a time.")
+                    "$aa_sessions\n\n**IMPORTANT**: You may only use one delegation tool at a time.\n\n")
         super().__init__(template=TEMPLATE, required=True, name="Agent Assist", render_section_header=True, **data)
 
     @property_bag_item
@@ -57,7 +55,8 @@ class AgentAssistSection(PromptSection):
         available = self._filter_agent_catalog(agent_config)
         agent_descriptions = []
         for sub_agent in available:
-            agent_descriptions.append(f"**{sub_agent.name}**, Agent Key: `{sub_agent.key}`\nTools:{", ".join(sub_agent.tools)}{sub_agent.agent_description}")
+            tool_list = ", ".join(sub_agent.tools) if sub_agent.tools else "None"
+            agent_descriptions.append(f"**{sub_agent.name}**\n\nAgent Key: `{sub_agent.key}`\n\nTools: {tool_list}\n\n{sub_agent.agent_description}\n\n")
 
         return "\n".join(agent_descriptions)
 
@@ -88,6 +87,6 @@ class AgentAssistSection(PromptSection):
                 except Exception:
                     pass
 
-            return f"\n\n## Active Agent Sessions:\n{"\n".join(sess_list)}\n\n"
+            return f"\n\n## Active Agent Sessions:\n\n{"\n".join(sess_list)}\n\n"
 
         return "\n"
