@@ -1,7 +1,10 @@
 import re
-from typing import List, Dict, Any, Set, Optional
+from typing import List, Dict, Any, Set, Optional, TYPE_CHECKING
 from agent_c.prompting.prompt_section import PromptSection
 from agent_c.util.logging_utils import LoggingManager
+
+if TYPE_CHECKING:
+    from agent_c.models.chat_history import ChatSession
 
 
 class PromptBuilder:
@@ -78,7 +81,7 @@ class PromptBuilder:
             return rendered_section
         except KeyError as e:
             missing_key = str(e).strip("'")
-            message = f"Error rendering section '{section.name}': Missing key '{missing_key}'. It will be replaced with it's own name."
+            message = f"Error rendering section '{section.section_type}': Missing key '{missing_key}'. It will be replaced with it's own name."
             await self.notifier.send_system_message(message, "warning")
             data[missing_key] = missing_key
             return await self._render_section(section, data)
@@ -103,7 +106,35 @@ class PromptBuilder:
             tool_sections = self.tool_sections
 
         section_lists = [self.sections, tool_sections]
-        section_list_titles= ["Core Operating Guidelines", "Additional Tool Operation Guidelines"]
+        section_list_titles= ["Core Operating Guidelines", "Tool Operation Guidelines / Output"]
+        chat_session: 'ChatSession' = data.get("chat_session")
+        chat_meta = chat_session.metadata
+        all_sections = self.sections + tool_sections
+
+        for section in all_sections:
+            try:
+                dyn_data = await section.get_dynamic_properties(data)
+                data = data | dyn_data
+                data = await self.load_blocks_for_template(section.template, data )
+            except Exception as e:
+                self.logger.exception(f"Error loading blocks for section '{section.section_type}': {e}")
+                if section.required:
+                    await self.notifier.send_system_message(f"Error loading blocks for section '{section.section_type}': {e}.  Interaction aborted", "error")
+                    raise
+
+                await self.notifier.send_system_message(f"Error loading blocks for section '{section.section_type}': {e}", "warning")
+
+        for section in all_sections:
+            try:
+                if section.section_type in chat_meta.get("prompt_section_blocks", ''):
+                    data[f"blocks_{section.section_type}_section"] = section.render(data)
+            except Exception as e:
+                self.logger.exception(f"Error preparing block for section '{section.section_type}': {e}")
+                if section.required:
+                    await self.notifier.send_system_message(f"Error preparing block for section '{section.section_type}': {e}.  Interaction aborted", "error")
+                    raise
+
+                await self.notifier.send_system_message(f"Error preparing block for section '{section.section_type}': {e}", "warning")
 
         for index, section_list in enumerate(section_lists):
             if len(section_list) == 0:
@@ -115,14 +146,16 @@ class PromptBuilder:
 
             for section in section_list:
                 try:
-                    data = await self.load_blocks_for_template(section.template, data)
-                    rendered_section: str = await section.render(data)
-                    rendered_section += "\n\n"
+                    if section.section_type in chat_meta.get("prompt_section_blocks", '') or section.section_type in chat_meta.get("skip_prompt_sections", ''):
+                        continue
 
-                    if section.render_section_header:
-                        rendered_section = f"{header_prefix} {section.name}\n{rendered_section}"
+                    rendered_section: Optional[str] = await section.render(data)
+                    if rendered_section is not None:
+                        rendered_section += "\n\n"
+                        if section.render_section_header:
+                            rendered_section = f"{header_prefix} {section.name}\n{rendered_section}"
 
-                    rendered_sections.append(rendered_section)
+                        rendered_sections.append(rendered_section)
                 except Exception as e:
                     self.logger.exception(f"Error rendering section '{section.name}': {e}")
                     if section.required:
@@ -144,13 +177,13 @@ class PromptBuilder:
         template_vars = self._get_template_variables(template)
         for var in template_vars:
             if var.startswith("block_") or var.startswith("blocks_") and var not in data:
-                val = self.block_loader.get_block(var)
+                val = await self.block_loader.get_block(var)
 
                 if val is not None:
                     data[var] = val
-                    template_vars = self._get_template_variables(data[var])
-                    if len(template_vars):
-                        data = self.load_blocks_for_template(data[var], data)
+                    sub_vars = self._get_template_variables(data[var])
+                    if len(sub_vars):
+                        data = await self.load_blocks_for_template(data[var], data)
                 else:
                     data[var] = f"MISSING INSTRUCTION BLOCK `{var}`"
                     await self.notifier.send_system_message(f"Warning! The block '{var}' could not be found.", "warning")

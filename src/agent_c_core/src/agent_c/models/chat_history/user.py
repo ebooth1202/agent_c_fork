@@ -38,6 +38,12 @@ class ChatUser(BaseModel):
     def is_new_user(self) -> bool:
         return self.user_name == self.model_fields['user_name'].default
 
+    def get_agent_memory_store(self) -> Dict[str, Any]:
+        return self.meta.get("_agent_memory", {})
+
+    def set_agent_memory_store(self, memory_store: Dict[str, Any]) -> None:
+        self.meta["_agent_memory"] = memory_store
+
 
 def _ensure_chat_user(v):
     """BeforeValidator function to coerce inputs to ChatUser."""

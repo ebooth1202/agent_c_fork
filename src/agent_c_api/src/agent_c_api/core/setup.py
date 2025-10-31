@@ -81,6 +81,8 @@ def create_application(router: APIRouter, **kwargs) -> FastAPI:
         logger.info(f"🔧 Discovering tools")
         from agent_c_tools import discovered_tools # noqa
         from agent_c_tools.tools.standalone import BridgeTools # noqa
+        from agent_c.util.registries.section import SectionRegistry
+        SectionRegistry.export_prompt_vars()
 
         logger.info("🤖 Initializing Client Session Manager...")
         from agent_c_api.core.realtime_session_manager import RealtimeSessionManager

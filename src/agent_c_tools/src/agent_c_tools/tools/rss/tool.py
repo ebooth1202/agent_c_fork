@@ -17,9 +17,8 @@ class RssTools(Toolset):
     Your agent can fetch and monitor RSS feeds from various sources to keep you informed about
     topics that matter to you, from news outlets to personal blogs and industry updates.
     """
-
     def __init__(self, **kwargs):
-        super().__init__(**kwargs, name='rss')
+        super().__init__(**kwargs, name='rss', prefix="rss")
         self.feeds: List[RSSToolFeed] = kwargs.get('feeds', default_feeds)
         feed_list: str = "\n".join([str(feed) for feed in self.feeds])
         self.section = RSSSection(feeds=feed_list)
