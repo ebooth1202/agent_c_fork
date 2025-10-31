@@ -519,9 +519,9 @@ persona: |
 
   ${blocks_ts_dev_standards}
 
-  ${blocks_agent_c_ts_team_workspace}
+  ${blocks_team_workspace}
 
-  ${blocks_agent_c_ts_team_workspace}
+  ${blocks_team_workspace}
   
   ${blocks_agent_c_ts_ref_material}
 
