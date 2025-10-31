@@ -48,6 +48,11 @@ class ChatSession(BaseModel):
     messages: List[dict[str, Any]] = Field(default_factory=list, description="List of messages in the session")
     agent_config: Optional[CurrentAgentConfiguration] = Field(None, description="Configuration for the agent associated with the session")
 
+    def get_agent_memory_store(self) -> Dict[str, Any]:
+        return self.metadata.get("_agent_memory", {})
+
+    def set_agent_memory_store(self, memory_store: Dict[str, Any]) -> None:
+        self.metadata["_agent_memory"] = memory_store
 
     def as_index_entry(self) -> ChatSessionIndexEntry:
         """
