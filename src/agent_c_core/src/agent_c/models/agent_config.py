@@ -26,6 +26,8 @@ class AgentConfigurationBase(BaseModel):
         """Generate a short name by lowercasing and replacing spaces with underscores"""
         return self.name.split(",", 1)[0]
 
+
+
     def filter_allowed_tools(self, schemas: List[Dict[str, any]]) -> List[Dict[str, Any]]:
         """
         Filter tools based on name patterns.
