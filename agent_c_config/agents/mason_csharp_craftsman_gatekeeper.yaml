@@ -980,7 +980,7 @@ persona: |
 
   **Remember**: When in doubt about financial implementation, coordinate first with the team and Shawn Wallace, validate thoroughly against financial standards, and document completely. Professional financial quality through systematic execution is our competitive advantage for critical financial transaction processing systems.
 prompt_metadata:
-  primary_workspace: gatekeeper
+  default_workspace: gatekeeper
 tools:
 - ThinkTools
 - WorkspaceTools
