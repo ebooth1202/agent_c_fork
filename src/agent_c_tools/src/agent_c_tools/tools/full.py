@@ -23,7 +23,7 @@ from .workspace_sequential_thinking import WorkspaceSequentialThinkingTools
 from .browser_playwright import BrowserPlaywrightTools
 from .data_visualization import DataVisualizationTools
 from .database_query import DatabaseQueryTools
-from .xml_explorer import XmlExplorerTools
+from .xml_explorer import XmlExplorerTools, XmlEditorTools
 from .dataframe import DataframeTools
 from .gmail import GmailSearch, GmailMessage
 from .health import FDANDCTools, ClinicalTrialsTools, PubMedTools
@@ -35,9 +35,8 @@ from .insurance_demo import InsuranceDemoTools
 from .workspace import DynamicCommandTools
 from .toolbelt.tool import ToolbeltTools
 from .microsoft_stream.tool import MicrosoftStreamTools
-from .plsql_reverse_engineering.tool import PlsqlReverseEngineeringTools
-from .reverse_engineering import ReverseEngineeringTools
 from .ace_proto import AceProtoTools
+from .json_explorer import JsonExplorerTools, JsonEditorTools
 
 __all__ = [
     # Essential Tools for good agents
@@ -49,9 +48,10 @@ __all__ = [
     # Code Exploring Tools
     'CssExplorerTools',
     'XmlExplorerTools',
-    # 'PlsqlReverseEngineeringTools',
-    # 'ReverseEngineeringTools',
+    'XmlEditorTools',
     'AceProtoTools',
+    'JsonExplorerTools',
+    'JsonEditorTools',
 
 
     # Workspace tools
