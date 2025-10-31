@@ -3,7 +3,7 @@ import json
 import mimetypes
 from pathlib import Path
 
-from typing import Any, List, Tuple, Optional, Callable, Awaitable, Union
+from typing import Any, List, Tuple, Optional, Callable, Awaitable, Union, Dict
 
 from agent_c.toolsets.tool_set import Toolset
 from agent_c.models.context.base import BaseContext
@@ -979,6 +979,27 @@ class WorkspaceTools(Toolset):
             return f"Saved metadata to '{key}' in {workspace.name} workspace."
         except Exception as e:
             return f"Failed to write metadata to '{key}' in {workspace.name} workspace: {str(e)}"
+
+    @json_schema(
+        description="Set a workspace as the active workspace for this chat session",
+        params={
+            "workspace_name": {
+                "type": "string",
+                "description": "Name of the workspace to make the active workspace",
+                "required": True
+            }
+        }
+    )
+    async def set_active(self, **kwargs: Any) -> str:
+        tool_context: Dict[str, Any] = kwargs.get("tool_context")
+        workspace_name = kwargs.get("workspace_name")
+        if self.find_workspace_by_name(workspace_name):
+            tool_context['chat_session'].meta['active_workspace'] = workspace_name
+            await tool_context['bridge'].send_system_message(f"Active workspace set to {workspace_name}", severity="info")
+            return f"Workspace '{workspace_name}' is now the active workspace for this chat session."
+
+        return f"ERROR: Workspace '{workspace_name}' not found."
+
 
     @json_schema(
         description="Send a render media event to the UI to display file content from the workspace. "

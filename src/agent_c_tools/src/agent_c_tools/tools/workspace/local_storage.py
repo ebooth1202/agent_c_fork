@@ -52,6 +52,7 @@ class LocalStorageWorkspace(BaseWorkspace):
         super().__init__(entry, **kwargs)
 
         self.workspace_root: Path = self._resolve_path(entry.path_or_bucket)
+        self.block_folder: Path = self.workspace_root.joinpath('.agentc', 'blocks')
         self.valid: bool = self.workspace_root is not None
         self.allow_symlinks: bool = os.environ.get('WORKSPACE_ALLOW_SYMLINKS', 'true').lower() == 'true'
         self.logger = LoggingManager(__name__).get_logger()
@@ -66,6 +67,20 @@ class LocalStorageWorkspace(BaseWorkspace):
             max_output_size=1024 * 1024,  # byte size limits for truncating output
             policy_provider=policy_provider
         )
+
+    async def load_blocks(self):
+        if self.block_folder.exists():
+            file_paths = glob.glob(os.path.join(self.block_folder, "**/*.md"), recursive=True)
+
+            for file_path in file_paths:
+                key = file_path.removeprefix(str(self.block_folder)).replace("\\", "/").removeprefix("/").removesuffix(".md").replace("/", "_")
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as file:
+                        content = file.read()
+                        self._block_cache[f"block_{key}"] = content
+                except Exception as e:
+                    self.logger.exception(f"Failed to read block file {file_path}: {e}", exc_info=True)
+
 
     @staticmethod
     def _normalize_input_path(path: str) -> str:

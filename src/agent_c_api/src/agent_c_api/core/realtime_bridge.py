@@ -6,11 +6,8 @@ import traceback
 from contextlib import suppress
 from datetime import datetime
 from functools import singledispatchmethod
-from operator import truediv
 from typing import List, Optional, Any, Dict, AsyncIterator, Union, TYPE_CHECKING
 
-
-from agent_c.config import locate_config_path
 from agent_c.prompting.basic_sections.markdown import MarkdownFormatting
 from agent_c_api.core.commands.handler import ChatCommandHandler
 from agent_c_api.models.user_runtime_cache_entry import UserRuntimeCacheEntry
@@ -45,6 +42,7 @@ from agent_c_api.core.voice.voice_io_manager import VoiceIOManager
 
 from agent_c_tools.tools.think.prompt import ThinkSection
 from agent_c.models.events import  SystemMessageEvent
+from agent_c_tools.tools.workspace.base import BaseWorkspace
 
 if TYPE_CHECKING:
     from agent_c.chat import ChatSessionManager
@@ -257,6 +255,14 @@ class RealtimeBridge(ClientEventHandler):
         await self.tool_chest.activate_toolset(self.chat_session.agent_config.tools)
         await self.send_event(AgentConfigurationChangedEvent(agent_config=self.chat_session.agent_config))
 
+    async def reload_blocks(self) -> None:
+        self.ui_session_manager.agent_config_loader.load_blocks()
+        await self.send_system_message("Core instruction blocks reloaded.", severity="info")
+        workspace = self.get_active_workspace()
+        if workspace:
+            await workspace.load_blocks()
+            await self.send_system_message(f"Workspace instruction blocks reloaded for {workspace.name}.", severity="info")
+
     async def send_agent_list(self) -> None:
         catalog = self.ui_session_manager.agent_config_loader.client_catalog
         await self.send_event(AgentListEvent(agents=catalog))
@@ -429,6 +435,10 @@ class RealtimeBridge(ClientEventHandler):
             self.chat_session.agent_config.tools.append('BridgeTools')
         await self.send_chat_session()
 
+        active_workspace = self.chat_session.metadata.get('active_workspace', None)
+        if active_workspace:
+            await self.send_system_message(f"Active workspace set to {active_workspace}", severity="info")
+
     async def send_voices(self):
         voices = [no_voice_model, heygen_avatar_voice_model] + open_ai_voice_models
         await self.send_event(VoiceListEvent(voices=voices))
@@ -522,6 +532,12 @@ class RealtimeBridge(ClientEventHandler):
                 return
 
             self.chat_session.agent_config = agent_config
+            if self.chat_session.metadata.get('active_workspace') is None:
+                agent_workspace = agent_config.prompt_metadata.get('default_workspace', None)
+                if agent_workspace:
+                    self.chat_session.metadata['active_workspace'] = agent_workspace
+                    await self.send_system_message(f"Active workspace set to {agent_workspace}", severity="info")
+
 
             if 'BridgeTools' not in self.chat_session.agent_config.tools:
                 self.chat_session.agent_config.tools.append('BridgeTools')
@@ -846,15 +862,19 @@ class RealtimeBridge(ClientEventHandler):
         agent_meta = self.chat_session.agent_config.prompt_metadata or {}
         return {
             "session_id": self.chat_session.session_id,
-            "current_user_username": self.chat_session.user_id,
+            "user_id": self.chat_session.user_id,
+            "user_name": self.chat_user.user_name,
             "persona_prompt": self.chat_session.agent_config.persona,
             "agent_config": self.chat_session.agent_config,
+            "agent_long_name": self.chat_session.agent_config.name,
+            "agent_name": self.chat_session.agent_config.short_name,
+            "agent_key": self.chat_session.agent_config.key,
             "timestamp": datetime.now().isoformat(),
             "env_name": os.getenv('ENV_NAME', "development"),
             "user_session_id": self.chat_session.session_id,
             "chat_session": self.chat_session,
             "chat_user": self.chat_user,
-        } | agent_meta
+        } | agent_meta | self.chat_session.metadata
 
     async def send_to_all_user_sessions(self, event: BaseEvent):
         """Send an event to all sessions for the current user"""
@@ -881,6 +901,28 @@ class RealtimeBridge(ClientEventHandler):
                 "streaming_callback": on_event if on_event is not None else self.runtime_callback,
                 "prompt_metadata": prompt_metadata,
                 'agent_runtime': self.runtime_cache.runtime_for_agent(self.chat_session.agent_config)}
+
+    def get_active_workspace(self) -> Optional[BaseWorkspace]:
+        workspace_name = self.chat_session.metadata.get('active_workspace', None)
+        if workspace_name is None:
+            return None
+
+        workspaces = self.ui_session_manager.user_workspaces.get(self.chat_user.user_id, [])
+        for ws in workspaces:
+            if ws.name == workspace_name and ws.valid:
+                return ws
+
+        return None
+
+    async def get_block(self, block_key: str) -> Optional[str]:
+        workspace = self.get_active_workspace()
+        if workspace is not None:
+            block = await workspace.get_block(block_key)
+            if block is not None:
+                return block
+
+        return await self.ui_session_manager.agent_config_loader.get_block(block_key)
+
 
     async def interact(self, user_message: str, file_ids: Optional[List[str]] = None, on_event: Optional[callable] = None) -> None:
         """
@@ -928,10 +970,12 @@ class RealtimeBridge(ClientEventHandler):
                 tool_params['schemas'] = self.chat_session.agent_config.filter_allowed_tools(tool_params['schemas'])
                 tool_params["toolsets"] = self.chat_session.agent_config.tools
 
+            agent_prompt = self.chat_session.agent_config.persona
+
             if "ThinkTools" in self.chat_session.agent_config.tools:
-                agent_sections = [ThinkSection(), EnvironmentInfoSection(),  DynamicPersonaSection(), MarkdownFormatting()]
+                agent_sections = [ThinkSection(), EnvironmentInfoSection(),  DynamicPersonaSection(template=agent_prompt), MarkdownFormatting()]
             else:
-                agent_sections = [EnvironmentInfoSection(), DynamicPersonaSection(), MarkdownFormatting()]
+                agent_sections = [EnvironmentInfoSection(), DynamicPersonaSection(template=agent_prompt), MarkdownFormatting()]
 
             chat_params: Dict[str, Any] = {
                 "user_id": self.chat_session.user_id,
@@ -942,7 +986,7 @@ class RealtimeBridge(ClientEventHandler):
                 "client_wants_cancel": self.client_wants_cancel,
                 "streaming_callback": on_event  if on_event else self.runtime_callback,
                 'tool_context': await self._tool_context(on_event, prompt_metadata),
-                'prompt_builder': PromptBuilder(sections=agent_sections),
+                'prompt_builder': PromptBuilder(self, self, sections=agent_sections),
             }
 
             # Categorize file inputs by type to pass to appropriate parameters
@@ -1006,6 +1050,9 @@ class RealtimeBridge(ClientEventHandler):
             agent_config = self.ui_session_manager.agent_config_loader.duplicate(agent_key)
             user_id = user_id or self.chat_user.user_id
             chat_session = ChatSession(session_id=session_id, agent_config=agent_config, user_id=user_id)
+            agent_workspace = agent_config.prompt_metadata.get('default_workspace', None)
+            if agent_workspace:
+                chat_session.metadata['active_workspace'] = agent_workspace
         else:
             chat_session.agent_config = self.ui_session_manager.agent_config_loader.duplicate(agent_key)
 

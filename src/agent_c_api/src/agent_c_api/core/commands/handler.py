@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, List
 
 from agent_c_api.core.commands.agents import ReloadAgentsCommand
 from agent_c_api.core.commands.base_command import Command
+from agent_c_api.core.commands.blocks import ReloadBlocksCommand
 from agent_c_api.core.commands.help import HelpCommand
 from agent_c_api.core.commands.history import ForkCommand, RewindCommand
 from agent_c_api.core.commands.tools import EquipToolCommand, RemoveToolCommand, CallToolCommand, ToolInfoCommand
@@ -21,6 +22,7 @@ class ChatCommandHandler:
             RewindCommand(),
             AddLocalWorkspaceCommand(),
             ReloadAgentsCommand(),
+            ReloadBlocksCommand(),
             ToolInfoCommand(),
             EquipToolCommand(),
             RemoveToolCommand(),
