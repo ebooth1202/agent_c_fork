@@ -3,7 +3,7 @@ import logging
 from functools import wraps
 from string import Template
 
-from typing import Callable, Any, Dict
+from typing import Callable, Any, Dict, List
 from pydantic import BaseModel, ConfigDict
 
 from agent_c.util.logging_utils import LoggingManager
@@ -56,6 +56,25 @@ class PromptSection(BaseModel):
         logging_manager = LoggingManager(self.__class__.__name__)
         self._logger = logging_manager.get_logger()
 
+    @classmethod
+    def get_dynamic_property_names(cls) -> List[str]:
+        """
+        Retrieves the names of all dynamic properties defined in the PromptSection.
+
+        Returns:
+            List[str]: A list of dynamic property names.
+        """
+        dynamic_prop_names: List[str] = []
+        for attr_name in dir(cls):
+            # Skip internal or special attributes
+            if attr_name.startswith('_'):
+                continue
+
+            attr = getattr(cls, attr_name)
+            if callable(attr) and getattr(attr, 'is_property_bag_item', False):
+                dynamic_prop_names.append(attr_name)
+        return dynamic_prop_names
+
     async def get_dynamic_properties(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Retrieves the dynamic properties of the PromptSection.
@@ -93,3 +112,12 @@ class PromptSection(BaseModel):
         template: Template = Template(self.template)
         result = template.substitute(section_data)
         return result
+
+    def __init_subclass__(cls, **kwargs):
+        """Automatically register subclasses"""
+        super().__init_subclass__(**kwargs)
+        if cls.__name__.startswith('Base'):
+            return
+
+        from agent_c.util.registries.section import SectionRegistry
+        SectionRegistry.register_section_class(cls)
