@@ -191,6 +191,11 @@ class ClaudeChatAgent(BaseAgent):
     def process_escapes(text):
         return text.replace("\\n", "\n").replace('\\"', '"').replace("\\\\", "\\")
 
+    async def preview_system_prompt(self, **kwargs) -> str:
+        opts = await self.__interaction_setup(**kwargs)
+        prompt = opts["completion_opts"]["system"]
+        tokens = self.token_counter.count_tokens(prompt)
+        return f"{prompt}\n\n--\n\n**{tokens} tokens**"
 
     async def chat(self, **kwargs) -> List[dict[str, Any]]:
         """Main method for interacting with Claude API. Split into smaller helper methods for clarity."""
@@ -199,6 +204,7 @@ class ClaudeChatAgent(BaseAgent):
         client_wants_cancel: threading.Event = kwargs.get("client_wants_cancel")
         callback_opts = opts["callback_opts"]
         tool_chest = opts['tool_chest']
+        agent_config = kwargs['prompt_metadata']['agent_config']
         session_manager: Union[ChatSessionManager, None] = kwargs.get("session_manager", None)
         messages = opts["completion_opts"]["messages"]
         interaction_id = await self._raise_interaction_start(**callback_opts)
@@ -240,7 +246,7 @@ class ClaudeChatAgent(BaseAgent):
                         await self._raise_interaction_end(id=interaction_id, **callback_opts)
                         return result
 
-                    new_system_prompt  = await prompt_builder.render(opts['tool_context'], tool_sections=kwargs.get("tool_sections", None))
+                    new_system_prompt  = await prompt_builder.render(opts['tool_context'], tool_sections=tool_chest.get_tool_sections(agent_config.tools))
                     if new_system_prompt != opts["completion_opts"]["system"]:
                         self.logger.debug(f"Updating system prompt for interaction {interaction_id}")
                         opts["completion_opts"]["system"] = new_system_prompt

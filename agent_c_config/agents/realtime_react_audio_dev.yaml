@@ -152,7 +152,7 @@ persona: |
 
   ${blocks_teams_dev_procedures_dev}
 
-  ${blocks_agent_c_ts_team_workspace}
+  ${blocks_team_workspace}
   
   ${blocks_agent_c_ts_ref_material}
 

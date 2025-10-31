@@ -873,7 +873,7 @@ class RealtimeBridge(ClientEventHandler):
             "env_name": os.getenv('ENV_NAME', "development"),
             "user_session_id": self.chat_session.session_id,
             "chat_session": self.chat_session,
-            "chat_user": self.chat_user,
+            "chat_user": self.chat_user
         } | agent_meta | self.chat_session.metadata
 
     async def send_to_all_user_sessions(self, event: BaseEvent):
@@ -923,6 +923,54 @@ class RealtimeBridge(ClientEventHandler):
 
         return await self.ui_session_manager.agent_config_loader.get_block(block_key)
 
+    async def preview_system_prompt(self) :
+        try:
+            await self.chat_session_manager.update()
+            agent_runtime = self.runtime_cache.runtime_for_agent(self.chat_session.agent_config)
+            prompt_metadata = await self._build_prompt_metadata()
+            tool_params = {}
+            if len(self.chat_session.agent_config.tools):
+                await self.tool_chest.activate_toolset(self.chat_session.agent_config.tools)
+                tool_params = self.tool_chest.get_inference_data(self.chat_session.agent_config.tools, agent_runtime.tool_format)
+                tool_params['schemas'] = self.chat_session.agent_config.filter_allowed_tools(tool_params['schemas'])
+                tool_params["toolsets"] = self.chat_session.agent_config.tools
+
+            agent_prompt = self.chat_session.agent_config.persona
+
+            if "ThinkTools" in self.chat_session.agent_config.tools:
+                agent_sections = [ThinkSection(), EnvironmentInfoSection(), DynamicPersonaSection(template=agent_prompt), MarkdownFormatting()]
+            else:
+                agent_sections = [EnvironmentInfoSection(), DynamicPersonaSection(template=agent_prompt), MarkdownFormatting()]
+
+            chat_params: Dict[str, Any] = {
+                "user_id": self.chat_session.user_id,
+                "chat_session": self.chat_session,
+                "tool_chest": self.tool_chest,
+                "user_message": "preview_system_prompt",
+                "prompt_metadata": prompt_metadata,
+                "client_wants_cancel": self.client_wants_cancel,
+                "streaming_callback":  self.runtime_callback,
+                'tool_context': await self._tool_context(prompt_metadata=prompt_metadata),
+                'prompt_builder': PromptBuilder(self, self, sections=agent_sections),
+            }
+            full_params = chat_params | tool_params
+        except Exception as e:
+            error_type = type(e).__name__
+            error_traceback = traceback.format_exc()
+            self.logger.error(f"Error preparing preview parameters: {error_type}: {str(e)}\n{error_traceback}")
+            await self.send_error(f"Error preparing preview parameters: {error_type}: {str(e)}\n{error_traceback}")
+            return
+
+        try:
+            sys_prompt = await agent_runtime.preview_system_prompt(**full_params)
+        except Exception as e:
+            error_type = type(e).__name__
+            error_traceback = traceback.format_exc()
+            self.logger.error(f"Error in agent_runtime.preview_system_prompt: {error_type}: {str(e)}\n{error_traceback}")
+            await  self.send_error(f"Error in agent_runtime.preview_system_prompt: {error_type}: {str(e)}\n{error_traceback}")
+            return
+
+        await self.raise_render_media_markdown(sys_prompt)
 
     async def interact(self, user_message: str, file_ids: Optional[List[str]] = None, on_event: Optional[callable] = None) -> None:
         """
