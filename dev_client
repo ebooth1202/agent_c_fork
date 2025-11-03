@@ -44,10 +44,10 @@ if [ ! -f "$AGENT_C_CONFIG_PATH/agent_c.config" ]; then
 fi
 
 # Set platform for Docker based on architecture
-export DOCKER_DEFAULT_PLATFORM="linux/arm64"  # Default to amd64
-if [ "$(uname -m)" = "arm64" ]; then
-    export DOCKER_DEFAULT_PLATFORM="linux/arm64"
-fi
+export DOCKER_DEFAULT_PLATFORM="linux/amd64"  # Default to amd64
+#if [ "$(uname -m)" = "arm64" ]; then
+#    export DOCKER_DEFAULT_PLATFORM="linux/arm64"
+#fi
 
 # Run in docker compose with any supplied arguments
 COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose -f docker-compose-client-only.yml -p agent_c_dev_client "$@"

@@ -10,6 +10,34 @@
 - [ ] Note any **dynamic visibility** or enablement conditions.  
 - [ ] Document **pop-ups, alerts, or confirmation messages** triggered by user actions.  
 
+## 1.5️. Enhanced UI Interaction Analysis (For Complex Components)
+
+**Trigger Conditions:** Modal popups, multi-step workflows, dynamic form interactions, validation-heavy interfaces
+
+- [ ] Document **complete user interaction flows**:
+  - Initial display state for all elements
+  - Each user action and immediate system response
+  - Visual state transitions (normal → error → recovery)
+  - Progressive disclosure sequences (what triggers additional fields)
+  
+- [ ] Capture **visual feedback patterns**:
+  - Color changes (black → red labels, border changes)
+  - Dynamic label text variations
+  - Icon/indicator appearances (asterisks, checkmarks, tooltips)
+  - Hover states and focus behavior
+  
+- [ ] Map **error recovery workflows**:
+  - How users identify and fix validation issues
+  - Visual indicators during error resolution
+  - Success confirmation feedback patterns
+  - Form submission prevention/enablement logic
+
+- [ ] Record **client-side interaction evidence**:
+  - JavaScript function calls for UI behavior
+  - CSS classes for different visual states
+  - Event handlers for user actions
+  - Real-time validation timing and feedback
+
 ## 2️. Validation & Rule Extraction
 - [ ] Identify **validation logic** applied on all fields:
   - Required field validations  
@@ -34,7 +62,12 @@
   - Save / Rate / Bind operations  
   - Endorsement or Renewal triggers  
 - [ ] Document the **methods, classes, or functions** invoked at each event.  
-- [ ] Verify that system events align with expected user interactions.  
+- [ ] Verify that system events align with expected user interactions.
+- [ ] For enhanced UI components, capture **micro-interactions**:
+  - Hover states and tooltips
+  - Focus/blur behavior  
+  - Real-time validation feedback timing
+  - Animation or transition effects  
 
 ## 5. Evidence Collection
 - [ ] For every observation, capture:
@@ -58,6 +91,13 @@
   Source Evidence:
   ```
 - [ ] Cross-reference related validations, rules, or events in the same section.
+- [ ] For complex UI components, use **Enhanced UI Interaction template** instead of basic field format
+- [ ] Apply enhanced documentation when:
+  - ✅ Modal popups with complex validation
+  - ✅ Multi-step user workflows  
+  - ✅ Dynamic visual feedback
+  - ❌ Simple text fields
+  - ❌ Basic dropdowns
 - [ ] Mark any assumptions clearly as “UNVERIFIED.”  
 
 ## 7. Quality & Cross-Verification

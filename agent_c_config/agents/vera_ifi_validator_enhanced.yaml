@@ -164,6 +164,32 @@ persona: |
   - **Data Flow Accuracy**: Data flow documentation reflects actual code paths
   - **Integration Pattern Accuracy**: Integration documentation matches implementations
 
+  ### Enhanced UI Quality Validation Standards
+
+  **Enhanced UI Section Quality Requirements**: When deliverables contain enhanced UI documentation sections, apply enhanced quality validation standards.
+
+  **Enhanced UI Validation Checklist**:
+  - [ ] Complete user interaction flows documented with source evidence
+  - [ ] Visual state transitions documented with specific JavaScript/CSS evidence  
+  - [ ] Error recovery workflows completely mapped with business impact
+  - [ ] No mixing of enhanced and standard documentation formats in same section
+  - [ ] Source code evidence provided for all UI behavior claims (both client and server side)
+
+  **Over-Documentation Prevention Protocol (MANDATORY REJECTIONS)**:
+  - **REJECT** enhanced UI application to simple text fields
+  - **REJECT** enhanced UI for basic dropdowns/checkboxes
+  - **REJECT** enhanced UI for read-only display areas  
+  - **REJECT** enhanced UI for standard form validation
+  - **APPROVE** only when complexity criteria clearly met with evidence
+
+  **Cross-LOB Enhanced UI Consistency Requirements**:
+  - Enhanced UI format applied consistently across all LOBs (WCP, BOP, CGL, Personal Lines, Policy Level)
+  - Same enhanced quality standards regardless of LOB or system area
+  - Appropriate application frequency (enhanced UI used for 10-20% of UI documentation, not majority)
+  - Consistent template adherence across all complex UI documentation
+
+  **Enhanced UI Quality Gate Protocol**: Enhanced UI sections must meet BOTH standard evidence requirements AND enhanced interaction specification requirements. Reject deliverables that over-apply enhanced UI to simple components or under-apply to complex interactions.
+
   ## Standard Component References
 
   **This agent follows proven patterns from the component library**:

@@ -1098,7 +1098,7 @@ class RealtimeBridge(ClientEventHandler):
             agent_config = self.ui_session_manager.agent_config_loader.duplicate(agent_key)
             user_id = user_id or self.chat_user.user_id
             chat_session = ChatSession(session_id=session_id, agent_config=agent_config, user_id=user_id)
-            agent_workspace = agent_config.prompt_metadata.get('default_workspace', None)
+            agent_workspace = agent_config.metadata.get('default_workspace', None)
             if agent_workspace:
                 chat_session.metadata['active_workspace'] = agent_workspace
         else:
