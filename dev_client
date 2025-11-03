@@ -44,7 +44,7 @@ if [ ! -f "$AGENT_C_CONFIG_PATH/agent_c.config" ]; then
 fi
 
 # Set platform for Docker based on architecture
-export DOCKER_DEFAULT_PLATFORM="linux/amd64"  # Default to amd64
+export DOCKER_DEFAULT_PLATFORM="linux/arm64"  # Default to amd64
 if [ "$(uname -m)" = "arm64" ]; then
     export DOCKER_DEFAULT_PLATFORM="linux/arm64"
 fi
