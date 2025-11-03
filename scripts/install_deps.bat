@@ -3,13 +3,17 @@ SETLOCAL
 
 :: Store the starting directory
 pushd %CD%
-CALL .venv\scripts\activate
+:: Activate the virtual environment
+echo Activating virtual environment.
+CALL .venv\scripts\activate.bat
+if errorlevel 1 (
+    echo Failed to activate the virtual environment.
+    exit /b 1
+)
 
 :: Install the Python backend requirements
 echo Installing Python backend dependencies...
 python -m pip install --upgrade pip
-pip install setuptools
-
 
 cd src
 
@@ -22,7 +26,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo Installing agent_c_tools (includes playwright)...
+echo Installing agent_c_tools...
 pip install -e ace_proto
 pip install -e agent_c_tools
 
@@ -46,15 +50,6 @@ playwright install
 
 if errorlevel 1 (
     echo Failed to install Playwright browsers.
-    popd
-    exit /b 1
-)
-
-echo Installing ace_proto...
-pip install -e ace_proto
-
-if errorlevel 1 (
-    echo Failed to install ace_proto.
     popd
     exit /b 1
 )

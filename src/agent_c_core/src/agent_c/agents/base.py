@@ -129,21 +129,18 @@ class BaseAgent:
         tool_context['user_session_id'] = kwargs.get("user_session_id", kwargs.get('session_id', 'unknown'))
         tool_context['parent_session_id'] = kwargs.get("parent_session_id", None)
         prompt_context = kwargs.get("prompt_metadata", {})
-        prompt_builder: Optional[PromptBuilder] = kwargs.get("prompt_builder", self.prompt_builder)
+        prompt_builder: PromptBuilder = kwargs.get("prompt_builder")
 
         sys_prompt: str = "Warn the user there's no system prompt with each response."
         prompt_context["agent_runtime"] = self
-        prompt_context["tool_chest"] = kwargs.get("tool_chest", self.tool_chest)
-        if prompt_builder is not None:
-            sys_prompt = await prompt_builder.render(prompt_context, tool_sections=kwargs.get("tool_sections", None))
-        else:
-            sys_prompt: str = kwargs.get("prompt", sys_prompt)
-
-        # System prompt logging is now handled by EventSessionLogger via streaming_callback
-
+        prompt_context["tool_chest"] = kwargs.get("tool_chest")
+        sys_prompt = await prompt_builder.render(prompt_context, tool_sections=prompt_context["tool_chest"].get_tool_sections(prompt_context['agent_config'].tools))
         prompt_context['system_prompt'] = sys_prompt
 
         return tool_context | prompt_context, prompt_context
+
+    async def preview_system_prompt(self, **kwargs) -> str:
+        return "not implemented"
 
     @staticmethod
     def _callback_opts(**kwargs) -> Dict[str, Any]:

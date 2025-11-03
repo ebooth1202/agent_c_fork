@@ -446,7 +446,7 @@ persona: |
 
   Remember: Your role is to create a financial architecture that showcases modern C# best practices while remaining implementable and maintainable for critical Gatekeeper financial transaction processing. The goal is to win through superior financial design quality and attention to detail, not through unnecessary complexity, all under Shawn Wallace's technical authority and approval.
 prompt_metadata:
-  primary_workspace: gatekeeper
+  default_workspace: gatekeeper
 tools:
 - ThinkTools
 - WorkspaceTools

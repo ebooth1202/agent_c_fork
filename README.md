@@ -178,6 +178,9 @@ If you are NOT a Python developer who is used to working with Python virtual env
 <details>
 <summary><b>Windows Prerequisites</b> (click to expand)</summary>
 
+1. Install [App Installer](ms-windows-store://pdp?hl=en-us&gl=us&productid=9nblggh4nns1&mode=full&referrer=storeforweb&source=https%3A%2F%2Fgithub.com%2F&webid=6753df9e-d22b-47f0-bba2-c0ce73e53a57&websessionid=e8508469-3fde-4884-bda1-be9b8d4c2495) via the Windows Store. 
+2. Run `scripts/initial_setup.ps1` and it will install what's needed.  OR install the following:
+
 - [Git](https://git-scm.com/downloads/win)
 - [Python 3.12+](https://www.python.org/downloads/release/python-3129/)
 - A Python IDE like [PyCharm](https://www.jetbrains.com/pycharm/download/) (Community Edition is free)
@@ -193,22 +196,11 @@ If you are NOT a Python developer who is used to working with Python virtual env
 <details>
 <summary><b>Mac/Linux Prerequisites</b> (click to expand)</summary>
 
-1. Install Xcode command line tools:
+1. Make the shell scripts executable
    ```bash
-   xcode-select --install
+   chmod a+x scripts/*.sh
    ```
-
-2. Install Homebrew (if not already installed):
-   ```bash
-   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-   ```
-
-3. Install required packages:
-   ```bash
-   brew install python@3.12 pyenv rust node ffmpeg
-   ```
-
-4. Optional: Install development tools:
+2. Optional: Install development tools:
    ```bash
    brew install visual-studio-code
    brew install --cask pycharm-ce
@@ -232,10 +224,13 @@ Run the setup script for your platform - these scripts are kept up-to-date with 
 
 ```bash
 # On Windows
-.\scripts\initial_setup.bat
+.\scripts\initial_setup.ps1
 
-# On Mac/Linux
-./scripts/initial_setup.sh
+# On Linux
+./scripts/initial_setup_linux.sh
+
+# On OSX
+./scripts/initial_setup_osx.sh
 ```
 
 If you need to understand what dependencies are being installed, please review these setup scripts to see the exact packages and versions being used.

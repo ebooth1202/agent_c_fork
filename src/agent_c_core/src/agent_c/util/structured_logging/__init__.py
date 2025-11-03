@@ -49,22 +49,6 @@ from .formatters import (
     get_json_formatter,
     get_compatibility_formatter,
 )
-from .testing import (
-    StructuredLogCapture,
-    MockStructuredLogger,
-    PerformanceTester,
-    LogEntry,
-    PerformanceMetrics,
-    LoggingTestPatterns,
-    create_test_context,
-    assert_log_performance,
-    capture_logs_for_function,
-    temporary_log_capture,
-    mock_structured_logger,
-    performance_test,
-    with_log_capture,
-    with_isolated_context,
-)
 
 __all__ = [
     # Core components
@@ -87,22 +71,7 @@ __all__ = [
     "CompatibilityFormatter",
     "get_console_formatter",
     "get_json_formatter",
-    "get_compatibility_formatter",
-    # Testing infrastructure
-    "StructuredLogCapture",
-    "MockStructuredLogger",
-    "PerformanceTester",
-    "LogEntry",
-    "PerformanceMetrics",
-    "LoggingTestPatterns",
-    "create_test_context",
-    "assert_log_performance",
-    "capture_logs_for_function",
-    "temporary_log_capture",
-    "mock_structured_logger",
-    "performance_test",
-    "with_log_capture",
-    "with_isolated_context",
+    "get_compatibility_formatter"
 ]
 
 # Version info

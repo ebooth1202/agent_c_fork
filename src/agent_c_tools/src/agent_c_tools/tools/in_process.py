@@ -6,11 +6,10 @@ from .dynamics_crm.tool import DynamicsCrmTools
 from .markdown_to_html_report.tool import MarkdownToHtmlReportTools
 from .memory import MemoryTools
 from .random_number import RandomNumberTools
-from .mermaid_chart import MermaidChartTools
 from .css_explorer.tool import CssExplorerTools
-from .reverse_engineering import ReverseEngineeringTools
+from .xml_explorer.tool import XmlExplorerTools
+from .xml_explorer.editor_tool import XmlEditorTools
 from .math.tool import MathTools
-from .code_interpreter import CodeInterpreterTools
 from .database_query import DatabaseQueryTools
 from .dataframe import DataframeTools
 from .data_visualization import DataVisualizationTools
@@ -24,6 +23,6 @@ from .insurance_demo import InsuranceDemoTools
 from .workspace import DynamicCommandTools
 from .toolbelt.tool import ToolbeltTools
 from .microsoft_stream.tool import MicrosoftStreamTools
-# from .plsql_reverse_engineering.tool import PlsqlReverseEngineeringTools
-# from .reverse_engineering import ReverseEngineeringTools
 from .ace_proto import AceProtoTools
+from .json_explorer import JsonExplorerTools, JsonEditorTools
+from .excel import ExcelTools

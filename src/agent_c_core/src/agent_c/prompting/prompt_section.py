@@ -1,12 +1,15 @@
 import inspect
-import logging
 from functools import wraps
 from string import Template
 
-from typing import Callable, Any, Dict
-from pydantic import BaseModel, ConfigDict
+from typing import Callable, Any, Dict, List, TYPE_CHECKING, Optional
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from agent_c.util import to_snake_case
 from agent_c.util.logging_utils import LoggingManager
+
+if TYPE_CHECKING:
+    from agent_c.models.chat_history import ChatSession
 
 
 def property_bag_item(func: Callable) -> Callable:
@@ -39,6 +42,7 @@ class PromptSection(BaseModel):
         render_section_header (bool): Flag to determine if a header should be rendered for the section.
         required (bool): Flag to determine if the section is required.
     """
+    section_type: str = Field(None, description="The type of the prompt section, used for registration and identification.")
     model_config = ConfigDict(arbitrary_types_allowed=True, protected_namespaces=())
     name: str
     template: str
@@ -53,8 +57,32 @@ class PromptSection(BaseModel):
             **data: Arbitrary keyword arguments to initialize the section.
         """
         super().__init__(**data)
-        logging_manager = LoggingManager(self.__class__.__name__)
-        self._logger = logging_manager.get_logger()
+        self._logger = LoggingManager(self.__class__.__name__).get_logger()
+
+    @model_validator(mode='after')
+    def validate_section_type(self):
+        if self.section_type is None:
+            self.section_type  = to_snake_case(self.__class__.__name__.removesuffix('Section'))
+
+
+    @classmethod
+    def get_dynamic_property_names(cls) -> List[str]:
+        """
+        Retrieves the names of all dynamic properties defined in the PromptSection.
+
+        Returns:
+            List[str]: A list of dynamic property names.
+        """
+        dynamic_prop_names: List[str] = []
+        for attr_name in dir(cls):
+            # Skip internal or special attributes
+            if attr_name.startswith('_'):
+                continue
+
+            attr = getattr(cls, attr_name)
+            if callable(attr) and getattr(attr, 'is_property_bag_item', False):
+                dynamic_prop_names.append(attr_name)
+        return dynamic_prop_names
 
     async def get_dynamic_properties(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -88,8 +116,16 @@ class PromptSection(BaseModel):
                     self._logger.exception(f"Error getting dynamic property '{attr_name}': {e}")
         return dynamic_props
 
-    async def render(self, data: Dict[str, Any]) -> str:
-        section_data: Dict[str, Any] = {**data, **await self.get_dynamic_properties(data)}
+    async def render(self, data: Dict[str, Any]) -> Optional[str]:
         template: Template = Template(self.template)
-        result = template.substitute(section_data)
+        result = template.substitute(data)
         return result
+
+    def __init_subclass__(cls, **kwargs):
+        """Automatically register subclasses"""
+        super().__init_subclass__(**kwargs)
+        if cls.__name__.startswith('Base'):
+            return
+
+        from agent_c.util.registries.section import SectionRegistry
+        SectionRegistry.register_section_class(cls)

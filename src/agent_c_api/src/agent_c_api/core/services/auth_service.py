@@ -50,16 +50,12 @@ class AuthService:
         is created but before it's used.
         """
         try:
-            self.logger.info("auth_service_initializing")
-            
             # Get database configuration and create session
             db_config = get_database_config()
             self.db_session = db_config.async_session_factory()
             
             # Initialize repository with the session
             self.auth_repo = AuthRepository(self.db_session)
-            
-            self.logger.info("auth_service_initialized")
 
             user = await self.auth_repo.get_user_by_username("admin")
             if not user:

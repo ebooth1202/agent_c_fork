@@ -1,5 +1,6 @@
-from typing import Any
+from typing import Any, Dict
 
+from agent_c.util.dict import get_nested, set_nested, delete_nested
 from agent_c.toolsets import json_schema, Toolset
 from .prompt import MemorySection
 
@@ -18,15 +19,14 @@ class MemoryTools(Toolset):
             **kwargs (Any): Keyword arguments including those for ZepDependentToolset.
         """
         super().__init__(**kwargs, name='memory')
-        self.section = kwargs.get('section', MemorySection(session_manager=self.session_manager))
+        self.section = kwargs.get('section', MemorySection())
 
     @json_schema(
         (
-            'This tool allows you to store information in the metadata for the current user/session. '
-            'Anything stored here will appear in the `Assistant data` heading for each location. '
-            'You may store strings, or more complex data objects depending on your need. '
-            'Only top level keys can be set, if you need to update a field in an object value, '
-            'you must supply the whole object.'
+            'This tool allows you to store memory information in the metadata for the current user/session. '
+            'You may store strings or more complex data objects depending on your need. '
+            'Keys can be supplied using path syntax tp reach nested keys'
+
         ),
         {
             'location': {
@@ -36,7 +36,7 @@ class MemoryTools(Toolset):
             },
             'key': {
                 'type': 'string',
-                'description': 'The key to store the value under.',
+                'description': 'The key to store the value under. You may use "/" to denote nested keys.',
                 'required': True
             },
             'value': {
@@ -47,14 +47,13 @@ class MemoryTools(Toolset):
             }
         }
     )
-    async def store_metadata(self, **kwargs: Any) -> str:
+    async def store(self, **kwargs: Any) -> str:
         """Store or update metadata associated with the current user or session.
 
         Args:
             key (str): The key to store the value under.
             location (str): Where to store the metadata ('user' or 'session').
             value (str | dict): The value to store, can be a string or a more complex data object.
-            prefix (str): Prefix used for metadata keys, defaults to 'ai_'.
 
         Returns:
             str: A message indicating that the value has been stored.
@@ -62,24 +61,21 @@ class MemoryTools(Toolset):
         key: str = kwargs["key"]
         location: str = kwargs.get("location", "user")
         value: Any = kwargs["value"]
-        prefix: str = kwargs.get("prefix", "ai_")
+        context: Dict[str, Any] = kwargs.get("tool_context")
 
-        if location == "user":
-            md_temp = self.session_manager.get_user_meta_meta(prefix)
+        if location != "user":
+            source = context['prompt_metadata']['chat_session']
         else:
-            md_temp = self.session_manager.get_session_meta_meta(prefix)
+            source = context['prompt_metadata']['chat_user']
 
-        md_temp[key] = value
+        mem_store = source.get_agent_memory_store()
+        set_nested(mem_store, key, value, "/")
+        source.set_agent_memory_store(mem_store)
 
-        if location == "user":
-            self.session_manager.set_user_meta_meta(prefix, md_temp)
-        else:
-            self.session_manager.set_session_meta_meta(prefix, md_temp)
-
-        return f"Value for {key} stored in {location} metadata"
+        return f"Value for {key} stored in {location} memory"
 
     @json_schema(
-        'This tool allows you to remove a key from the user/session metadata.',
+        'This tool allows you to remove a key from the user/session. Keys can be supplied using path syntax tp reach nested keys',
         {
             'location': {
                 'type': 'string',
@@ -88,39 +84,34 @@ class MemoryTools(Toolset):
             },
             'key': {
                 'type': 'string',
-                'description': 'The key to remove.',
+                'description': 'The key to remove. You may use "/" to denote nested keys.',
                 'required': True
             }
         }
     )
-    async def clear_metadata_key(self, **kwargs: Any) -> str:
+    async def clear(self, **kwargs: Any) -> str:
         """Remove metadata associated with a specified key from the current user or session.
 
         Args:
             key (str): The key for which to clear the value.
             location (str): Which set of metadata to update ('user' or 'session').
-            prefix (str): Prefix used for metadata keys, defaults to 'ai_'.
-
         Returns:
             str: A message indicating that the key has been cleared.
         """
         key: str = kwargs["key"]
         location: str = kwargs.get("location", "user")
-        prefix: str = kwargs.get("prefix", "ai_")
+        context: Dict[str, Any] = kwargs.get("tool_context")
 
-        if location == "user":
-            md_temp = self.session_manager.get_user_meta_meta(prefix)
+        if location != "user":
+            source = context['prompt_metadata']['chat_session']
         else:
-            md_temp = self.session_manager.get_session_meta_meta(prefix)
+            source = context['prompt_metadata']['chat_user']
 
-        md_temp.pop(key, None)
-
-        if location == "user":
-            self.session_manager.set_user_meta_meta(prefix, md_temp)
-        else:
-            self.session_manager.set_session_meta_meta(prefix, md_temp)
+        mem_store = source.get_agent_memory_store()
+        delete_nested(mem_store, key, "/")
+        source.set_agent_memory_store(mem_store)
 
         return f"Value for {key} cleared from {location} metadata"
 
 # This is broken so disabling it.
-#Toolset.register(MemoryTools)
+Toolset.register(MemoryTools)

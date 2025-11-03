@@ -1,6 +1,6 @@
 from fnmatch import fnmatch
 from typing import Optional, List, Any, Union, Literal, Dict
-from pydantic import Field, ConfigDict
+from pydantic import Field, ConfigDict, computed_field
 
 from agent_c.models.base import BaseModel
 from agent_c.models.completion import CompletionParams
@@ -20,6 +20,13 @@ class AgentConfigurationBase(BaseModel):
     tools: List[str] = Field(default_factory=list, description="List of enabled toolset names the agent can use")
     blocked_tool_patterns: List[str] = Field(default_factory=list, description="A list of patterns for blocking individual tools like `run_*`")
     allowed_tool_patterns: List[str] = Field(default_factory=list, description="A list of patterns for allowing individual tools like `run_pnpm` (overrides blocks)")
+
+    @computed_field
+    def short_name(self) -> str:
+        """Generate a short name by lowercasing and replacing spaces with underscores"""
+        return self.name.split(",", 1)[0]
+
+
 
     def filter_allowed_tools(self, schemas: List[Dict[str, any]]) -> List[Dict[str, Any]]:
         """

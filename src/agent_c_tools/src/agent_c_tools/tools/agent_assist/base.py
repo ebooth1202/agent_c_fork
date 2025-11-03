@@ -36,9 +36,6 @@ class AgentAssistToolBase(Toolset):
         super().__init__( **kwargs)
         self.agent_loader = AgentConfigLoader()
         self.model_config_loader = ModelConfigurationLoader()
-
-        self.sections: List[PromptSection] = [ThinkSection(), AssistantBehaviorSection(),  DynamicPersonaSection()]
-
         self.session_cache = AsyncExpiringCache(default_ttl=kwargs.get('agent_session_ttl', 300))
         self.model_configs: Dict[str, Any] = self.model_config_loader.flattened_config()
         self.runtime_cache: Dict[str, BaseAgent] = {}
@@ -77,16 +74,9 @@ class AgentAssistToolBase(Toolset):
 
         auth_info = agent_config.agent_params.auth.model_dump() if agent_config.agent_params.auth is not None else  {}
         client = runtime_cls.client(**auth_info)
-        if self.sections is not None:
-            agent_sections = self.sections
-        elif "ThinkTools" in agent_config.tools:
-            agent_sections = [ThinkSection(), DynamicPersonaSection()]
-        else:
-            agent_sections = [DynamicPersonaSection()]
-
         await self.tool_chest.activate_toolset(agent_config.tools)
 
-        return runtime_cls(model_name=model_config["id"], client=client,prompt_builder=PromptBuilder(sections=agent_sections))
+        return runtime_cls(model_name=model_config["id"], client=client)
 
     async def __chat_params(self,
                             agent: AgentConfiguration,
@@ -109,11 +99,12 @@ class AgentAssistToolBase(Toolset):
 
         prompt_metadata = await self.__build_prompt_metadata(agent, user_session_id, **opts)
 
+        self.sections: List[PromptSection] = [ThinkSection(), AssistantBehaviorSection(), DynamicPersonaSection(template=agent.persona)]
 
         chat_params = {"prompt_metadata": prompt_metadata, "output_format": 'raw',
                        "streaming_callback": partial(self._streaming_callback_for_subagent, parent_streaming_callback, user_session_id),
                        "client_wants_cancel": client_wants_cancel, "tool_chest": self.tool_chest,
-                       "prompt_builder": PromptBuilder(sections=self.sections),
+                       "prompt_builder": PromptBuilder(parent_tool_context['bridge'], parent_tool_context['bridge'], sections=self.sections),
                        "session_id": agent_session_id, "parent_session_id": parent_session_id,
                        "user_session_id": user_session_id, 'tool_context': tool_context
                        }
@@ -136,7 +127,10 @@ class AgentAssistToolBase(Toolset):
         parent_session_id = opts.get('parent_session_id', None)
         return {"session_id": agent_session_id, "persona_prompt": agent_config.persona,
                 "agent_config": agent_config, "user_session_id": user_session_id, "parent_session_id": parent_session_id,
-                "timestamp": datetime.now().isoformat()} | agent_props | opts
+                "timestamp": datetime.now().isoformat(),
+                "agent_name": agent_config.short_name,
+                "agent_long_name": agent_config.name,
+                "agent_key": agent_config.key} | agent_props | opts
 
     async def agent_oneshot(self,
                             user_message: str,

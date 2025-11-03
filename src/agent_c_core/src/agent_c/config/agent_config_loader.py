@@ -54,21 +54,38 @@ class AgentConfigLoader(ConfigLoader, metaclass=SingletonCacheMeta):
 
         self.model_configs = model_configs
         self.agent_config_folder = Path(self.config_path).joinpath("agents")
+        self.block_folder = Path(self.config_path).joinpath("blocks")
         self._agent_config_cache: Dict[str, AgentConfiguration] = {}
+        self._block_cache: Dict[str, str] = {}
         self._default_model = default_model
         self._migration_log: Dict[str, Dict[str, Any]] = {}
         self.load_agents()
+        self.load_blocks()
+
+    async def get_block(self, block_key: str) -> Optional[str]:
+        """Retrieve a block by name from the cache."""
+        block = self._block_cache.get(block_key)
+        if not block:
+            self.load_blocks()
+
+        return self._block_cache.get(block_key.replace("blocks_", "block_"), None)
+
+    def load_blocks(self):
+        file_paths = glob.glob(os.path.join(self.block_folder, "**/*.md"), recursive=True)
+
+        for file_path in file_paths:
+            key = file_path.removeprefix(str(self.block_folder)).replace("\\", "/").removeprefix("/").removesuffix(".md").replace("/", "_")
+            try:
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    content = file.read()
+                    self._block_cache[f"block_{key}"] = content
+            except Exception as e:
+                self.logger.exception(f"Failed to read block file {file_path}: {e}", exc_info=True)
+
 
     def load_agents(self):
         """Load all agent configurations with caching."""
-        # Use cached agent discovery
-        cache_key = f"agent_files:{self.agent_config_folder}"
-        agent_cache = shared_cache_registry.get_cache(CacheNames.AGENT_CONFIGS, max_size=200, ttl_seconds=1800)
-        
-        def discover_agent_files():
-            return glob.glob(os.path.join(self.agent_config_folder, "**/*.yaml"), recursive=True)
-        
-        file_paths = agent_cache.get_or_compute(cache_key, discover_agent_files)
+        file_paths = glob.glob(os.path.join(self.agent_config_folder, "**/*.yaml"), recursive=True)
         
         for file_path in file_paths:
             self.load_agent_config_file(file_path)
@@ -239,7 +256,7 @@ class AgentConfigLoader(ConfigLoader, metaclass=SingletonCacheMeta):
         if not original_config:
             raise ValueError(f"Agent {agent_key} does not exist.")
 
-        return AgentConfigurationV2(**original_config.model_dump(exclude_none=True))
+        return AgentConfigurationV2(**original_config.model_dump(exclude_none=True, exclude={'short_name'}))
 
     @property
     def catalog(self) -> Dict[str, CurrentAgentConfiguration]:

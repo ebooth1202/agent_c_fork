@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import os
-from typing import Optional, List, Any, Tuple, Literal
+from typing import Optional, List, Any, Tuple, Literal, Dict
 
 import yaml
 from pydantic import Field, model_validator
@@ -9,7 +9,7 @@ from pydantic import Field, model_validator
 from yaml import FullLoader
 
 from agent_c.models import BaseModel
-from agent_c_api.core.util.logging_utils import LoggingManager
+from agent_c.util.logging_utils import LoggingManager
 
 class WorkspaceDataEntry(BaseModel):
     name: Optional[str] = Field(None, description="The name of the workspace to add.")
@@ -62,6 +62,7 @@ class BaseWorkspace:
                       - 'description' (str): The description of the workspace.
                       - 'read_only' (bool): If the workspace should be read-only.
         """
+        self._block_cache: Dict[str, str] = {}
         self.entry = entry
         self.name: str = self.entry.name
         self.meta_file_path: str = kwargs.get('meta_file_path', '.agent_c.meta.yaml')
@@ -260,6 +261,25 @@ class BaseWorkspace:
             NotImplementedError: This method should be implemented by subclasses.
         """
         raise NotImplementedError("glob method must be implemented")
+
+    async def load_blocks(self):
+        """
+        Abstract method to load blocks for the workspace.
+        Raises:
+            NotImplementedError: This method should be implemented by subclasses.
+        """
+        raise NotImplementedError
+
+    async def get_block(self, block_key: str) -> Optional[str]:
+        """Retrieve a block by name from the cache."""
+        block = self._block_cache.get(block_key)
+        try:
+            if not block:
+                await self.load_blocks()
+        except NotImplementedError:
+            return None
+
+        return self._block_cache.get(block_key.replace("blocks_", "block_"), None)
 
     async def safe_metadata(self, key: str) -> Any:
         async with self._metadata_lock:

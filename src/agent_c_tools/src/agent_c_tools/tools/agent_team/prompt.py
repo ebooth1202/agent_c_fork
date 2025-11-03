@@ -23,7 +23,7 @@ class AgentTeamSection(PromptSection):
         available = self._filter_agent_catalog(agent_config)
         agent_descriptions = []
         for sub_agent in available:
-            agent_descriptions.append(f"**{sub_agent.name}**, Agent Key: `{sub_agent.key}`\nTools:{", ".join(sub_agent.tools)}{sub_agent.agent_description}")
+            agent_descriptions.append(f"**{sub_agent.name}**\n\nAgent Key: `{sub_agent.key}`\n\nTools: {", ".join(sub_agent.tools)}\n\n{sub_agent.agent_description}")
 
         return "\n".join(agent_descriptions)
 
@@ -52,9 +52,9 @@ class AgentTeamSection(PromptSection):
                     agent_config: AgentConfiguration = self.tool.agent_loader.catalog.get(ses['agent_key'])
                     sess_list.append(f"- `{ses['agent_session_id']}` with {agent_config.name}. {len(ses['messages'])} messages")
 
-                return f"\n\n## Active Team Sessions:\n{"\n".join(sess_list)}\n\n"
+                return f"\n\n## Active Team Sessions:\n\n{"\n".join(sess_list)}\n\n"
         except Exception as e:
             self.tool.logger.exception(f"Error retrieving active agent sessions: {e}", exc_info=True)
-            return "\n\n## Active Team Sessions:\nError fetching team sessions. \n\n"
+            return "\n\n## Active Team Sessions:\n\nError fetching team sessions. \n\n"
 
         return "\n"

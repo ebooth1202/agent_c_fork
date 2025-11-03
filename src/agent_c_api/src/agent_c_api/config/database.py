@@ -12,6 +12,7 @@ from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from agent_c.config import locate_config_path
 from agent_c_api.models.auth_models import Base
 
 
@@ -25,11 +26,13 @@ class DatabaseConfig:
         Args:
             database_url: Optional database URL override
         """
+        config_path = locate_config_path()
+
         if database_url:
             self.database_url = database_url
         else:
             # Default to SQLite in the data directory
-            db_path = Path("agent_c_config/chat_user_auth.db")
+            db_path = Path(config_path).joinpath("chat_user_auth.db")
             db_path.parent.mkdir(parents=True, exist_ok=True)
             self.database_url = f"sqlite+aiosqlite:///{db_path}"
         
