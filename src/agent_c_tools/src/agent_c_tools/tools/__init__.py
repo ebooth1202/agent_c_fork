@@ -12,7 +12,7 @@ from . import xml_explorer  # XML Explorer toolset
 from . import json_explorer  # JSON Explorer toolset
 from . import css_explorer  # CSS Explorer toolset
 from . import mariadb  # MariaDB toolset
-from . import reverse_engineering  # Reverse Engineering toolset
+# from . import reverse_engineering  # Reverse Engineering toolset
 from . import math  # Math toolset
 from . import workspace_planning  # Workspace Planning toolset
 from . import workspace_knowledge  # Workspace Knowledge toolset
