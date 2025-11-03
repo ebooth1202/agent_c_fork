@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Why This 6-Agent Team Design</title>
+    
+    <!-- Marked.js for markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/yaml.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        #sidebar {
+            width: 320px;
+            background: #f8f9fa;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+            position: relative;
+            flex-shrink: 0;
+        }
+        
+        #sidebar-header {
+            padding: 50px 20px 20px 20px;
+            background: #2c1a5d;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        #sidebar-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        #toggle-sidebar {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            color: white;
+            transition: all 0.2s;
+        }
+        
+        #toggle-sidebar:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        #toc {
+            list-style: none;
+            padding: 20px;
+        }
+        
+        #toc li {
+            margin: 0;
+        }
+        
+        #toc a {
+            color: #333;
+            text-decoration: none;
+            display: block;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+        
+        #toc a:hover {
+            background: #e9ecef;
+            transform: translateX(3px);
+        }
+        
+        #toc a.active {
+            background: rgba(44, 26, 93, 0.1);
+            color: #2c1a5d;
+            font-weight: 600;
+            border-left: 3px solid #fdb825;
+        }
+        
+        #toc .h1 {
+            font-weight: 600;
+            font-size: 14px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        #toc .h1:first-child {
+            margin-top: 0;
+            padding-top: 0;
+            border-top: none;
+        }
+        
+        #toc .h2 {
+            margin-left: 15px;
+            font-size: 13px;
+        }
+        
+        #toc .h3 {
+            margin-left: 30px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        #content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px 80px;
+            scroll-behavior: smooth;
+        }
+        
+        #markdown-content {
+            max-width: 900px;
+        }
+        
+        #markdown-content h1 {
+            color: #2c1a5d;
+            border-bottom: 3px solid #fdb825;
+            padding-bottom: 12px;
+            margin: 40px 0 20px 0;
+            font-size: 2em;
+        }
+        
+        #markdown-content h2 {
+            color: #2c1a5d;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            margin: 32px 0 16px 0;
+            font-size: 1.6em;
+        }
+        
+        #markdown-content h3 {
+            color: #2c1a5d;
+            margin: 24px 0 12px 0;
+            font-size: 1.3em;
+        }
+        
+        #markdown-content h4 {
+            color: #555;
+            margin: 20px 0 10px 0;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+        
+        #markdown-content code {
+            background: #f8f9fa;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #e83e8c;
+        }
+        
+        #markdown-content pre {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-left: 4px solid #fdb825;
+            border-radius: 6px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        
+        #markdown-content pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+        
+        #markdown-content ul, #markdown-content ol {
+            margin: 16px 0 16px 30px;
+        }
+        
+        #markdown-content li {
+            margin: 8px 0;
+        }
+        
+        #markdown-content p {
+            margin: 16px 0;
+        }
+        
+        #markdown-content strong {
+            color: #2c1a5d;
+            font-weight: 600;
+        }
+        
+        #markdown-content blockquote {
+            border-left: 4px solid #fdb825;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #666;
+            font-style: italic;
+        }
+        
+        #markdown-content hr {
+            border: none;
+            border-top: 2px solid #e9ecef;
+            margin: 40px 0;
+        }
+        
+        #back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #2c1a5d;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            font-size: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 999;
+        }
+        
+        #back-to-top.visible {
+            opacity: 0.8;
+        }
+        
+        #back-to-top:hover {
+            opacity: 1;
+            transform: translateY(-4px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
+        
+        #logo {
+            position: fixed;
+            bottom: 100px;
+            right: 40px;
+            opacity: 0.6;
+            z-index: 998;
+            transition: opacity 0.3s;
+        }
+        
+        #logo:hover {
+            opacity: 0.9;
+        }
+        
+        #logo img {
+            width: 55px;
+            height: auto;
+        }
+        
+        body.sidebar-hidden #sidebar {
+            margin-left: -320px;
+        }
+        
+        body.sidebar-hidden #content {
+            margin-left: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <div id="sidebar-header">
+            <button id="toggle-sidebar">Hide</button>
+            <h2>Table of Contents</h2>
+        </div>
+        <ul id="toc"></ul>
+    </div>
+    
+    <div id="content">
+        <div id="markdown-content"></div>
+    </div>
+    
+    <div id="back-to-top">↑</div>
+    
+    <div id="logo">
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIYAAACGCAYAAAAYefKRAAAACXBIWXMAAC4jAAAuIwF4pT92AAAJaklEQVR4nO2dTW4aSRTHK2H25ABIdiS2KJ4TxFmxNLkAQ04wzgnsnGCcEwRzgcFLVnFOMLbYIgVLHCAcAGVU9ivcdL3urm8a9/8nIUc0Me3qf7+vqn716vfv3wKAPK+1d0DjERAGKALCACwQBmCBMAALhAFYIAzAAmEAFggDsEAYgAXCACwQBmCBMAALhAFYIAzAAmEAFggDsEAYgAXCACwQBmCBMAALhAFYIAzAAmEAFggDsEAYgAXCACwQBmCJLozNrPtmM+tebmbdK+0gsBnHY+3NiEQVxmbWPRdCLIUQ8eel9gFgg7zBlptZd5Ri1KK0QdjMuqdCiLEQ4oje+tzqL2AxPJGWVwhxIYR4kDdaq78Yx/quoMKQboMEcZZ5+77VX5xoHwau43uXueF+CCFGrf5iqX3Yk2CuhKzEXU4UgtwICECrv/iVG8/3QoifZEmCEsRiUCzxj3ZAiJtWfzHQ3q05vc5QWrg3Bme5nK8mwe/WKjaz7i2JIou0HgMSjzfewtjMutJ1/KUdeOJtDDMXil5nKC++tHQn9PM4Y6ZtWJO1VK/bmIIh6/xdO/B0Hqet/uJOO2KJszDI30nlvtMOPnHd6i+SRNA2kDUYkRCKzj0EDzQ+4/lqchv6l29m3SnjthWffANTJ2EYiELUyVqQZRiQfy4751hIkZyGtCJU1/ipHXjGSxzWwaehKG7qIAopiF5neEm1lG8V5xwT6Z6C+H4Fje+NduCZbz41D5espEoUkr3XLDKCkHl/W/tAWu7nq0lQYRBV4+wsDithUKBZJQpZtwjuU02RMUSvM7yriSAUUcaDxvmHdmAXJ3EYC4NS0qLsI8verAVZif/26DKKmBa8HwKTOEKKw6rIaBR8lqRHeWS6dBwqlzaFgst8xbU2zFeTVzHPZTPr/jKwjlbXptJiULBpqvjpnkRxW1dRGJj6EJhYjbaN5TJxJWMLX53UjWREUTfXkSWmG1GYjvt70/J5qTDIhZjeiQ8hKm6mHIgoRKzAMwulrvfaAZ4Lk3ijVBiGJkqR4s7IkloUD+SnbVjPV5NUN4vNtaq0MH9o7xBkcmzmDZIJo9cZXkUSxZoEd6vmPcrqD73OUM2vnBSU2FOm7dOCiUwO6VJGZZVRNiuhgHNpEVusW/2FyWykN73OUJa2/w38a2WAeDVfTbzEnSm9D8gFf5qvJoWDH5rNrHvHiLOI0iylyGKcWxaHktwZmbQ0FFIQl6Emuci6yPMb9zrD49BlcANs3Gu7bMmlZjEcrIUIMZtnArmQvwP8qjUJ4kUtN7SoNykKrQYXfA4cSsnRLQbdgaFEcfrSRCGeS+Q2tOl6a3DCsF2Kt040k8qaPEuUKJKl1XvAtqDGjuuOMCi/tY32U1kLk3maMpogCuFwPY7IBe2QtxguU7QpBjrEguJRA0QhHK+Hdt3zwmD9TQUpMhLtxC258U1FDwgXYWjXfSsMWirmshA2anxBdQvfdRWNeYSB4j3bCm07706yFkPzMxYnEhNNzZZc72OJ/57xthq+wjCduPHBSbAZ2Kj7heMijKAWQyuMhISyERf3prhvoLUQjtdlJxvNCsPlAsQOPH2tRbJ5iprhdF2yccbr/Bs1w7cnxN4WJR8o23UaymK4zozGniTyEmxD6hYcru5zeyMqYbi2KYg98D4WI8Vay1fikSlqFqOu+ASeTQw6g+FrMeoMhGHPtrWCb4wRDUpVgTteNaY6uxIIww+vxAB9PgELhAFYIAzAooRRxwqhb1ZRu4A6MV4xWm0tRoDJr6b3FnVtMveIEobrRajzXYmsxp5tJdtXGLHvSp9c/Ai1EHeUMOo62eQ7SVfXWeOo2HbPybCNNR+FQU8i2a4TFAkshm9QfHBdiQPh6uK3niMbfLpchNgxhq8lO6PnXZuGqwvVYgzhKIzYFiOEi2tik3snYWQb3/gKo00PQUeBUtYHz9993kCr4SKMnfUrW2GQWuoYZ/g+KNRuoNVwEcbOOOcLXC4XIbYwQizovaDm8k0hv2WFCTseo/bCoHWbvu5EMm2CS3FMVbXGejvCaPUXU4eLkKJWEKKXhSwR3zZAHC7C0KwyN1eifaiCo5gBaOacXOKfPO8aII7aCEPEthrU2ypUBxwpjiV13HuJ2P5d7BYimjDoQ9fafy8nRYXxKpDVEJSpfO91huOXNJ9Cltu28Q17w2nN2YTZ7jl5ZPASfYB7nWHRpny+XFM7R++CWq6l4zRxO0fbVpeFW5+ywhDVm+Bx/JmiZXSvM+R2EAzFA2Vmqvlr6d9DIjgpaQL7db6aJKuhOFyzj5RwaBT1+RRUFLJpWnKaaJZ2RN8TY5Oao2xnwF5nqP6Zf6rtxPD72bsxIjYu/UeRKAQXYyhoxpX1PwUk2TGRyuSpZ03f516mokwmDKpf2NwspX1DCoUhnsRxabFY5h3FJtGhTr6fUnyXJ+2Ewa3Njfm1qidoqTAcvjDZPqsU1B2COFIJw9SKrk26DFUKgwLKz9oBnqQb8B6IOKLXSygbMV38a7TNt9Eq8VZ/cVWxx6fiiE4yGSSOjwFrHKFJEWeYjnmlC1HYPD4wMow3km/bTT08TxI1i7MlqiuhopZJiiprFsaps7EwyPwMDO7Ms1RBaBaZrcxXEymOLzWzHrF3YTK52A+2Ls3qgSMql58aDPzeFsbMV5NLsh62Zf1oRJ6XqbLQa9O4Iov1k2gUjFaJY5RgxrUQsh5ywN6SQMrONQVRxoJ2YC4LOh8b67tUpJ0eUTQQRy2W02UEckzZi0kAHYo1ifJDxD7mZWmnsyhE2VyJCRRLTAv8aOHuOfuG+pOruY1Q8y73ao5FrvmI3TGQrMU37cATXqIQvsIQuzs5cwP8haqntYaqk9mX4k0m3cyneUv12kf34c2suyxwI/cUU3idk7cwFLQd54V2QIi3iXZAagwl1kK6ylEIKx1MGOK5w/A4p2S5QqipjwoGhyz0HWMtPlMhMghB+2NQVU3VEhRnNW5JfYic50RxT2thgm7+F9RiZKHAdEyxR5IVXi8dGlO1FuVxMiy0IBTROurIuKLVX0hL8UEGaBSDAD/GJIpryviibREazWLkkWpHEOoOTU4OyEpEH8dkwgCHBdo5AhYIA7BAGIAFwgAsEAZggTAAC4QBWCAMwAJhABYIA7BAGIAFwgAsEAZggTAAC4QBWCAMwAJhABYIA7BAGIAFwgAsEAZggTAAC4QBWCAMwAJhAB0hxP/QYC5kgRuJdwAAAABJRU5ErkJggg==" alt="Centric Consulting">
+    </div>
+    
+    <script>
+        // Embedded markdown content
+        const markdownContent = "# Why This 6-Agent Team Design?\n\n**Question**: Is 6 agents overkill, or is it appropriate for IFI insurance modernization analysis?\n\n**Answer**: 6 agents is APPROPRIATE - specialization provides more value than the minimal token savings from consolidation.\n\n---\n\n## Current Team Structure\n\n| Agent | Role | Tokens | Unique Value |\n|-------|------|--------|--------------|\n| **Douglas** | Orchestrator | ~7.5-8.5K | Workflow coordination, recovery protocols, quality enforcement |\n| **Rex** | Pattern Miner | ~5.0-5.4K | Source code pattern discovery, technical analysis |\n| **Mason** | Requirements | ~7.3-8.3K | Stakeholder-ready requirements documentation |\n| **Aria** | Architecture | ~6.0-7.0K | Domain-driven design, modernization architecture |\n| **Rita** | Insurance Specialist | ~6.0-7.0K | Insurance compliance validation (2.6K deep domain expertise) |\n| **Vera** | Quality Validator | ~6.0-7.0K | Independent quality oversight, final certification |\n| **TOTAL** | | **~37-45K** | |\n\n**Team-Wide Token Savings**: 25K-35K (from original 72-84K)\n\n---\n\n## Alternative Configurations Considered\n\n### Option 1: Merge Rita into Mason (5 Agents)\n\n**New Mason**: Requirements + Insurance Validation\n\n**Token Impact**:\n- Current Mason: ~7.3-8.3K\n- Add Rita's insurance expertise: +2.6K domain knowledge\n- **New Mason**: ~10-11K tokens\n- **Team savings**: ~3.5K tokens (9% reduction)\n\n**Trade-offs**:\n- ✅ One less agent to coordinate\n- ✅ Slight token savings\n- ❌ Mason becomes bloated (defeats optimization)\n- ❌ Role conflict: Extraction (neutral) vs Validation (critical assessment)\n- ❌ Lost insurance specialization depth\n\n**Assessment**: Not worth it - bloats Mason, creates role confusion\n\n---\n\n### Option 2: Merge Vera into Douglas (5 Agents)\n\n**New Douglas**: Orchestrator + Quality Validator\n\n**Token Impact**:\n- Current Douglas: ~7.5-8.5K\n- Add Vera's validation: +3.5K\n- **New Douglas**: ~11-12K tokens\n- **Team savings**: ~3K tokens (8% reduction)\n\n**Trade-offs**:\n- ✅ Douglas does final validation (natural orchestrator role?)\n- ❌ Judge and jury problem (orchestrator validates own coordination)\n- ❌ Lost independent quality oversight\n- ❌ Douglas becomes bloated\n\n**Assessment**: Not worth it - loses independent oversight, bloats orchestrator\n\n---\n\n### Option 3: Keep All 6 (Current Design)\n\n**Token Impact**:\n- **Team Total**: ~37-45K tokens\n- **No savings** from consolidation\n- Each agent optimized (5-8K range)\n\n**Trade-offs**:\n- ✅ Clear specialization, focused roles\n- ✅ Deep expertise where needed (Rita: insurance, Aria: architecture)\n- ✅ Independent oversight (Vera validates team outputs)\n- ✅ Optimized personas (each 5-8K vs merged 10-12K)\n- ✅ Clean handoffs with clear validation\n- ❌ More coordination overhead\n- ❌ More agents to maintain\n\n**Assessment**: Best design - specialization worth coordination overhead\n\n---\n\n## Why 6 Agents Works\n\n### 1. Each Agent Has Distinct, Non-Overlapping Role\n\n**Rex** (Pattern Discovery):\n- Discovers WHAT exists in code\n- Technical pattern analysis\n- Code structure understanding\n\n**Mason** (Requirements Translation):\n- Converts patterns to stakeholder requirements\n- Technical → business language translation\n- Requirements documentation\n\n**Aria** (Architecture Design):\n- Designs HOW to modernize\n- Domain-driven design application\n- Integration architecture\n\n**Rita** (Insurance Domain Validation):\n- Validates IF it meets regulatory requirements\n- Insurance compliance assessment\n- Deep domain expertise (2,600 tokens CGL/regulatory knowledge)\n\n**Vera** (Quality Validation):\n- Validates IF quality is sufficient\n- Evidence-based quality oversight\n- Independent final certification\n\n**Douglas** (Orchestration):\n- Coordinates workflow\n- Manages recovery\n- Enforces quality gates\n\n**No significant overlap** - each provides unique value.\n\n---\n\n### 2. Minimal Token Savings from Consolidation\n\n**Merging saves only 3-5K tokens** (8-13% of team total):\n- Not worth losing specialization\n- Not worth bloating remaining agents\n- Not worth role confusion\n\n**Current optimization already saved 25-35K tokens** (46-54%):\n- Consolidation provides diminishing returns\n- Better to keep focused specialists\n\n---\n\n### 3. Specialization Prevents Errors\n\n**Example 1: Insurance Validation**\n\n**With Rita** (specialized):\n- Deep CGL knowledge (coverage, limits, exclusions, rating)\n- Regulatory compliance expertise\n- Insurance business patterns\n- **Catches**: \"This violates CGL aggregate limit rules\"\n\n**Without Rita** (Mason does it):\n- Mason has requirements expertise, not insurance depth\n- Might miss regulatory nuances\n- **Risk**: Compliance issues reach stakeholders\n\n**Example 2: Independent Quality Oversight**\n\n**With Vera** (independent):\n- Not involved in analysis/coordination\n- Fresh eyes on quality\n- No conflicts of interest\n- **Catches**: \"Mason's requirements lack source evidence\"\n\n**Without Vera** (Douglas does it):\n- Douglas coordinated the work\n- Might overlook issues in work he assigned\n- Judge and jury problem\n- **Risk**: Quality issues reach stakeholders\n\n---\n\n### 4. Multi-Agent Design Principles Support This\n\n**From Multi-Agent Design Bible**:\n- ✅ \"Clear role separation\" - Each agent has distinct role\n- ✅ \"Focused executors\" - Each agent does one thing well\n- ✅ \"Single responsibility\" - No multi-role confusion\n- ✅ \"Independent validation gates\" - Vera provides independent oversight\n\n**6-agent team follows best practices** for multi-agent design.\n\n---\n\n### 5. Workflow Efficiency\n\n**Current Workflow**:\n```\nDouglas → Rex → Mason → Aria → Rita → Vera → Stakeholder\n         (discover) (extract) (design) (validate) (certify)\n```\n\n**Each handoff has clear purpose**:\n- Rex → Mason: Patterns to requirements\n- Mason → Aria: Requirements to architecture  \n- Aria → Rita: Architecture to insurance compliance (CRITICAL JUNCTURE 4)\n- Rita → Vera: Insurance-validated to quality-certified\n\n**If we merged Rita + Mason**:\n```\nDouglas → Rex → Mason+Rita → Aria → Vera → Stakeholder\n```\n- Saves one handoff\n- But Mason now does extraction AND validation simultaneously\n- **Role conflict**: Can't be neutral extractor AND critical validator at same time\n\n---\n\n## Token Economics Analysis\n\n### Current 6-Agent Design\n**Team Total**: ~37-45K tokens (optimized from ~72-84K)\n**Per Agent Average**: ~6.2-7.5K tokens\n**Optimization Achieved**: 46-54% reduction\n\n### Alternative 5-Agent Design (Rita merged into Mason)\n**Team Total**: ~33-40K tokens\n**Savings**: ~4-5K tokens (11-13% further reduction)\n**Mason**: ~10-11K tokens (bloated)\n**Cost**: Lost insurance specialization, Mason bloat\n\n**Trade-off Analysis**:\n- **Gain**: ~5K tokens (small)\n- **Lose**: Insurance specialization (significant)\n- **Lose**: Mason optimization (defeats purpose)\n- **Verdict**: Not worth it\n\n---\n\n## When 6 Agents WOULD Be Overkill\n\n**If**:\n1. Most analysis doesn't require deep insurance domain validation\n2. Rita's 2,600 tokens of insurance expertise is rarely utilized\n3. Coordination complexity overwhelms actual analysis work\n4. Your colleague finds managing 6 agents too complex\n5. Team spends more time on handoffs than actual work\n\n**Then**: Consider merging Rita into Mason, accept bloated Mason as trade-off\n\n---\n\n## When 6 Agents is Right (Current Assessment)\n\n**If**:\n1. ✅ Insurance compliance validation is critical (regulatory requirements)\n2. ✅ Deep insurance domain expertise needed (CGL mastery, regulatory patterns)\n3. ✅ Independent quality oversight valuable (Vera catches team errors)\n4. ✅ Clear role separation prevents confusion\n5. ✅ Specialization improves accuracy\n\n**Then**: Keep 6 agents - specialization worth coordination overhead\n\n---\n\n## My Honest Recommendation\n\n### **Keep All 6 Agents**\n\n**Rationale**:\n1. **Minimal savings from consolidation** (~5K = 11% of optimized total)\n2. **Specialization prevents errors** (Rita catches compliance issues, Vera provides independent oversight)\n3. **Role clarity matters** (extraction ≠ validation, quality ≠ domain compliance)\n4. **Already highly optimized** (46-54% reduction - consolidation provides diminishing returns)\n5. **Design best practices** (focused specialists over multi-role generalists)\n\n**The 6-agent design is well-balanced**: Each agent focused, optimized personas, clear handoffs, specialized expertise where needed.\n\n---\n\n## Alternative Recommendation (If Coordination Too Complex)\n\n### **Merge Rita into Mason** → 5 Agents\n\n**Accept**:\n- Mason becomes 10-11K tokens (bloated but functional)\n- Lost pure requirements extraction focus\n- Some role confusion (extractor + validator)\n\n**Gain**:\n- Simpler coordination (one less specialist)\n- ~5K token savings\n- Fewer handoffs\n\n**When to Choose**: If your colleague values simplicity over specialization and finds 6 agents hard to manage.\n\n---\n\n## The Bottom Line\n\n**6 agents provides the best balance** of:\n- Specialization (deep expertise where needed)\n- Optimization (each agent 5-8K tokens)\n- Role clarity (no multi-role confusion)\n- Quality (independent oversight)\n\n**But** if coordination overhead becomes a problem, merging Rita into Mason is the best consolidation option (saves ~5K tokens, only creates one bloated agent instead of multiple).\n\n---\n\n## Final Answer\n\n**Is 6 agents overkill?** \n\n**No** - it's appropriate for complex insurance modernization analysis requiring:\n- Deep insurance domain expertise (Rita)\n- Independent quality oversight (Vera)\n- Specialized architecture design (Aria)\n- Pattern discovery + requirements extraction + coordination (Rex, Mason, Douglas)\n\n**Could you do it with fewer?** \n\n**Yes** - but you'd lose specialization for minimal token savings (~5K).\n\n**Recommendation**: **Keep 6 unless coordination becomes overwhelming.** The design is sound, well-optimized, and follows multi-agent best practices.\n";
+        
+        // Wait for marked.js to load
+        function initPage() {
+            if (typeof marked === 'undefined') {
+                setTimeout(initPage, 100);
+                return;
+            }
+            
+            // Configure marked
+            marked.setOptions({
+                breaks: true,
+                gfm: true
+            });
+            
+            // Render markdown
+            const html = marked.parse(markdownContent);
+            document.getElementById('markdown-content').innerHTML = html;
+            
+            // Apply syntax highlighting
+            if (typeof hljs !== 'undefined') {
+                document.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            }
+            
+            // Build TOC
+            buildTOC();
+            
+            // Setup scroll handlers
+            setupScrollHandlers();
+        }
+        
+        function buildTOC() {
+            const content = document.getElementById('markdown-content');
+            const toc = document.getElementById('toc');
+            const headings = content.querySelectorAll('h1, h2, h3');
+            
+            headings.forEach((heading, index) => {
+                // Create ID if needed
+                if (!heading.id) {
+                    heading.id = heading.textContent.trim().toLowerCase()
+                        .replace(/[^a-z0-9]+/g, '-')
+                        .replace(/(^-|-$)/g, '') + '-' + index;
+                }
+                
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = '#' + heading.id;
+                a.textContent = heading.textContent;
+                a.className = heading.tagName.toLowerCase();
+                
+                a.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    
+                    // Highlight briefly
+                    const orig = heading.style.backgroundColor;
+                    heading.style.backgroundColor = 'rgba(253,184,37,0.2)';
+                    setTimeout(() => heading.style.backgroundColor = orig, 1500);
+                    
+                    // Update active
+                    updateActiveTOC(a);
+                });
+                
+                li.appendChild(a);
+                toc.appendChild(li);
+            });
+        }
+        
+        function updateActiveTOC(activeLink) {
+            document.querySelectorAll('#toc a').forEach(link => {
+                link.classList.remove('active');
+            });
+            if (activeLink) {
+                activeLink.classList.add('active');
+            }
+        }
+        
+        function setupScrollHandlers() {
+            const contentDiv = document.getElementById('content');
+            const backToTop = document.getElementById('back-to-top');
+            const headings = document.querySelectorAll('#markdown-content h1, #markdown-content h2, #markdown-content h3');
+            
+            // Back to top button
+            contentDiv.addEventListener('scroll', () => {
+                if (contentDiv.scrollTop > 300) {
+                    backToTop.classList.add('visible');
+                } else {
+                    backToTop.classList.remove('visible');
+                }
+                
+                // Update active TOC link
+                let currentHeading = null;
+                headings.forEach(h => {
+                    const rect = h.getBoundingClientRect();
+                    if (rect.top >= 0 && rect.top < window.innerHeight / 3) {
+                        currentHeading = h;
+                    }
+                });
+                
+                if (currentHeading) {
+                    const activeLink = document.querySelector(`#toc a[href="#${currentHeading.id}"]`);
+                    updateActiveTOC(activeLink);
+                }
+            });
+            
+            backToTop.addEventListener('click', () => {
+                contentDiv.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+        
+        // Toggle sidebar
+        document.getElementById('toggle-sidebar').addEventListener('click', () => {
+            document.body.classList.toggle('sidebar-hidden');
+            const btn = document.getElementById('toggle-sidebar');
+            btn.textContent = document.body.classList.contains('sidebar-hidden') ? 'Show' : 'Hide';
+        });
+        
+        // Initialize
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initPage);
+        } else {
+            initPage();
+        }
+    </script>
+</body>
+</html>

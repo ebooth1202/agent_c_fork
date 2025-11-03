@@ -13,7 +13,6 @@
 [High-level overview of the feature, business context, and modernization scope. 3-5 paragraphs targeting executive stakeholders.]
 
 **Key Points:**
-- Business purpose of this feature
 - Current implementation summary
 - Modernization scope and objectives
 - Expected business value
@@ -24,16 +23,13 @@
 
 [Detailed business context for this feature. Explain what business problem it solves, who uses it, and why it matters. 5-8 paragraphs.]
 
-### 2.1 Feature Purpose
-[Why this feature exists]
-
-### 2.2 User Roles and Personas
+### 2.1 User Roles and Personas
 [Who uses this feature]
 
-### 2.3 Business Process Context
+### 2.2 Business Process Context
 [Where this fits in the larger workflow]
 
-### 2.4 Regulatory Context
+### 2.3 Regulatory Context
 [Any compliance or regulatory requirements]
 
 ---

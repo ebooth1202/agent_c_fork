@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IFI Agent Changes Comparison</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: #252526;
+            padding: 20px;
+            border-bottom: 2px solid #3e3e42;
+        }
+        
+        .header h1 {
+            color: #4ec9b0;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #9cdcfe;
+            font-size: 14px;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+            padding: 10px;
+            background: #2d2d30;
+            border-radius: 4px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+        
+        .legend-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+        }
+        
+        .legend-box.added { background: rgba(76, 175, 80, 0.3); border: 1px solid #4caf50; }
+        .legend-box.removed { background: rgba(244, 67, 54, 0.3); border: 1px solid #f44336; }
+        .legend-box.moved { background: rgba(255, 193, 7, 0.3); border: 1px solid #ffc107; }
+        
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .sidebar {
+            width: 280px;
+            background: #252526;
+            border-right: 1px solid #3e3e42;
+            overflow-y: auto;
+        }
+        
+        .agent-item {
+            padding: 15px 20px;
+            cursor: pointer;
+            border-bottom: 1px solid #3e3e42;
+            transition: all 0.2s;
+        }
+        
+        .agent-item:hover {
+            background: #2d2d30;
+        }
+        
+        .agent-item.active {
+            background: #37373d;
+            border-left: 3px solid #4ec9b0;
+        }
+        
+        .agent-item.new {
+            border-left: 3px solid #4caf50;
+        }
+        
+        .agent-name {
+            font-weight: 600;
+            color: #dcdcaa;
+            margin-bottom: 5px;
+        }
+        
+        .agent-status {
+            font-size: 12px;
+            color: #9cdcfe;
+        }
+        
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .tabs {
+            display: flex;
+            background: #2d2d30;
+            border-bottom: 1px solid #3e3e42;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .tab:hover {
+            background: #37373d;
+        }
+        
+        .tab.active {
+            border-bottom-color: #4ec9b0;
+            background: #1e1e1e;
+        }
+        
+        .comparison-view {
+            flex: 1;
+            display: none;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .comparison-view.active {
+            display: block;
+        }
+        
+        .diff-section {
+            margin-bottom: 30px;
+            background: #252526;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .diff-header {
+            padding: 12px 20px;
+            background: #2d2d30;
+            font-weight: 600;
+            color: #4ec9b0;
+            border-bottom: 1px solid #3e3e42;
+        }
+        
+        .diff-content {
+            padding: 20px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .added {
+            background: rgba(76, 175, 80, 0.2);
+            border-left: 3px solid #4caf50;
+            padding: 4px 8px;
+            margin: 2px 0;
+            display: block;
+        }
+        
+        .removed {
+            background: rgba(244, 67, 54, 0.2);
+            border-left: 3px solid #f44336;
+            padding: 4px 8px;
+            margin: 2px 0;
+            display: block;
+            text-decoration: line-through;
+        }
+        
+        .moved {
+            background: rgba(255, 193, 7, 0.2);
+            border-left: 3px solid #ffc107;
+            padding: 4px 8px;
+            margin: 2px 0;
+            display: block;
+        }
+        
+        .unchanged {
+            color: #858585;
+            padding: 4px 8px;
+            margin: 2px 0;
+            display: block;
+        }
+        
+        .summary-section {
+            background: #2d2d30;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        
+        .summary-section h2 {
+            color: #4ec9b0;
+            margin-bottom: 15px;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .summary-card {
+            background: #252526;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 3px solid #4ec9b0;
+        }
+        
+        .summary-card h3 {
+            color: #dcdcaa;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        
+        .summary-card p {
+            color: #9cdcfe;
+            font-size: 13px;
+        }
+        
+        .new-agent-badge {
+            display: inline-block;
+            background: #4caf50;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            margin-left: 10px;
+        }
+        
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #424242;
+            border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4e4e4e;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧠 IFI Agent Changes Comparison</h1>
+        <p>Interactive viewer showing before/after changes to agent YAML files</p>
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-box added"></div>
+                <span>Added Content</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box removed"></div>
+                <span>Removed Content</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box moved"></div>
+                <span>Moved Content</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="agent-item active" data-agent="template">
+                <div class="agent-name">📄 Template Document</div>
+                <div class="agent-status">6 sections added</div>
+            </div>
+            <div class="agent-item" data-agent="aria">
+                <div class="agent-name">🎨 Aria (Architect)</div>
+                <div class="agent-status">4 validation rules added</div>
+            </div>
+            <div class="agent-item" data-agent="mason">
+                <div class="agent-name">🔨 Mason (Extractor)</div>
+                <div class="agent-status">2 extraction patterns added</div>
+            </div>
+            <div class="agent-item" data-agent="rex">
+                <div class="agent-name">🔍 Rex (Pattern Miner)</div>
+                <div class="agent-status">3 validation patterns added</div>
+            </div>
+            <div class="agent-item" data-agent="rita">
+                <div class="agent-name">📋 Rita (Insurance Specialist)</div>
+                <div class="agent-status">2 documentation rules added</div>
+            </div>
+            <div class="agent-item" data-agent="vera">
+                <div class="agent-name">✅ Vera (Validator)</div>
+                <div class="agent-status">2 validation checks added</div>
+            </div>
+            <div class="agent-item" data-agent="douglas">
+                <div class="agent-name">🎯 Douglas (Orchestrator)</div>
+                <div class="agent-status">Phase 2 coordination added</div>
+            </div>
+            <div class="agent-item new" data-agent="link">
+                <div class="agent-name">🔗 Link (Cross-Module Analyst)<span class="new-agent-badge">NEW</span></div>
+                <div class="agent-status">Completely new agent</div>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="tabs">
+                <div class="tab active" data-tab="summary">Summary</div>
+                <div class="tab" data-tab="changes">Changes Detail</div>
+                <div class="tab" data-tab="full">Full Comparison</div>
+            </div>
+            
+            <div id="summary" class="comparison-view active">
+                <!-- Summary content will be injected by JavaScript -->
+            </div>
+            
+            <div id="changes" class="comparison-view">
+                <!-- Changes content will be injected by JavaScript -->
+            </div>
+            
+            <div id="full" class="comparison-view">
+                <!-- Full comparison content will be injected by JavaScript -->
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Agent data structure
+        const agentData = {
+            template: {
+                name: "Requirements Document Template",
+                file: "Requirements_Document_Creation_Instructions.md",
+                location: "//project/ifm/templates/",
+                changes: [
+                    {
+                        type: "added",
+                        section: "Error Message Formatting",
+                        description: "Enhanced with examples and validation checklist",
+                        lines: "~50-75"
+                    },
+                    {
+                        type: "added",
+                        section: "ADVANCED CONDITIONAL LOGIC STANDARDS",
+                        description: "State-Specific Logic Standards (no cross-references)",
+                        lines: "~180-210"
+                    },
+                    {
+                        type: "added",
+                        section: "ADVANCED CONDITIONAL LOGIC STANDARDS",
+                        description: "Conditional Visibility Documentation Standards",
+                        lines: "~212-245"
+                    },
+                    {
+                        type: "added",
+                        section: "ADVANCED CONDITIONAL LOGIC STANDARDS",
+                        description: "Complete Conditional Scenario Matrix Requirements",
+                        lines: "~247-290"
+                    },
+                    {
+                        type: "added",
+                        section: "INPUT VALIDATION LANGUAGE PRECISION",
+                        description: "Character type vs value range distinction",
+                        lines: "~320-365"
+                    },
+                    {
+                        type: "added",
+                        section: "CROSS-MODULE DEPENDENCIES (PHASE 2)",
+                        description: "Complete Phase 2 template with examples",
+                        lines: "~580-680"
+                    }
+                ],
+                summary: "6 major sections added to enhance documentation standards. All existing content preserved. No deletions or rewrites."
+            },
+            aria: {
+                name: "Aria - IFI Architect",
+                file: "aria_ifi_architect_enhanced.yaml",
+                backup: "backup_original_agents/aria_ifi_architect_enhanced_ORIGINAL.yaml",
+                changes: [
+                    {
+                        type: "added",
+                        section: "Document Quality Validation Rules",
+                        description: "State-Specific Logic Validation with detection patterns",
+                        location: "Before 'Core Responsibilities'"
+                    },
+                    {
+                        type: "added",
+                        section: "Document Quality Validation Rules",
+                        description: "Conditional Visibility Clarity Standards",
+                        location: "Before 'Core Responsibilities'"
+                    },
+                    {
+                        type: "added",
+                        section: "Document Quality Validation Rules",
+                        description: "Complete Conditional Scenario Coverage validation",
+                        location: "Before 'Core Responsibilities'"
+                    },
+                    {
+                        type: "added",
+                        section: "Document Quality Validation Rules",
+                        description: "Error Message Formatting Enforcement with checklist",
+                        location: "Before 'Core Responsibilities'"
+                    }
+                ],
+                summary: "Complete 'Document Quality Validation Rules' section added with 4 validation checks. All existing persona content preserved intact."
+            },
+            mason: {
+                name: "Mason - IFI Extractor",
+                file: "mason_ifi_extractor_enhanced.yaml",
+                backup: "backup_original_agents/mason_ifi_extractor_enhanced_ORIGINAL.yaml",
+                changes: [
+                    {
+                        type: "added",
+                        section: "Enhanced Extraction Standards",
+                        description: "Input Validation Precision Analysis (3-step process)",
+                        location: "Before 'Core Responsibilities'"
+                    },
+                    {
+                        type: "added",
+                        section: "Enhanced Extraction Standards",
+                        description: "Complete Conditional Scenario Matrix Extraction (4-step process)",
+                        location: "Before 'Core Responsibilities'"
+                    }
+                ],
+                summary: "Complete 'Enhanced Extraction Standards' section added with 2 new analysis patterns. All existing code analysis logic preserved."
+            },
+            rex: {
+                name: "Rex - Pattern Miner",
+                file: "rex_ifi_pattern_miner_enhanced.yaml",
+                backup: "backup_original_agents/rex_ifi_pattern_miner_enhanced_ORIGINAL.yaml",
+                changes: [
+                    {
+                        type: "added",
+                        section: "Validation Pattern Distinction",
+                        description: "Pattern Type 1: Input Character Restrictions",
+                        location: "Before 'IFI-Specific Protocols'"
+                    },
+                    {
+                        type: "added",
+                        section: "Validation Pattern Distinction",
+                        description: "Pattern Type 2: Value Range Validations",
+                        location: "Before 'IFI-Specific Protocols'"
+                    },
+                    {
+                        type: "added",
+                        section: "Validation Pattern Distinction",
+                        description: "Pattern Type 3: Both Combined with examples",
+                        location: "Before 'IFI-Specific Protocols'"
+                    }
+                ],
+                summary: "Complete 'Validation Pattern Distinction' section added with 3 pattern types. All existing pattern mining logic preserved."
+            },
+            rita: {
+                name: "Rita - Insurance Specialist",
+                file: "rita_ifi_insurance_specialist_enhanced.yaml",
+                backup: "backup_original_agents/rita_ifi_insurance_specialist_enhanced_ORIGINAL.yaml",
+                changes: [
+                    {
+                        type: "added",
+                        section: "Complete Conditional Scenario Documentation",
+                        description: "Scenario completeness rule with example workflow",
+                        location: "Before 'Domain Knowledge'"
+                    },
+                    {
+                        type: "added",
+                        section: "State-Specific Logic Enumeration",
+                        description: "Explicit state enumeration rule (no cross-references)",
+                        location: "Before 'Domain Knowledge'"
+                    }
+                ],
+                summary: "2 major sections added for scenario completeness and state enumeration. All existing insurance domain expertise preserved."
+            },
+            vera: {
+                name: "Vera - Quality Validator",
+                file: "vera_ifi_validator_enhanced.yaml",
+                backup: "backup_original_agents/vera_ifi_validator_enhanced_ORIGINAL.yaml",
+                changes: [
+                    {
+                        type: "added",
+                        section: "Input Validation Language Precision Check",
+                        description: "Precision verification rule with 4-question check pattern",
+                        location: "After 'Quality Validation Checklist'"
+                    },
+                    {
+                        type: "added",
+                        section: "Conditional Scenario Completeness Validation",
+                        description: "3-step validation process for scenario completeness",
+                        location: "After 'Quality Validation Checklist'"
+                    }
+                ],
+                summary: "2 validation check sections added to enhance quality gates. All existing validation protocols preserved."
+            },
+            douglas: {
+                name: "Douglas - Orchestrator",
+                file: "douglas_ifi_orchestrator_enhanced.yaml",
+                backup: "backup_original_agents/douglas_ifi_orchestrator_enhanced_ORIGINAL.yaml",
+                changes: [
+                    {
+                        type: "added",
+                        section: "Phase 2: Cross-Functional Analysis Coordination",
+                        description: "Optional Phase 2 workflow coordination with Link agent",
+                        location: "Before 'Interaction Style'"
+                    }
+                ],
+                summary: "Minimal Phase 2 coordination capability added. Entire Phase 1 orchestration workflow preserved unchanged. User-initiated only."
+            },
+            link: {
+                name: "Link - Cross-Module Analyst",
+                file: "link_cross_module_analyst.yaml",
+                location: "//project/agent_c_config/agents/",
+                changes: [
+                    {
+                        type: "added",
+                        section: "Complete Agent",
+                        description: "Entirely new agent for Phase 2 cross-functional analysis",
+                        location: "New file created"
+                    }
+                ],
+                summary: "NEW AGENT: Specialized for cross-module dependency analysis. Works independently, invoked by Douglas on user request. High-level tracing only.",
+                isNew: true
+            }
+        };
+
+        // Function to generate summary view
+        function generateSummary(agentKey) {
+            const agent = agentData[agentKey];
+            let html = '<div class="summary-section">';
+            html += `<h2>${agent.name}</h2>`;
+            html += `<p><strong>File:</strong> ${agent.file}</p>`;
+            if (agent.location) {
+                html += `<p><strong>Location:</strong> ${agent.location}</p>`;
+            }
+            if (agent.backup) {
+                html += `<p><strong>Backup:</strong> ${agent.backup}</p>`;
+            }
+            html += `<p style="margin-top: 15px; color: #9cdcfe;">${agent.summary}</p>`;
+            
+            html += '<div class="summary-grid">';
+            agent.changes.forEach((change, index) => {
+                html += '<div class="summary-card">';
+                html += `<h3>${change.section}</h3>`;
+                html += `<p>${change.description}</p>`;
+                if (change.location) {
+                    html += `<p style="margin-top: 8px; color: #858585; font-size: 12px;">Location: ${change.location}</p>`;
+                }
+                if (change.lines) {
+                    html += `<p style="margin-top: 8px; color: #858585; font-size: 12px;">Lines: ${change.lines}</p>`;
+                }
+                html += '</div>';
+            });
+            html += '</div>';
+            
+            html += '</div>';
+            
+            // Add preservation notice
+            if (!agent.isNew) {
+                html += '<div class="summary-section" style="background: #2d4a2d; border-left: 3px solid #4caf50;">';
+                html += '<h2>✅ Preservation Confirmation</h2>';
+                html += '<p>All existing content in this file has been preserved. Changes are additive only - no deletions or rewrites.</p>';
+                html += '<ul style="margin-top: 15px; margin-left: 20px; line-height: 1.8;">';
+                html += '<li>All original sections remain intact</li>';
+                html += '<li>New sections clearly marked and separated</li>';
+                html += '<li>No modification to existing working logic</li>';
+                html += '<li>Original file backed up for rollback capability</li>';
+                html += '</ul>';
+                html += '</div>';
+            } else {
+                html += '<div class="summary-section" style="background: #2d4a2d; border-left: 3px solid #4caf50;">';
+                html += '<h2>✨ New Agent</h2>';
+                html += '<p>This is a completely new agent created for Phase 2 cross-functional analysis capability.</p>';
+                html += '<ul style="margin-top: 15px; margin-left: 20px; line-height: 1.8;">';
+                html += '<li>No impact on existing Phase 1 agents</li>';
+                html += '<li>Invoked only when user requests Phase 2</li>';
+                html += '<li>Works independently and returns results to Douglas</li>';
+                html += '<li>Can be removed without affecting Phase 1 functionality</li>';
+                html += '</ul>';
+                html += '</div>';
+            }
+            
+            return html;
+        }
+
+        // Function to generate changes detail view
+        function generateChangesDetail(agentKey) {
+            const agent = agentData[agentKey];
+            let html = '<div class="summary-section">';
+            html += `<h2>${agent.name} - Detailed Changes</h2>`;
+            html += `<p><strong>File:</strong> ${agent.file}</p>`;
+            html += '</div>';
+            
+            agent.changes.forEach((change, index) => {
+                html += '<div class="diff-section">';
+                html += `<div class="diff-header">Change ${index + 1}: ${change.section}</div>`;
+                html += '<div class="diff-content">';
+                html += `<span class="added">+ ${change.description}</span>\n`;
+                if (change.location) {
+                    html += `<span class="unchanged">  Location: ${change.location}</span>\n`;
+                }
+                if (change.lines) {
+                    html += `<span class="unchanged">  Lines: ${change.lines}</span>\n`;
+                }
+                html += '</div>';
+                html += '</div>';
+            });
+            
+            return html;
+        }
+
+        // Function to generate full comparison view
+        function generateFullComparison(agentKey) {
+            const agent = agentData[agentKey];
+            let html = '<div class="summary-section">';
+            html += `<h2>${agent.name} - Full Change Summary</h2>`;
+            html += '<p>Showing all modifications made to this file.</p>';
+            html += '</div>';
+            
+            html += '<div class="diff-section">';
+            html += '<div class="diff-header">File Information</div>';
+            html += '<div class="diff-content">';
+            html += `<span class="unchanged">File: ${agent.file}</span>\n`;
+            if (agent.location) {
+                html += `<span class="unchanged">Location: ${agent.location}</span>\n`;
+            }
+            if (agent.backup) {
+                html += `<span class="unchanged">Backup: ${agent.backup}</span>\n`;
+            }
+            html += `<span class="unchanged">Total Changes: ${agent.changes.length}</span>\n`;
+            html += '</div>';
+            html += '</div>';
+            
+            if (agent.isNew) {
+                html += '<div class="diff-section">';
+                html += '<div class="diff-header">New Agent File</div>';
+                html += '<div class="diff-content">';
+                html += '<span class="added">+ version: 2</span>\n';
+                html += `<span class="added">+ name: "${agent.name}"</span>\n`;
+                html += `<span class="added">+ key: "${agent.file.replace('.yaml', '')}"</span>\n`;
+                html += '<span class="added">+ model_id: "claude-sonnet-4-20250514"</span>\n';
+                html += '<span class="added">+ category: ["douglas_ifi_orchestrator_enhanced", "assist"]</span>\n';
+                html += '<span class="added">+ ... (complete agent persona)</span>\n';
+                html += '</div>';
+                html += '</div>';
+            } else {
+                agent.changes.forEach((change, index) => {
+                    html += '<div class="diff-section">';
+                    html += `<div class="diff-header">${change.section}</div>`;
+                    html += '<div class="diff-content">';
+                    html += '<span class="unchanged">... (existing content preserved)</span>\n';
+                    html += '<span class="unchanged">---</span>\n';
+                    html += `<span class="added">+ ## ${change.section}</span>\n`;
+                    html += `<span class="added">+ ${change.description}</span>\n`;
+                    if (change.location) {
+                        html += `<span class="unchanged">+ (Inserted ${change.location})</span>\n`;
+                    }
+                    html += '<span class="unchanged">---</span>\n';
+                    html += '<span class="unchanged">... (existing content continues)</span>\n';
+                    html += '</div>';
+                    html += '</div>';
+                });
+            }
+            
+            return html;
+        }
+
+        // Event listeners
+        document.querySelectorAll('.agent-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const agentKey = this.getAttribute('data-agent');
+                
+                // Update active state
+                document.querySelectorAll('.agent-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Update all views
+                const activeTab = document.querySelector('.tab.active').getAttribute('data-tab');
+                updateView(agentKey, activeTab);
+            });
+        });
+
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabKey = this.getAttribute('data-tab');
+                const activeAgent = document.querySelector('.agent-item.active').getAttribute('data-agent');
+                
+                // Update active tab
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Update active view
+                document.querySelectorAll('.comparison-view').forEach(v => v.classList.remove('active'));
+                document.getElementById(tabKey).classList.add('active');
+                
+                // Update view content
+                updateView(activeAgent, tabKey);
+            });
+        });
+
+        function updateView(agentKey, viewType) {
+            const viewElement = document.getElementById(viewType);
+            let html = '';
+            
+            switch(viewType) {
+                case 'summary':
+                    html = generateSummary(agentKey);
+                    break;
+                case 'changes':
+                    html = generateChangesDetail(agentKey);
+                    break;
+                case 'full':
+                    html = generateFullComparison(agentKey);
+                    break;
+            }
+            
+            viewElement.innerHTML = html;
+        }
+
+        // Initialize with template agent and summary view
+        updateView('template', 'summary');
+    </script>
+</body>
+</html>
