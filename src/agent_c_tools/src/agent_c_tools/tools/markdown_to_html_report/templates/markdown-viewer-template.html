@@ -22,8 +22,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/bash.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/json.min.js"></script>
 
-    <!-- Marked -->
-    <script src="https://cdn.jsdelivr.net/npm/marked@4.0.0/marked.min.js"></script>
+    <!-- Marked.js REMOVED - Now using server-side HTML pre-rendering -->
 
     <!-- Mermaid -->
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
@@ -493,6 +492,106 @@
             display: inline-block
         }
 
+        /* Right-side TOC Pane */
+        #page-toc {
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 250px;
+            height: 100vh;
+            overflow-y: auto;
+            background: var(--sidebar-bg);
+            border-left: 1px solid var(--border-color);
+            padding: 20px;
+            display: none; /* Hidden by default, shown when TOC available */
+            z-index: 10;
+        }
+
+        #page-toc.visible {
+            display: block;
+        }
+
+        #page-toc h4 {
+            margin: 0 0 12px 0;
+            font-size: 14px;
+            text-transform: uppercase;
+            color: var(--glacier);
+            font-weight: 500;
+        }
+
+        #page-toc ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #page-toc li {
+            margin: 0;
+            padding: 0;
+        }
+
+        #page-toc a {
+            display: block;
+            padding: 6px 0;
+            color: var(--text-color);
+            text-decoration: none;
+            font-size: 13px;
+            line-height: 1.4;
+            border-left: 2px solid transparent;
+            padding-left: 8px;
+            transition: all 0.2s ease;
+        }
+
+        #page-toc a:hover {
+            color: var(--link-color);
+            border-left-color: var(--link-color);
+        }
+
+        #page-toc a.active {
+            color: var(--link-color);
+            border-left-color: var(--link-color);
+            font-weight: 500;
+        }
+
+        #page-toc .toc-level-3 {
+            padding-left: 20px;
+            font-size: 12px;
+        }
+
+        /* Adjust content margin when TOC is visible */
+        body.toc-visible #content {
+            margin-right: 250px;
+        }
+
+        /* Pygments Syntax Highlighting CSS - Will be injected by Python */
+        /* $PYGMENTS_CSS */
+
+        /* Copy button for code blocks */
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            padding: 4px 8px;
+            font-size: 12px;
+            background: var(--glacier);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            z-index: 10;
+        }
+
+        .codehilite:hover .copy-btn,
+        pre:hover .copy-btn {
+            opacity: 1;
+        }
+
+        .copy-btn:hover {
+            background: var(--midnight);
+        }
+
         @media (max-width: 768px) {
             body {
                 flex-direction: column
@@ -521,6 +620,26 @@
                 width: 35px;
                 height: 35px
             }
+
+            /* Hide TOC on mobile */
+            #page-toc {
+                display: none !important;
+            }
+
+            body.toc-visible #content {
+                margin-right: 0;
+            }
+        }
+
+        @media (min-width: 769px) and (max-width: 1200px) {
+            /* On medium screens, shrink TOC */
+            #page-toc {
+                width: 200px;
+            }
+
+            body.toc-visible #content {
+                margin-right: 200px;
+            }
         }
     </style>
 </head>
@@ -536,6 +655,12 @@
     <div id="markdown-content"></div>
     <div id="back-to-top" title="Back to top">↑</div>
 </div>
+
+<!-- Right-side Table of Contents -->
+<aside id="page-toc">
+    <h4>On this page</h4>
+    <ul id="page-toc-list"></ul>
+</aside>
 
 <script>
     // Injected by generator
@@ -609,58 +734,21 @@
     });
     backToTopButton.addEventListener('click', () => content.scrollTo({top: 0, behavior: 'smooth'}));
 
-    // Marked configuration & renderer hooks
-    marked.setOptions({
-        highlight: (code, lang) => {
-            if (lang && hljs.getLanguage(lang)) {
-                try {
-                    return hljs.highlight(code, {language: lang}).value;
-                } catch {
-                }
-            }
-            return hljs.highlightAuto(code).value;
-        },
-        langPrefix: 'hljs language-',
-        headerIds: true,
-        mangle: false,
-        gfm: true
-    });
-
-    const renderer = new marked.Renderer();
-    const origCode = renderer.code.bind(renderer);
-    const origImage = renderer.image.bind(renderer);
-
-    renderer.code = (code, language, escaped) => {
-        if (language === 'mermaid') {
-            return `<div class="mermaid-wrapper">
-                  <div class="fullscreen-trigger" onclick="openFullscreen(this.nextElementSibling)">⛶</div>
-                  <div class="mermaid">${code}</div>
-                </div>`;
-        }
-        const langDisplay = language || 'text';
-        const rendered = origCode(code, language, escaped);
-        return `<div style="position:relative;">
-                <div class="code-header">
-                  <span class="code-language">${langDisplay}</span>
-                  <button class="copy-btn" onclick="copyCode(this)" title="Copy code">Copy</button>
-                </div>
-                ${rendered}
-              </div>`;
-    };
-
-    renderer.image = (href, title, text) => {
-        const img = origImage(href, title, text);
-        return `<span style="position:relative;display:inline-block;">
-                <span class="fullscreen-trigger" onclick="openFullscreen(this.nextElementSibling)">⛶</span>
-                ${img}
-              </span>`;
-    };
-
-    marked.use({renderer});
+    // REMOVED: Marked.js configuration - now using server-side HTML pre-rendering
+    // Syntax highlighting is handled by Pygments at build time
+    // Code blocks and images are already rendered with proper structure
 
     // Helpers: copy & fullscreen
     window.copyCode = (button) => {
-        const codeBlock = button.parentElement.nextElementSibling.querySelector('code');
+        // Handle both Pygments (.codehilite) and highlight.js structures
+        let codeBlock = button.closest('.codehilite')?.querySelector('code');
+        if (!codeBlock) {
+            codeBlock = button.parentElement.nextElementSibling?.querySelector('code');
+        }
+        if (!codeBlock) {
+            console.warn('Could not find code block');
+            return;
+        }
         navigator.clipboard.writeText(codeBlock.textContent || '').then(() => {
             const t = button.textContent;
             button.textContent = 'Copied!';
@@ -760,13 +848,18 @@
                     file.textContent = formatDisplayName(item.name);
                     file.dataset.path = item.path;
                     file.dataset.content = item.content;
+                    // Store TOC data if available
+                    if (item.toc) {
+                        file.dataset.toc = JSON.stringify(item.toc);
+                    }
                     li.appendChild(file);
 
                     file.addEventListener('click', e => {
                         e.stopPropagation();
                         document.querySelectorAll('.file.active').forEach(el => el.classList.remove('active'));
                         file.classList.add('active');
-                        renderMarkdown(file.dataset.content);
+                        const tocData = file.dataset.toc ? JSON.parse(file.dataset.toc) : [];
+                        renderMarkdown(file.dataset.content, tocData);
                         updateHistory(item.path);
                         if (window.innerWidth <= 768) {
                             sidebarHidden = true;
@@ -792,9 +885,28 @@
             });
     }
 
-    function renderMarkdown(contentStr) {
-        markdownContent.innerHTML = marked.parse(contentStr || '');
-        ensureHeadingIds();
+    function renderMarkdown(contentStr, tocData) {
+        // Content is now pre-rendered HTML, not markdown
+        markdownContent.innerHTML = contentStr || '';
+        // No need for ensureHeadingIds - IDs are already in the HTML from python-markdown
+
+        // Render right-side TOC if available
+        renderPageToc(tocData || []);
+
+        // Add copy buttons to code blocks (Pygments .codehilite or plain <pre><code>)
+        document.querySelectorAll('#markdown-content .codehilite, #markdown-content pre:has(code)').forEach(block => {
+            // Skip if already has a copy button
+            if (block.querySelector('.copy-btn')) return;
+
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'copy-btn';
+            copyBtn.textContent = 'Copy';
+            copyBtn.title = 'Copy code';
+            copyBtn.onclick = function() { copyCode(this); };
+
+            block.style.position = 'relative';
+            block.appendChild(copyBtn);
+        });
 
         // Mermaid
         if (window.mermaid) {
@@ -831,6 +943,81 @@
             const el = document.getElementById(window.location.hash.slice(1));
             if (el) el.scrollIntoView({behavior: 'smooth'});
         }
+    }
+
+    function renderPageToc(tocData) {
+        const pageToc = document.getElementById('page-toc');
+        const pageTocList = document.getElementById('page-toc-list');
+
+        // Clear existing TOC
+        pageTocList.innerHTML = '';
+
+        // Hide TOC if no entries
+        if (!tocData || tocData.length === 0) {
+            pageToc.classList.remove('visible');
+            document.body.classList.remove('toc-visible');
+            return;
+        }
+
+        // Build TOC list
+        tocData.forEach(entry => {
+            const li = document.createElement('li');
+            const a = document.createElement('a');
+            a.href = `#${entry.anchor}`;
+            a.textContent = entry.text;
+            a.className = entry.level === 3 ? 'toc-level-3' : 'toc-level-2';
+
+            a.addEventListener('click', e => {
+                e.preventDefault();
+                scrollToAnchor(entry.anchor);
+            });
+
+            li.appendChild(a);
+            pageTocList.appendChild(li);
+        });
+
+        // Show TOC
+        pageToc.classList.add('visible');
+        document.body.classList.add('toc-visible');
+
+        // Add scroll spy for active item
+        setupTocScrollSpy();
+    }
+
+    function setupTocScrollSpy() {
+        const tocLinks = document.querySelectorAll('#page-toc a');
+        if (!tocLinks.length) return;
+
+        const headings = markdownContent.querySelectorAll('h2, h3');
+
+        function updateActiveToc() {
+            tocLinks.forEach(a => a.classList.remove('active'));
+
+            const scrollPos = content.scrollTop + 100; // Offset for better UX
+
+            // Find the current section
+            let currentHeading = null;
+            headings.forEach(h => {
+                if (h.offsetTop <= scrollPos) {
+                    currentHeading = h;
+                }
+            });
+
+            if (currentHeading) {
+                const id = currentHeading.id;
+                tocLinks.forEach(a => {
+                    if (a.getAttribute('href') === `#${id}`) {
+                        a.classList.add('active');
+                    }
+                });
+            } else if (scrollPos < 100) {
+                // At top, activate first item
+                tocLinks[0]?.classList.add('active');
+            }
+        }
+
+        content.addEventListener('scroll', updateActiveToc);
+        updateActiveToc(); // Initial call
     }
 
     function addTableOfContentsInteractivity() {
@@ -897,7 +1084,9 @@
         document.querySelectorAll('.file.active').forEach(el => el.classList.remove('active'));
         fileEl.classList.add('active');
 
-        renderMarkdown(fileEl.dataset.content);
+        // Get TOC data if available
+        const tocData = fileEl.dataset.toc ? JSON.parse(fileEl.dataset.toc) : [];
+        renderMarkdown(fileEl.dataset.content, tocData);
         updateHistory(filePath);
 
         // expand parent folders
@@ -1019,13 +1208,27 @@
                 if (link.classList.contains('unresolved')) {
                     event.preventDefault();
                     this.showNotification(link.getAttribute('title') || 'Link not available', 'warning');
-                } else if (href.startsWith('viewer://')) {
+                }
+                // 2) Handle data-doc-path attributes (NEW: for pre-rendered HTML)
+                else if (link.hasAttribute('data-doc-path')) {
+                    event.preventDefault();
+                    const docPath = link.getAttribute('data-doc-path');
+                    const anchor = link.getAttribute('data-doc-anchor') || '';
+                    const viewerUrl = `viewer://${docPath}${anchor ? '#' + anchor : ''}`;
+                    this.handleViewerLink(viewerUrl);
+                }
+                // 3) Handle viewer:// protocol (legacy support)
+                else if (href.startsWith('viewer://')) {
                     event.preventDefault();
                     this.handleViewerLink(href);
-                } else if (href.startsWith('#')) {
+                }
+                // 4) Handle same-document anchors
+                else if (href.startsWith('#')) {
                     event.preventDefault();
-                    this.handleViewerLink(href);
-                } else if (/^https?:\/\//i.test(href)) {
+                    this.scrollToAnchor(href.slice(1));
+                }
+                // 5) Handle external links
+                else if (/^https?:\/\//i.test(href)) {
                     if (!link.hasAttribute('target')) {
                         link.setAttribute('target', '_blank');
                         link.setAttribute('rel', 'noopener noreferrer');

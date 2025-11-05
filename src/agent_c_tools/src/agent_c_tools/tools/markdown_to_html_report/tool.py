@@ -16,7 +16,9 @@ from agent_c.toolsets.json_schema import json_schema
 # New registry-based components
 from .helpers.doc_registry import DocRegistry
 from .helpers.registry_builder import build_registry_and_tree, validate_registry_integrity
-from .helpers.javascript_safe_content_processor import JavaScriptSafeContentProcessor
+from .helpers.html_document_renderer import render_registry_to_html
+# Legacy - kept for backward compatibility but no longer used
+# from .helpers.javascript_safe_content_processor import JavaScriptSafeContentProcessor
 
 # Existing components (preserved)
 from agent_c_tools.tools.markdown_to_html_report.md_to_docx.markdown_to_docx import MarkdownToDocxConverter
@@ -49,7 +51,7 @@ class MarkdownToHtmlReportTools(Toolset):
         self.workspace_tool: Optional[WorkspaceTools] = None
         self.file_collector = None
         self.docx_converter = MarkdownToDocxConverter()
-        self.js_processor = JavaScriptSafeContentProcessor()
+        # No longer need JS processor - rendering to HTML eliminates safety concerns
 
     async def post_init(self):
         self.workspace_tool = self.tool_chest.available_tools.get("WorkspaceTools")
@@ -83,7 +85,7 @@ class MarkdownToHtmlReportTools(Toolset):
             },
             "javascript_safe": {
                 "type": "boolean",
-                "description": "Whether to apply JavaScript safety processing to handle problematic patterns like C# interpolated strings (recommended: true)",
+                "description": "DEPRECATED: No longer used. Content is now pre-rendered to HTML, eliminating safety concerns. Kept for backward compatibility.",
                 "required": False,
                 "default": True
             }
@@ -141,9 +143,10 @@ class MarkdownToHtmlReportTools(Toolset):
                     tool_context=tool_context
                 )
 
-                # Apply JavaScript safety processing if requested
-                if javascript_safe:
-                    registry = self._apply_javascript_safety(registry)
+                # NEW: Render markdown to HTML (eliminates need for JS safety processing)
+                logger.info("Rendering markdown to HTML...")
+                registry, render_stats = render_registry_to_html(registry)
+                logger.info(f"HTML rendering stats: {render_stats}")
 
                 # Log warnings if any
                 if warnings:
@@ -212,7 +215,7 @@ class MarkdownToHtmlReportTools(Toolset):
             },
             "javascript_safe": {
                 "type": "boolean",
-                "description": "Whether to apply JavaScript safety processing (recommended: true)",
+                "description": "DEPRECATED: No longer used. Content is now pre-rendered to HTML. Kept for backward compatibility.",
                 "required": False,
                 "default": True
             }
@@ -253,9 +256,10 @@ class MarkdownToHtmlReportTools(Toolset):
                 base_path=base_path
             )
 
-            # Apply JavaScript safety processing if requested
-            if javascript_safe:
-                registry = self._apply_javascript_safety(registry)
+            # NEW: Render markdown to HTML (eliminates need for JS safety processing)
+            logger.info("Rendering markdown to HTML...")
+            registry, render_stats = render_registry_to_html(registry)
+            logger.info(f"HTML rendering stats: {render_stats}")
 
             # Log warnings if any
             if warnings:
@@ -467,10 +471,6 @@ class MarkdownToHtmlReportTools(Toolset):
             if file_content.startswith('{"error":'):
                 raise ValueError(f"Error reading file at {input_path}: {file_content}")
 
-            # Apply JavaScript safety if requested
-            if javascript_safe:
-                file_content = self.js_processor.process_markdown_content(file_content)
-
             # Create registry with single document
             registry = DocRegistry()
 
@@ -492,6 +492,11 @@ class MarkdownToHtmlReportTools(Toolset):
             from .helpers.link_rewriter import rewrite_all_documents
             registry = rewrite_all_documents(registry)
 
+            # NEW: Render markdown to HTML
+            logger.info("Rendering single file to HTML...")
+            registry, render_stats = render_registry_to_html(registry)
+            logger.info(f"HTML rendering stats: {render_stats}")
+
             # Create simple UI tree
             ui_tree = [{
                 'name': display_name,
@@ -505,40 +510,25 @@ class MarkdownToHtmlReportTools(Toolset):
         except Exception as e:
             raise ValueError(f"Error processing single file: {str(e)}")
 
-    def _apply_javascript_safety(self, registry: DocRegistry) -> DocRegistry:
-        """Apply JavaScript safety processing to all documents in registry."""
-        logger.debug("Applying JavaScript safety processing")
-
-        new_registry = DocRegistry()
-
-        for path, doc in registry.by_path.items():
-            # Apply safety processing to content
-            safe_content = self.js_processor.process_markdown_content(doc.content)
-
-            # Create new doc with processed content
-            from .helpers.doc_registry import DocMeta
-            safe_doc = DocMeta(
-                display_name=doc.display_name,
-                path=doc.path,
-                anchors=doc.anchors,
-                content=safe_content
-            )
-
-            new_registry.add_document(safe_doc)
-
-        logger.debug("JavaScript safety processing complete")
-        return new_registry
+    # REMOVED: _apply_javascript_safety - No longer needed with HTML pre-rendering
 
     def _build_template_structure(self, registry: DocRegistry, ui_tree: list[dict]) -> list[dict]:
         """Build final structure for template injection."""
-        # Add content to the UI tree structure
+        # Get document metadata (TOC, etc.) if available
+        doc_metadata = getattr(registry, '_doc_metadata', {})
+
+        # Add content and metadata to the UI tree structure
         def add_content_to_tree(items):
             for item in items:
                 if item.get('type') == 'file':
                     path = item.get('path')
-                    doc = registry.by_path.get(path)  # <- use the dict
+                    doc = registry.by_path.get(path)
                     if doc:
-                        item['content'] = doc.content
+                        item['content'] = doc.content  # Now HTML instead of markdown
+                        # Add TOC metadata if available
+                        metadata = doc_metadata.get(path, {})
+                        if metadata.get('toc'):
+                            item['toc'] = metadata['toc']
                 elif item.get('type') == 'folder' and 'children' in item:
                     add_content_to_tree(item['children'])
 
@@ -598,6 +588,16 @@ class MarkdownToHtmlReportTools(Toolset):
             html_template = html_template.replace(
                 Constants.DEFAULT_TITLE_PLACEHOLDER,
                 f"<h3 style=\"margin:0 16px 16px 16px;\">{title}</h3>")
+
+            # Inject Pygments CSS for syntax highlighting
+            from .helpers.markdown_renderer import MarkdownRenderer
+            pygments_css = MarkdownRenderer.get_pygments_css('default')
+            if pygments_css:
+                html_template = html_template.replace('/* $PYGMENTS_CSS */', pygments_css)
+                logger.debug("Injected Pygments CSS for syntax highlighting")
+            else:
+                logger.warning("Pygments CSS not available - syntax highlighting may be limited")
+                html_template = html_template.replace('/* $PYGMENTS_CSS */', '/* Pygments not available */')
 
             # Inject JavaScript slugger code for consistency
             from .helpers.slugger import get_javascript_slugger_code
