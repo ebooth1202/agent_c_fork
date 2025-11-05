@@ -338,32 +338,9 @@
             overflow-x: auto
         }
 
-        #markdown-content > ul:first-of-type, #markdown-content > ol:first-of-type {
-            background: var(--toc-bg-color);
-            border-radius: 8px;
-            padding: 20px 20px 20px 40px;
-            margin-bottom: 32px;
-            border-left: 4px solid var(--toc-border-color);
-            box-shadow: 0 2px 8px var(--shadow-color)
-        }
-
-        #markdown-content > ul:first-of-type a, #markdown-content > ol:first-of-type a {
-            display: inline-block;
-            transition: transform .2s, color .2s;
-            padding: 2px 5px;
-            border-radius: 3px
-        }
-
-        #markdown-content > ul:first-of-type a:hover, #markdown-content > ol:first-of-type a:hover {
-            transform: translateX(3px);
-            background: rgba(44, 26, 93, 0.05)
-        }
-
-        #markdown-content > ul:first-of-type a.active, #markdown-content > ol:first-of-type a.active {
-            font-weight: 500;
-            background: rgba(44, 26, 93, 0.1);
-            color: var(--indigo)
-        }
+        /* REMOVED: first-of-type list styling
+           Was causing purple border on first list in documents
+           We now use right-side TOC pane instead of in-document TOC styling */
 
         #markdown-content blockquote {
             padding: 0 1em;
@@ -1031,7 +1008,8 @@
             // viewer:// handled globally by the bridge
         });
 
-        addTableOfContentsInteractivity();
+        // REMOVED: addTableOfContentsInteractivity() - no longer needed
+        // We now use the right-side TOC pane instead of in-document TOC
 
         // If page has a hash on first render
         if (window.location.hash) {
