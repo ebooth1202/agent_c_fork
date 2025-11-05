@@ -88,9 +88,57 @@
             overflow-y: auto;
             background: var(--sidebar-bg);
             border-right: 1px solid var(--border-color);
-            padding: 20px 0;
+            padding: 0;
             position: relative;
-            flex-shrink: 0
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 20px 16px 16px 16px;
+            background: var(--sidebar-bg);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 8px;
+        }
+
+        #sidebar-search {
+            width: 100%;
+            padding: 8px 12px 8px 36px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        #sidebar-search:focus {
+            outline: none;
+            border-color: var(--peacock);
+            box-shadow: 0 0 0 3px rgba(31, 93, 130, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        #tree-view {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
         }
 
         #sidebar-resize-handle {
@@ -133,69 +181,124 @@
 
         .tree-view {
             list-style: none;
-            padding-left: 15px;
-            margin: 0
+            padding-left: 0;
+            margin: 0;
         }
 
         .tree-view li {
-            margin: 5px 0;
-            position: relative
+            margin: 2px 0;
+            position: relative;
+        }
+
+        .tree-view > li {
+            margin-left: 8px;
+        }
+
+        .tree-view .tree-view {
+            padding-left: 20px;
+            margin-top: 4px;
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+        }
+
+        .tree-view .tree-view:not(.hidden) {
+            max-height: 2000px;
+            opacity: 1;
         }
 
         .folder {
             cursor: pointer;
             user-select: none;
-            padding: 5px 8px;
-            border-radius: 3px;
+            padding: 8px 12px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
-            transition: background-color .2s, transform .1s
+            gap: 8px;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            font-size: 14px;
         }
 
         .folder:hover {
-            background: rgba(0, 0, 0, .05);
-            transform: translateX(2px)
+            background: rgba(31, 93, 130, 0.08);
+            transform: translateX(2px);
         }
 
         .folder:before {
-            content: '📁';
-            margin-right: 8px;
-            color: var(--folder-icon-color)
+            content: '▶';
+            font-size: 10px;
+            transition: transform 0.3s ease;
+            color: var(--glacier);
+            flex-shrink: 0;
         }
 
         .folder.open:before {
-            content: '📂'
+            transform: rotate(90deg);
+        }
+
+        .folder:after {
+            content: '📁';
+            flex-shrink: 0;
+        }
+
+        .folder.open:after {
+            content: '📂';
+        }
+
+        .folder-badge {
+            margin-left: auto;
+            background: rgba(31, 93, 130, 0.1);
+            color: var(--peacock);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
         }
 
         .file {
-            padding: 5px 8px;
+            padding: 8px 12px 8px 30px;
             cursor: pointer;
             user-select: none;
-            border-radius: 3px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
-            transition: background-color .2s, transform .1s
+            gap: 8px;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            position: relative;
         }
 
         .file:hover {
-            background: rgba(0, 0, 0, .05);
-            transform: translateX(2px)
+            background: rgba(31, 93, 130, 0.08);
+            transform: translateX(2px);
         }
 
         .file:before {
             content: '📄';
-            margin-right: 8px;
-            color: var(--file-icon-color)
+            flex-shrink: 0;
         }
 
         .file.active {
-            background: rgba(44, 26, 93, 0.1);
-            color: var(--indigo);
-            font-weight: 500
+            background: linear-gradient(90deg, rgba(31, 93, 130, 0.15), rgba(31, 93, 130, 0.05));
+            color: var(--peacock);
+            font-weight: 500;
+            border-left: 3px solid var(--peacock);
+            padding-left: 27px;
+        }
+
+        .file.active:before {
+            content: '📘';
+        }
+
+        .file.filtered-hidden,
+        .folder.filtered-hidden {
+            display: none;
         }
 
         .hidden {
-            display: none
+            display: none;
         }
 
         .unresolved {
@@ -654,7 +757,13 @@
 <div id="sidebar">
     <button id="sidebar-toggle" title="Toggle Sidebar">Hide</button>
     <div id="sidebar-resize-handle" title="Drag to resize"></div>
-    <h3 style="margin:0 16px 16px 16px;">Agent C Output Viewer</h3>
+    <div class="sidebar-header">
+        <h3 style="margin:0 0 12px 0;">Agent C Output Viewer</h3>
+        <div class="search-box">
+            <input type="text" id="sidebar-search" placeholder="Search files..." autocomplete="off">
+            <span class="search-icon">🔍</span>
+        </div>
+    </div>
     <ul id="tree-view" class="tree-view"></ul>
 </div>
 
@@ -811,6 +920,19 @@
         });
     };
 
+    // Helper function to count files recursively
+    function countFiles(items) {
+        let count = 0;
+        items.forEach(item => {
+            if (item.type === 'file' && /\.(md|markdown|mdx)$/i.test(item.path)) {
+                count++;
+            } else if (item.type === 'folder' && item.children) {
+                count += countFiles(item.children);
+            }
+        });
+        return count;
+    }
+
     // Display tree
     function createTreeView(structure, parent) {
         function formatDisplayName(filename) {
@@ -827,7 +949,21 @@
             if (item.type === 'folder') {
                 const folder = document.createElement('div');
                 folder.className = 'folder';
-                folder.textContent = formatDisplayName(item.name);
+
+                const folderName = document.createElement('span');
+                folderName.textContent = formatDisplayName(item.name);
+                folder.appendChild(folderName);
+
+                // Add badge with item count
+                if (item.children?.length) {
+                    const fileCount = countFiles(item.children);
+                    const badge = document.createElement('span');
+                    badge.className = 'folder-badge';
+                    badge.textContent = fileCount;
+                    badge.title = `${fileCount} file${fileCount !== 1 ? 's' : ''}`;
+                    folder.appendChild(badge);
+                }
+
                 li.appendChild(folder);
 
                 const ul = document.createElement('ul');
@@ -1226,6 +1362,80 @@
     function initializeViewer() {
         createTreeView(fileStructure, treeView);
         findAndDisplayFirstMarkdownFile(fileStructure);
+        setupSearch();
+    }
+
+    function setupSearch() {
+        const searchInput = document.getElementById('sidebar-search');
+        if (!searchInput) return;
+
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            filterTree(query);
+        });
+    }
+
+    function filterTree(query) {
+        const allFiles = document.querySelectorAll('#tree-view .file');
+        const allFolders = document.querySelectorAll('#tree-view .folder');
+
+        if (!query) {
+            // Show everything
+            allFiles.forEach(file => file.classList.remove('filtered-hidden'));
+            allFolders.forEach(folder => folder.classList.remove('filtered-hidden'));
+            return;
+        }
+
+        // Hide all first
+        allFiles.forEach(file => {
+            const fileName = file.textContent.toLowerCase();
+            if (fileName.includes(query)) {
+                file.classList.remove('filtered-hidden');
+                // Show parent folders
+                showParentFolders(file);
+            } else {
+                file.classList.add('filtered-hidden');
+            }
+        });
+
+        // Hide folders that have no visible children
+        allFolders.forEach(folder => {
+            const parentLi = folder.parentElement;
+            const childrenUl = parentLi.querySelector(':scope > ul');
+            if (childrenUl) {
+                const visibleChildren = childrenUl.querySelectorAll('.file:not(.filtered-hidden), .folder:not(.filtered-hidden)');
+                if (visibleChildren.length === 0) {
+                    folder.classList.add('filtered-hidden');
+                } else {
+                    folder.classList.remove('filtered-hidden');
+                    // Expand folder to show matches
+                    if (!folder.classList.contains('open')) {
+                        folder.click();
+                    }
+                }
+            }
+        });
+    }
+
+    function showParentFolders(element) {
+        let parent = element.parentElement;
+        while (parent && parent.id !== 'tree-view') {
+            if (parent.tagName === 'LI') {
+                const folder = parent.querySelector(':scope > .folder');
+                if (folder) {
+                    folder.classList.remove('filtered-hidden');
+                    // Expand parent folder
+                    if (!folder.classList.contains('open')) {
+                        const ul = parent.querySelector(':scope > ul');
+                        if (ul) {
+                            folder.classList.add('open');
+                            ul.classList.remove('hidden');
+                        }
+                    }
+                }
+            }
+            parent = parent.parentElement;
+        }
     }
 
     function scrollToAnchor(anchorId) {
