@@ -994,7 +994,7 @@ class WorkspaceTools(Toolset):
         tool_context: Dict[str, Any] = kwargs.get("tool_context")
         workspace_name = kwargs.get("workspace_name")
         if self.find_workspace_by_name(workspace_name):
-            tool_context['chat_session'].meta['active_workspace'] = workspace_name
+            tool_context['chat_session'].metadata['active_workspace'] = workspace_name
             await tool_context['bridge'].send_system_message(f"Active workspace set to {workspace_name}", severity="info")
             return f"Workspace '{workspace_name}' is now the active workspace for this chat session."
 
