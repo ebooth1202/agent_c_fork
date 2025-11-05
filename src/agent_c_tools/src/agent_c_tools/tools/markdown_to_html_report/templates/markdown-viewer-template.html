@@ -141,6 +141,104 @@
             padding: 8px 0;
         }
 
+        /* Search Results */
+        .search-results {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .search-results.hidden {
+            display: none;
+        }
+
+        .search-results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 16px;
+            background: rgba(31, 93, 130, 0.05);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--glacier);
+        }
+
+        .clear-search-btn {
+            background: none;
+            border: none;
+            color: var(--peacock);
+            cursor: pointer;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .clear-search-btn:hover {
+            background: rgba(31, 93, 130, 0.1);
+        }
+
+        #search-results-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .search-result-item {
+            padding: 12px;
+            margin: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .search-result-item:hover {
+            background: rgba(31, 93, 130, 0.08);
+            border-left-color: var(--peacock);
+            transform: translateX(2px);
+        }
+
+        .search-result-title {
+            font-weight: 500;
+            color: var(--peacock);
+            margin-bottom: 4px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .search-result-title:before {
+            content: '📄';
+            font-size: 14px;
+        }
+
+        .search-result-snippet {
+            font-size: 13px;
+            color: var(--glacier);
+            line-height: 1.5;
+            margin-top: 4px;
+        }
+
+        .search-result-snippet mark {
+            background: rgba(253, 184, 37, 0.3);
+            color: var(--midnight);
+            padding: 2px 0;
+            border-radius: 2px;
+            font-weight: 500;
+        }
+
+        .search-result-matches {
+            font-size: 11px;
+            color: var(--glacier);
+            margin-top: 4px;
+            opacity: 0.8;
+        }
+
         #sidebar-resize-handle {
             position: absolute;
             top: 0;
@@ -760,9 +858,16 @@
     <div class="sidebar-header">
         <h3 style="margin:0 0 12px 0;">Agent C Output Viewer</h3>
         <div class="search-box">
-            <input type="text" id="sidebar-search" placeholder="Search files..." autocomplete="off">
+            <input type="text" id="sidebar-search" placeholder="Search content..." autocomplete="off">
             <span class="search-icon">🔍</span>
         </div>
+    </div>
+    <div id="search-results" class="search-results hidden">
+        <div class="search-results-header">
+            <span id="search-results-count">0 results</span>
+            <button id="clear-search" class="clear-search-btn">✕ Clear</button>
+        </div>
+        <div id="search-results-list"></div>
     </div>
     <ul id="tree-view" class="tree-view"></ul>
 </div>
@@ -1367,75 +1472,196 @@
 
     function setupSearch() {
         const searchInput = document.getElementById('sidebar-search');
+        const clearBtn = document.getElementById('clear-search');
         if (!searchInput) return;
 
+        let searchTimeout;
+
         searchInput.addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase().trim();
-            filterTree(query);
-        });
-    }
+            const query = e.target.value.trim();
 
-    function filterTree(query) {
-        const allFiles = document.querySelectorAll('#tree-view .file');
-        const allFolders = document.querySelectorAll('#tree-view .folder');
-
-        if (!query) {
-            // Show everything
-            allFiles.forEach(file => file.classList.remove('filtered-hidden'));
-            allFolders.forEach(folder => folder.classList.remove('filtered-hidden'));
-            return;
-        }
-
-        // Hide all first
-        allFiles.forEach(file => {
-            const fileName = file.textContent.toLowerCase();
-            if (fileName.includes(query)) {
-                file.classList.remove('filtered-hidden');
-                // Show parent folders
-                showParentFolders(file);
-            } else {
-                file.classList.add('filtered-hidden');
-            }
-        });
-
-        // Hide folders that have no visible children
-        allFolders.forEach(folder => {
-            const parentLi = folder.parentElement;
-            const childrenUl = parentLi.querySelector(':scope > ul');
-            if (childrenUl) {
-                const visibleChildren = childrenUl.querySelectorAll('.file:not(.filtered-hidden), .folder:not(.filtered-hidden)');
-                if (visibleChildren.length === 0) {
-                    folder.classList.add('filtered-hidden');
+            // Debounce search
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                if (query.length >= 2) {
+                    performContentSearch(query);
                 } else {
-                    folder.classList.remove('filtered-hidden');
-                    // Expand folder to show matches
-                    if (!folder.classList.contains('open')) {
-                        folder.click();
-                    }
+                    clearSearch();
                 }
+            }, 300);
+        });
+
+        clearBtn?.addEventListener('click', () => {
+            searchInput.value = '';
+            clearSearch();
+        });
+
+        // Clear on Escape key
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                searchInput.value = '';
+                clearSearch();
             }
         });
     }
 
-    function showParentFolders(element) {
-        let parent = element.parentElement;
-        while (parent && parent.id !== 'tree-view') {
-            if (parent.tagName === 'LI') {
-                const folder = parent.querySelector(':scope > .folder');
-                if (folder) {
-                    folder.classList.remove('filtered-hidden');
-                    // Expand parent folder
-                    if (!folder.classList.contains('open')) {
-                        const ul = parent.querySelector(':scope > ul');
-                        if (ul) {
-                            folder.classList.add('open');
-                            ul.classList.remove('hidden');
-                        }
-                    }
-                }
+    function performContentSearch(query) {
+        const searchResultsView = document.getElementById('search-results');
+        const searchResultsList = document.getElementById('search-results-list');
+        const searchResultsCount = document.getElementById('search-results-count');
+        const treeView = document.getElementById('tree-view');
+
+        const results = [];
+        const queryLower = query.toLowerCase();
+
+        // Search through all files
+        const allFiles = document.querySelectorAll('#tree-view .file');
+        allFiles.forEach(file => {
+            const path = file.dataset.path;
+            const name = file.textContent.trim();
+            const content = file.dataset.content || '';
+
+            // Strip HTML tags to get plain text
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = content;
+            const textContent = tempDiv.textContent || tempDiv.innerText || '';
+
+            // Search in content
+            const matches = findMatches(textContent, queryLower);
+
+            if (matches.length > 0) {
+                results.push({
+                    path,
+                    name,
+                    content,
+                    matches,
+                    toc: file.dataset.toc
+                });
             }
-            parent = parent.parentElement;
+        });
+
+        // Display results
+        if (results.length > 0) {
+            searchResultsList.innerHTML = '';
+            results.forEach(result => {
+                const resultItem = createSearchResultItem(result, query);
+                searchResultsList.appendChild(resultItem);
+            });
+
+            searchResultsCount.textContent = `${results.length} result${results.length !== 1 ? 's' : ''}`;
+
+            // Show results, hide tree
+            searchResultsView.classList.remove('hidden');
+            treeView.classList.add('hidden');
+        } else {
+            searchResultsCount.textContent = 'No results';
+            searchResultsList.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--glacier);">No matches found</div>';
+            searchResultsView.classList.remove('hidden');
+            treeView.classList.add('hidden');
         }
+    }
+
+    function findMatches(text, query) {
+        const matches = [];
+        const lowerText = text.toLowerCase();
+        let index = 0;
+
+        while ((index = lowerText.indexOf(query, index)) !== -1) {
+            // Get context around the match (50 chars before and after)
+            const start = Math.max(0, index - 50);
+            const end = Math.min(text.length, index + query.length + 50);
+
+            let snippet = text.substring(start, end);
+
+            // Add ellipsis if truncated
+            if (start > 0) snippet = '...' + snippet;
+            if (end < text.length) snippet = snippet + '...';
+
+            matches.push({
+                index,
+                snippet
+            });
+
+            index += query.length;
+
+            // Limit to first 3 matches per document
+            if (matches.length >= 3) break;
+        }
+
+        return matches;
+    }
+
+    function createSearchResultItem(result, query) {
+        const item = document.createElement('div');
+        item.className = 'search-result-item';
+
+        const title = document.createElement('div');
+        title.className = 'search-result-title';
+        title.textContent = result.name;
+
+        const snippets = document.createElement('div');
+        result.matches.slice(0, 2).forEach(match => {
+            const snippetDiv = document.createElement('div');
+            snippetDiv.className = 'search-result-snippet';
+
+            // Highlight the search term
+            const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+            snippetDiv.innerHTML = match.snippet.replace(regex, '<mark>$1</mark>');
+
+            snippets.appendChild(snippetDiv);
+        });
+
+        const matchCount = document.createElement('div');
+        matchCount.className = 'search-result-matches';
+        matchCount.textContent = `${result.matches.length} match${result.matches.length !== 1 ? 'es' : ''}`;
+
+        item.appendChild(title);
+        item.appendChild(snippets);
+        item.appendChild(matchCount);
+
+        // Click to navigate
+        item.addEventListener('click', () => {
+            openMarkdownFile(result.path);
+            // Optionally highlight search term in document
+            setTimeout(() => highlightSearchTerm(query), 100);
+        });
+
+        return item;
+    }
+
+    function highlightSearchTerm(query) {
+        // Simple highlighting - you could make this more sophisticated
+        const content = document.getElementById('markdown-content');
+        if (!content) return;
+
+        // Use CSS to highlight (temporary)
+        const style = document.createElement('style');
+        style.id = 'search-highlight-style';
+        style.textContent = `
+            #markdown-content {
+                /* Add custom highlighting here if needed */
+            }
+        `;
+
+        // Remove previous highlight
+        document.getElementById('search-highlight-style')?.remove();
+        document.head.appendChild(style);
+    }
+
+    function escapeRegex(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function clearSearch() {
+        const searchResultsView = document.getElementById('search-results');
+        const treeView = document.getElementById('tree-view');
+
+        // Show tree, hide results
+        searchResultsView.classList.add('hidden');
+        treeView.classList.remove('hidden');
+
+        // Remove highlight style
+        document.getElementById('search-highlight-style')?.remove();
     }
 
     function scrollToAnchor(anchorId) {
