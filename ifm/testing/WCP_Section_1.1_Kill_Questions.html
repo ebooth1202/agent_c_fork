@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WCP Section 1.1 - Kill Questions UI Specifications</title>
+    
+    <!-- Marked.js for markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/powershell.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        #sidebar {
+            width: 320px;
+            background: #f8f9fa;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+            position: relative;
+            flex-shrink: 0;
+        }
+        
+        #sidebar-header {
+            padding: 50px 20px 20px 20px;
+            background: #2c1a5d;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        #sidebar-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        #toggle-sidebar {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            color: white;
+            transition: all 0.2s;
+        }
+        
+        #toggle-sidebar:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        #toc {
+            list-style: none;
+            padding: 20px;
+        }
+        
+        #toc li {
+            margin: 0;
+        }
+        
+        #toc a {
+            color: #333;
+            text-decoration: none;
+            display: block;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+        
+        #toc a:hover {
+            background: #e9ecef;
+            transform: translateX(3px);
+        }
+        
+        #toc a.active {
+            background: rgba(44, 26, 93, 0.1);
+            color: #2c1a5d;
+            font-weight: 600;
+            border-left: 3px solid #fdb825;
+        }
+        
+        #toc .h1 {
+            font-weight: 600;
+            font-size: 14px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        #toc .h1:first-child {
+            margin-top: 0;
+            padding-top: 0;
+            border-top: none;
+        }
+        
+        #toc .h2 {
+            margin-left: 15px;
+            font-size: 13px;
+        }
+        
+        #toc .h3 {
+            margin-left: 30px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        #content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px 80px;
+            scroll-behavior: smooth;
+        }
+        
+        #markdown-content {
+            max-width: 900px;
+        }
+        
+        #markdown-content h1 {
+            color: #2c1a5d;
+            border-bottom: 3px solid #fdb825;
+            padding-bottom: 12px;
+            margin: 40px 0 20px 0;
+            font-size: 2em;
+        }
+        
+        #markdown-content h2 {
+            color: #2c1a5d;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            margin: 32px 0 16px 0;
+            font-size: 1.6em;
+        }
+        
+        #markdown-content h3 {
+            color: #2c1a5d;
+            margin: 24px 0 12px 0;
+            font-size: 1.3em;
+        }
+        
+        #markdown-content h4 {
+            color: #555;
+            margin: 20px 0 10px 0;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+        
+        #markdown-content code {
+            background: #f8f9fa;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #e83e8c;
+        }
+        
+        #markdown-content pre {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-left: 4px solid #fdb825;
+            border-radius: 6px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        
+        #markdown-content pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+        
+        #markdown-content ul, #markdown-content ol {
+            margin: 16px 0 16px 30px;
+        }
+        
+        #markdown-content li {
+            margin: 8px 0;
+        }
+        
+        #markdown-content p {
+            margin: 16px 0;
+        }
+        
+        #markdown-content strong {
+            color: #2c1a5d;
+            font-weight: 600;
+        }
+        
+        #markdown-content blockquote {
+            border-left: 4px solid #fdb825;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #666;
+            font-style: italic;
+        }
+        
+        #markdown-content hr {
+            border: none;
+            border-top: 2px solid #e9ecef;
+            margin: 40px 0;
+        }
+        
+        #back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #2c1a5d;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            font-size: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 999;
+        }
+        
+        #back-to-top.visible {
+            opacity: 0.8;
+        }
+        
+        #back-to-top:hover {
+            opacity: 1;
+            transform: translateY(-4px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
+        
+        #logo {
+            position: fixed;
+            bottom: 100px;
+            right: 40px;
+            opacity: 0.6;
+            z-index: 998;
+            transition: opacity 0.3s;
+        }
+        
+        #logo:hover {
+            opacity: 0.9;
+        }
+        
+        #logo img {
+            width: 55px;
+            height: auto;
+        }
+        
+        body.sidebar-hidden #sidebar {
+            margin-left: -320px;
+        }
+        
+        body.sidebar-hidden #content {
+            margin-left: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <div id="sidebar-header">
+            <button id="toggle-sidebar">Hide</button>
+            <h2>WCP Kill Questions</h2>
+        </div>
+        <ul id="toc"></ul>
+    </div>
+    
+    <div id="content">
+        <div id="markdown-content"></div>
+    </div>
+    
+    <div id="back-to-top">↑</div>
+    
+    <div id="logo">
+        <img src="data:image/png;base64,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" alt="Centric Consulting">
+    </div>
+    
+    <script>
+        // Embedded markdown content
+        const markdownContent = "# Workers' Compensation (WCP) - Section 1.1 Initial Quote Kill Questions\n\n## User Experience Overview\n**User Action:** User initiates WCP quote process  \n**System Response:** System presents modal popup with 6 mandatory risk assessment questions  \n**User Must Do:** Answer all questions before quote development can proceed\n\n---\n\n## Question 1: Aircraft/Watercraft Risk Assessment\n\n**Question Text:** \"Does Applicant own, operate or lease aircraft or watercraft?\"  \n**Response Options:** Yes/No radio buttons (required)  \n**Business Rule:** \"Yes\" answer flags as potential ineligibility risk\n\n### User Interaction Flow & UI Behavior\n\n**Initial Display:**\n- **Required Indicator:** Red asterisk (*) initially hidden, appears if unanswered\n- **Additional Information Section:** Initially hidden below question row\n\n**User Action: Selects \"Yes\"**\n- **System Response:** Additional information text area immediately appears below question\n- **Text Area Specifications:**\n  - **Label:** \"Additional Information\"\n  - **Text Box Type:** Multi-line text area (`TextMode=\"MultiLine\"`)\n  - **Styling:** Standard border, no character limit specified\n  - **Required:** Text input required when \"Yes\" selected\n\n**User Action: Selects \"No\"**\n- **System Response:** Additional information text area immediately hides\n- **Validation:** No additional text required\n\n**User Action: Attempts to save without answering**\n- **Visual Indicator:** Red asterisk (*) appears next to \"Yes\" radio button\n- **Border Change:** Question row receives red border highlight\n- **Tooltip:** \"Response Required\" appears on hover\n- **Error State:** Prevents form submission\n\n**User Action: Selects \"Yes\" but leaves text area empty**\n- **Text Area Border:** Changes to red\n- **Label Color:** Changes from black to red\n- **Label Text:** Changes from \"Additional Information\" to **\"Additional Information Response Required\"**\n- **Validation Block:** Prevents form submission until text entered\n\n**User Action: Enters text after \"Yes\" selection**\n- **Text Area Border:** Returns to normal styling\n- **Label Color:** Returns to black\n- **Label Text:** Returns to \"Additional Information\"\n- **Form Status:** Ready for submission\n\n**User Action: Selects \"Yes\" with valid text and clicks Continue**\n- **System Response:** Selection recorded for underwriting review with risk flag\n- **Business Rule:** \"Yes\" answer flags as potential ineligibility risk\n- **Diamond Integration:** Records response with Diamond code 9341 for audit trail\n\n---\n\n## Question 2: Hazardous Materials Operations\n\n**Question Text:** \"Do/have past, present or discontinued operations involve(d) storing, treating, discharging, applying, disposing, or transporting of hazardous material? (e.g. landfills, wastes, fuel tanks, etc.)\"  \n**Response Options:** Yes/No radio buttons (required)  \n**Business Rule:** \"Yes\" answer flags as potential ineligibility risk\n\n### User Interaction Flow & UI Behavior\n\n**Initial Display:**\n- **Required Indicator:** Red asterisk (*) initially hidden, appears if unanswered\n- **Additional Information Section:** Initially hidden below question row\n\n**User Action: Selects \"Yes\"**\n- **System Response:** Additional information text area immediately appears below question\n- **Text Area Specifications:**\n  - **Label:** \"Additional Information\"\n  - **Text Box Type:** Multi-line text area (`TextMode=\"MultiLine\"`)\n  - **Styling:** Standard border, no character limit specified\n  - **Required:** Text input required when \"Yes\" selected\n\n**User Action: Selects \"No\"**\n- **System Response:** Additional information text area immediately hides\n- **Validation:** No additional text required\n\n**User Action: Attempts to save without answering**\n- **Visual Indicator:** Red asterisk (*) appears next to \"Yes\" radio button\n- **Border Change:** Question row receives red border highlight\n- **Tooltip:** \"Response Required\" appears on hover\n- **Error State:** Prevents form submission\n\n**User Action: Selects \"Yes\" but leaves text area empty**\n- **Text Area Border:** Changes to red\n- **Label Color:** Changes from black to red\n- **Label Text:** Changes from \"Additional Information\" to **\"Additional Information Response Required\"**\n- **Validation Block:** Prevents form submission until text entered\n\n**User Action: Enters text after \"Yes\" selection**\n- **Text Area Border:** Returns to normal styling\n- **Label Color:** Returns to black\n- **Label Text:** Returns to \"Additional Information\"\n- **Form Status:** Ready for submission\n\n**User Action: Selects \"Yes\" with valid text and clicks Continue**\n- **System Response:** Selection recorded for underwriting review with risk flag\n- **Business Rule:** \"Yes\" answer flags as potential ineligibility risk\n- **Diamond Integration:** Records response with Diamond code 9086 for audit trail\n\n---\n\n## Question 3: Employee Geographic Coverage\n\n**Multi-State Scenario:**  \n**Question Text:** \"Do any employees live outside the state(s) of Indiana, Illinois, or Kentucky?\"  \n\n**Single-State Scenario:**  \n**Question Text:** \"Do any employees live outside the state of [governing state]?\"  \n\n**Response Options:** Yes/No radio buttons (required)  \n**Business Rule:** Question text adapts based on multi-state capability and effective date\n\n### User Interaction Flow & UI Behavior\n\n**Initial Display:**\n- **Required Indicator:** Red asterisk (*) initially hidden, appears if unanswered\n- **Additional Information Section:** Initially hidden below question row\n- **Dynamic Question Text:** Question text automatically adapts based on multi-state capability\n\n**User Action: Selects \"Yes\"**\n- **System Response:** Additional information text area immediately appears below question\n- **Text Area Specifications:**\n  - **Label:** \"Additional Information\"\n  - **Text Box Type:** Multi-line text area (`TextMode=\"MultiLine\"`)\n  - **Styling:** Standard border, no character limit specified\n  - **Required:** Text input required when \"Yes\" selected\n\n**User Action: Selects \"No\"**\n- **System Response:** Additional information text area immediately hides\n- **Validation:** No additional text required\n\n**User Action: Attempts to save without answering**\n- **Visual Indicator:** Red asterisk (*) appears next to \"Yes\" radio button\n- **Border Change:** Question row receives red border highlight\n- **Tooltip:** \"Response Required\" appears on hover\n- **Error State:** Prevents form submission\n\n**User Action: Selects \"Yes\" but leaves text area empty**\n- **Text Area Border:** Changes to red\n- **Label Color:** Changes from black to red\n- **Label Text:** Changes from \"Additional Information\" to **\"Additional Information Response Required\"**\n- **Validation Block:** Prevents form submission until text entered\n\n**User Action: Enters text after \"Yes\" selection**\n- **Text Area Border:** Returns to normal styling\n- **Label Color:** Returns to black\n- **Label Text:** Returns to \"Additional Information\"\n- **Form Status:** Ready for submission\n\n**User Action: Selects \"Yes\" with valid text and clicks Continue**\n- **System Response:** Selection recorded for underwriting review with geographic coverage analysis\n- **Business Rule:** \"Yes\" answer triggers geographic coverage validation\n- **Diamond Integration:** Records response with Diamond codes 9573/9342 for audit trail\n\n---\n\n## Question 4: Coverage History Verification\n\n**Question Text:** \"Any prior coverage declined, cancelled or non-renewed during the prior 3 years?\"  \n**Response Options:** Yes/No radio buttons (required)  \n**Time Scope:** 3-year lookback period\n**Business Rule:** \"Yes\" answer flags as potential ineligibility risk\n\n### User Interaction Flow & UI Behavior\n\n**Initial Display:**\n- **Required Indicator:** Red asterisk (*) initially hidden, appears if unanswered\n- **Additional Information Section:** Initially hidden below question row\n\n**User Action: Selects \"Yes\"**\n- **System Response:** Additional information text area immediately appears below question\n- **Text Area Specifications:**\n  - **Label:** \"Additional Information\"\n  - **Text Box Type:** Multi-line text area (`TextMode=\"MultiLine\"`)\n  - **Styling:** Standard border, no character limit specified\n  - **Required:** Text input required when \"Yes\" selected\n\n**User Action: Selects \"No\"**\n- **System Response:** Additional information text area immediately hides\n- **Validation:** No additional text required\n\n**User Action: Attempts to save without answering**\n- **Visual Indicator:** Red asterisk (*) appears next to \"Yes\" radio button\n- **Border Change:** Question row receives red border highlight\n- **Tooltip:** \"Response Required\" appears on hover\n- **Error State:** Prevents form submission\n\n**User Action: Selects \"Yes\" but leaves text area empty**\n- **Text Area Border:** Changes to red\n- **Label Color:** Changes from black to red\n- **Label Text:** Changes from \"Additional Information\" to **\"Additional Information Response Required\"**\n- **Validation Block:** Prevents form submission until text entered\n\n**User Action: Enters text after \"Yes\" selection**\n- **Text Area Border:** Returns to normal styling\n- **Label Color:** Returns to black\n- **Label Text:** Returns to \"Additional Information\"\n- **Form Status:** Ready for submission\n\n**User Action: Selects \"Yes\" with valid text and clicks Continue**\n- **System Response:** Selection recorded for underwriting review with coverage history analysis\n- **Business Rule:** \"Yes\" answer flags as potential ineligibility risk\n- **Diamond Integration:** Records response with Diamond code 9343 for audit trail\n\n---\n\n## Question 5: Business Operation Classification\n\n**Question Text:** \"Is the Applicant involved in the operation of a professional employment organization, employee leasing operation, or temporary employment agency?\"  \n**Response Options:** Yes/No radio buttons (required)  \n**Business Rule:** \"Yes\" answer flags as potential ineligibility risk\n\n### User Interaction Flow & UI Behavior\n\n**Initial Display:**\n- **Required Indicator:** Red asterisk (*) initially hidden, appears if unanswered\n- **Additional Information Section:** Initially hidden below question row\n\n**User Action: Selects \"Yes\"**\n- **System Response:** Additional information text area immediately appears below question\n- **Text Area Specifications:**\n  - **Label:** \"Additional Information\"\n  - **Text Box Type:** Multi-line text area (`TextMode=\"MultiLine\"`)\n  - **Styling:** Standard border, no character limit specified\n  - **Required:** Text input required when \"Yes\" selected\n\n**User Action: Selects \"No\"**\n- **System Response:** Additional information text area immediately hides\n- **Validation:** No additional text required\n\n**User Action: Attempts to save without answering**\n- **Visual Indicator:** Red asterisk (*) appears next to \"Yes\" radio button\n- **Border Change:** Question row receives red border highlight\n- **Tooltip:** \"Response Required\" appears on hover\n- **Error State:** Prevents form submission\n\n**User Action: Selects \"Yes\" but leaves text area empty**\n- **Text Area Border:** Changes to red\n- **Label Color:** Changes from black to red\n- **Label Text:** Changes from \"Additional Information\" to **\"Additional Information Response Required\"**\n- **Validation Block:** Prevents form submission until text entered\n\n**User Action: Enters text after \"Yes\" selection**\n- **Text Area Border:** Returns to normal styling\n- **Label Color:** Returns to black\n- **Label Text:** Returns to \"Additional Information\"\n- **Form Status:** Ready for submission\n\n**User Action: Selects \"Yes\" with valid text and clicks Continue**\n- **System Response:** Selection recorded for underwriting review with business operation analysis\n- **Business Rule:** \"Yes\" answer flags as potential ineligibility risk\n- **Diamond Integration:** Records response with Diamond code 9344 for audit trail\n\n---\n\n## Question 6: Financial Stability Assessment (True Kill Question)\n\n**Question Text:** \"Any tax liens or bankruptcy within the last 5 years? (If 'Yes', please specify)\"  \n**Response Options:** Yes/No radio buttons (required)  \n**Time Scope:** 5-year lookback period  \n**Special Processing:** This is a true kill question with immediate termination\n\n### User Interaction Flow & UI Behavior\n\n**Initial Display:**\n- **Required Indicator:** Red asterisk (*) initially hidden, appears if unanswered\n- **Additional Information Section:** Initially hidden below question row\n\n**User Action: Selects \"Yes\"**\n- **System Response:** Additional information text area immediately appears below question\n- **Text Area Specifications:**\n  - **Label:** \"Additional Information\"\n  - **Text Box Type:** Multi-line text area (`TextMode=\"MultiLine\"`)\n  - **Styling:** Standard border, no character limit specified\n  - **Required:** Text input required when \"Yes\" selected\n\n**User Action: Selects \"No\"**\n- **System Response:** Additional information text area immediately hides\n- **Validation:** No additional text required\n\n**User Action: Attempts to save without answering**\n- **Visual Indicator:** Red asterisk (*) appears next to \"Yes\" radio button\n- **Border Change:** Question row receives red border highlight\n- **Tooltip:** \"Response Required\" appears on hover\n- **Error State:** Prevents form submission\n\n**User Action: Selects \"Yes\" but leaves text area empty**\n- **Text Area Border:** Changes to red\n- **Label Color:** Changes from black to red\n- **Label Text:** Changes from \"Additional Information\" to **\"Additional Information Response Required\"**\n- **Validation Block:** Prevents form submission until text entered\n\n**User Action: Enters text after \"Yes\" selection**\n- **Text Area Border:** Returns to normal styling\n- **Label Color:** Returns to black\n- **Label Text:** Returns to \"Additional Information\"\n- **Form Status:** Ready for submission\n\n**User Action: Selects \"Yes\" with valid text and clicks Continue**\n- **System Response:** **IMMEDIATE QUOTE TERMINATION** - workflow stops completely\n- **Business Rule:** True kill question - no further processing allowed\n- **Diamond Integration:** Records response with Diamond code 9107 for audit trail\n\n### Technical Implementation Details\n**Source Code Location:** ctlUWQuestionsPopup.ascx, Repeater1 ItemTemplate\n**JavaScript Validation:** `AllAnswersAreAnswered()` and `AllAdditionalInfoFieldsAreAnswered()` functions\n**Server Integration:** Diamond system codes for regulatory compliance\n**CSS Classes:** Standard form styling with dynamic red error states";
+        
+        // Wait for marked.js to load
+        function initPage() {
+            if (typeof marked === 'undefined') {
+                setTimeout(initPage, 100);
+                return;
+            }
+            
+            // Configure marked
+            marked.setOptions({
+                breaks: true,
+                gfm: true
+            });
+            
+            // Render markdown
+            const html = marked.parse(markdownContent);
+            document.getElementById('markdown-content').innerHTML = html;
+            
+            // Apply syntax highlighting
+            if (typeof hljs !== 'undefined') {
+                document.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            }
+            
+            // Build TOC
+            buildTOC();
+            
+            // Setup scroll handlers
+            setupScrollHandlers();
+        }
+        
+        function buildTOC() {
+            const content = document.getElementById('markdown-content');
+            const toc = document.getElementById('toc');
+            const headings = content.querySelectorAll('h1, h2, h3');
+            
+            headings.forEach((heading, index) => {
+                // Create ID if needed
+                if (!heading.id) {
+                    heading.id = heading.textContent.trim().toLowerCase()
+                        .replace(/[^a-z0-9]+/g, '-')
+                        .replace(/(^-|-$)/g, '') + '-' + index;
+                }
+                
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = '#' + heading.id;
+                a.textContent = heading.textContent;
+                a.className = heading.tagName.toLowerCase();
+                
+                a.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    
+                    // Highlight briefly
+                    const orig = heading.style.backgroundColor;
+                    heading.style.backgroundColor = 'rgba(253,184,37,0.2)';
+                    setTimeout(() => heading.style.backgroundColor = orig, 1500);
+                    
+                    // Update active
+                    updateActiveTOC(a);
+                });
+                
+                li.appendChild(a);
+                toc.appendChild(li);
+            });
+        }
+        
+        function updateActiveTOC(activeLink) {
+            document.querySelectorAll('#toc a').forEach(link => {
+                link.classList.remove('active');
+            });
+            if (activeLink) {
+                activeLink.classList.add('active');
+            }
+        }
+        
+        function setupScrollHandlers() {
+            const contentDiv = document.getElementById('content');
+            const backToTop = document.getElementById('back-to-top');
+            const headings = document.querySelectorAll('#markdown-content h1, #markdown-content h2, #markdown-content h3');
+            
+            // Back to top button
+            contentDiv.addEventListener('scroll', () => {
+                if (contentDiv.scrollTop > 300) {
+                    backToTop.classList.add('visible');
+                } else {
+                    backToTop.classList.remove('visible');
+                }
+                
+                // Update active TOC link
+                let currentHeading = null;
+                headings.forEach(h => {
+                    const rect = h.getBoundingClientRect();
+                    if (rect.top >= 0 && rect.top < window.innerHeight / 3) {
+                        currentHeading = h;
+                    }
+                });
+                
+                if (currentHeading) {
+                    const activeLink = document.querySelector(`#toc a[href="#${currentHeading.id}"]`);
+                    updateActiveTOC(activeLink);
+                }
+            });
+            
+            backToTop.addEventListener('click', () => {
+                contentDiv.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+        
+        // Toggle sidebar
+        document.getElementById('toggle-sidebar').addEventListener('click', () => {
+            document.body.classList.toggle('sidebar-hidden');
+            const btn = document.getElementById('toggle-sidebar');
+            btn.textContent = document.body.classList.contains('sidebar-hidden') ? 'Show' : 'Hide';
+        });
+        
+        // Initialize
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initPage);
+        } else {
+            initPage();
+        }
+    </script>
+</body>
+</html>

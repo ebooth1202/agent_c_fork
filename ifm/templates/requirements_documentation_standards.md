@@ -11,6 +11,22 @@
 
 This document contains the professional documentation standards for creating IFI requirements documents. All requirements documents must adhere to these standards to ensure stakeholder readiness and implementation clarity.
 
+## PROHIBITED CONTENT - DO NOT INCLUDE
+
+**Client Requirements - These sections are strictly forbidden:**
+- ❌ **Executive Summaries** of any kind
+- ❌ **Business Purpose** explanations or sections
+- ❌ **Insurance Compliance** frameworks or regulatory guidance
+- ❌ **Modernization Recommendations** or architectural strategy
+- ❌ **Agent Involvement** explanations or process descriptions
+- ❌ **Business Impact** analysis or operational recommendations
+
+**Focus Requirements:**
+- ✅ Document ONLY what currently exists in the system
+- ✅ Provide technical specifications for implementation
+- ✅ Include source code evidence for all claims
+- ✅ Use business-friendly language for field descriptions
+
 ---
 
 ## Document Structure Standards
@@ -24,9 +40,6 @@ This document contains the professional documentation standards for creating IFI
 **Analysis Date:** [Current Date]  
 **Source Verification:** 100% Source Code Verified  
 **Coverage Scope:** Complete [System Area] functionality
-
-## Executive Summary
-[2-3 paragraph summary covering business scope, functional areas, and verification approach]
 ```
 
 ### Section Structure Template (Repeat for Each Functional Area)
@@ -42,12 +55,55 @@ This document contains the professional documentation standards for creating IFI
 - **Character Limit:** [Limit details if applicable]
 - **Required Status:** [Required/Optional with business context]
 
+### Complete Option Set (REQUIRED for dropdown/selection fields)
+- **Available Options:** [ALL possible values with source evidence]
+- **Business Meaning:** [What each option represents in business terms]
+- **Selection Dependencies:** [Options available only under certain conditions]
+- **Value Ranges:** [Acceptable value ranges for inputs]
+
+### Selection Impact Analysis (REQUIRED for user-selectable options)
+- **Business Rules Triggered:** [What logic fires when each option selected]
+- **Additional Requirements:** [Fields that become required/visible per selection]
+- **Premium/Calculation Impact:** [Effect on calculations or pricing per option]
+- **Downstream Consequences:** [What happens elsewhere in system per selection]
+- **Conditional Behavior:** [How selection affects other field availability]
+
 ## User Experience & Validation
 ### User Action Scenarios
 - **User Action:** [Specific user action]
 - **System Response:** [System behavior]
 - **Error Message:** **"[Exact Error Text]"** (ALWAYS BOLD + QUOTES)
 - **User Must Do:** [Required user response]
+
+### UI Alert Messages (MANDATORY - If Applicable)
+
+For any section where UI alerts appear, include this subsection:
+
+```markdown
+#### UI Alert Messages
+
+**Alert [#]: [Alert Name/Type]**
+- **Location:** [Specific page/section where alert appears]
+- **Trigger:** [Specific condition that causes the alert]
+- **Alert Text:** **"[Exact message text in bold quotes]"**
+
+[Repeat for each alert in the section]
+```
+
+**Alert Types to Document:**
+- JavaScript popup alerts
+- Validation error messages
+- Informational text displays  
+- System notifications
+- Auto-upgrade notifications
+- Warning messages
+- Confirmation dialogs
+
+**Formatting Requirements:**
+- All alert text MUST be in **bold quotes**: **"Alert message here"**
+- Each alert documented separately with its own Alert # designation
+- Positioned in same section as related functionality
+- Include Location (where it appears), Trigger (what causes it), and exact Alert Text
 ```
 
 ---
@@ -307,6 +363,106 @@ Scenario 3: Field Disabled (Date Irrelevant)
 
 ---
 
+## Endorsement Analysis Standard (NEW)
+
+### Purpose
+
+Standardized format for documenting endorsement functionality with downstream application requirements. Applies to all LOBs (Workers Comp, General Liability, BOP, etc.).
+
+### Endorsement Documentation Structure
+
+```markdown
+## X.X [Endorsement Name]
+
+### X.1 Field Specifications
+[Keep existing Field Specifications format - no changes]
+
+### X.2 User Selections/User Interactions
+
+X.21 When the endorsement checkbox for "[Endorsement Name]" is selected, [system behavior description in business terms].
+
+X.22 [Additional field behavior if applicable - progressive disclosure, count fields, etc.]
+
+X.23 [Validation behavior and confirmation dialogs]
+
+X.24 [Save/data storage behavior in business terms]
+
+### X.3 Downstream Impacts
+
+#### X.31 Applications Page
+
+X.311 When the [Endorsement Name] endorsement has been selected, [application page behavior].
+
+X.312 [User data entry requirements in application module].
+
+X.313 [Validation requirements and error messages].
+
+#### X.32 [Other Module - Rating Engine/Claims Processing/Billing/etc.]
+
+X.321 [Module-specific impact description].
+
+X.322 [Additional impacts within same module].
+
+## Source Code Details:
+**Primary Location:** [Main files with specific line references] + [Main Control]
+
+**Secondary Location:** [Supporting files] + [Main Control] OR "NA"
+
+**External Dependencies:** [External systems] + [Main Control] OR "NA"
+```
+
+### Endorsement Analysis Requirements
+
+**Mandatory Content:**
+- ✅ **Field Specifications:** Keep existing format unchanged
+- ✅ **User Selections/Interactions:** Business-friendly description of checkbox/field behavior
+- ✅ **Downstream Impacts:** Document application page requirements and other module impacts
+- ✅ **Source Code Details:** Use new format with separate lines
+
+**Language Requirements:**
+- ❌ **No method calls:** Avoid `CheckWaiverOfSubro()`, `govStateQuote.HasWaiverOfSubrogation`
+- ❌ **No technical properties:** Avoid `INQuote.HasExclusionOfAmishWorkers`
+- ✅ **Business language:** "When the endorsement is selected", "The system stores the selection"
+- ✅ **User-focused:** "Users must add individual records", "The Application page displays"
+
+**Hierarchical Numbering:**
+- Use X.1, X.2, X.3 for main subsections
+- Use X.21, X.22, X.23 for detailed items under subsections
+- Use X.311, X.312, X.313 for items under downstream impact modules
+
+**Data Exclusion Rule:**
+- ❌ **Exclude `IgnoreForLists="Yes"`:** Any dropdown options marked with this attribute must be excluded
+- ✅ **User-accessible options only:** Document only options actually available to users
+
+### Common Downstream Impact Categories
+
+**Applications Page (Most Common):**
+- Named individual collection requirements
+- Additional data entry forms
+- Documentation upload requirements
+
+**Rating Engine:**
+- Premium calculation impacts
+- Rating factor applications
+- Multi-state rating coordination
+
+**Claims Processing:**
+- Coverage determination changes
+- Exclusion application
+- Recovery rights modifications
+
+**Billing System:**
+- Premium calculation impacts
+- Invoice documentation
+- Payment processing changes
+
+**Regulatory Compliance:**
+- State reporting requirements
+- Filing obligations
+- Audit trail maintenance
+
+---
+
 ## Cross-Module Dependencies Documentation (Phase 2)
 
 ### Purpose
@@ -369,6 +525,13 @@ Document downstream requirements and cross-module linkages resulting from select
 - [ ] All LOB-specific behavior included
 - [ ] All conditional logic documented
 - [ ] Complete source code traceability provided
+
+**Option Completeness Verification** (MANDATORY):
+- [ ] Every dropdown field lists ALL possible options with source evidence
+- [ ] Every selectable option documents business impact when chosen
+- [ ] Selection consequences documented (what happens when selected vs not selected)
+- [ ] Business meaning provided for all technical values
+- [ ] No "various options available" - must specify complete option set
 
 **Exclusion Verification**:
 - [ ] No Quality Assurance sections
