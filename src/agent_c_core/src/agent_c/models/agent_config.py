@@ -99,7 +99,7 @@ class AgentConfigurationV2(AgentConfigurationBase):
     key: str = Field(..., description="Key for the agent configuration, used for identification")
     model_id: str = Field(..., description="ID of the model being used by the agent, looked up from the model configs on the server side")
     agent_params: Optional[CompletionParams] = Field(None, description="Parameters for the interaction with the agent")
-    prompt_metadata: Optional[dict[str, Any]] = Field(None, description="Metadata for prompt generation, allows for `$variable` in the person, that are replaced with content from this table. Also used by some tools")
+    prompt_metadata: Optional[dict[str, Any]] = Field(default_factory= dict, description="Metadata for prompt generation, allows for `$variable` in the person, that are replaced with content from this table. Also used by some tools")
     persona: str = Field(..., description="The core instructions for the agent.")
     uid: Optional[str] = Field(None, description="Unique identifier for the configuration in slug form")
 
