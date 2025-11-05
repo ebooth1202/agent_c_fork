@@ -268,6 +268,36 @@
             color: var(--heading-color)
         }
 
+        /* Remove focus outline from headings */
+        #markdown-content h1:focus,
+        #markdown-content h2:focus,
+        #markdown-content h3:focus,
+        #markdown-content h4:focus,
+        #markdown-content h5:focus,
+        #markdown-content h6:focus {
+            outline: none;
+        }
+
+        /* Task list checkboxes */
+        #markdown-content ul.task-list {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        #markdown-content ul.task-list li {
+            padding-left: 1.8em;
+            position: relative;
+            list-style: none;
+        }
+
+        #markdown-content ul.task-list li input[type="checkbox"] {
+            position: absolute;
+            left: 0;
+            top: 0.3em;
+            margin: 0;
+            cursor: pointer;
+        }
+
         #markdown-content a {
             color: var(--link-color);
             text-decoration: none;
@@ -885,6 +915,38 @@
             });
     }
 
+    function convertTaskLists() {
+        // Convert GitHub-style task lists [ ] and [x] to actual checkboxes
+        document.querySelectorAll('#markdown-content ul li').forEach(li => {
+            const text = li.textContent.trim();
+
+            // Check if this is a task list item
+            if (text.startsWith('[ ]') || text.startsWith('[x]') || text.startsWith('[X]')) {
+                const isChecked = text.startsWith('[x]') || text.startsWith('[X]');
+
+                // Create checkbox
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = isChecked;
+                checkbox.disabled = false; // Allow toggling
+
+                // Remove the [ ] or [x] from the text
+                const textContent = text.substring(3).trim();
+
+                // Clear the li and add checkbox + text
+                li.innerHTML = '';
+                li.appendChild(checkbox);
+                li.appendChild(document.createTextNode(' ' + textContent));
+
+                // Mark the parent ul as a task list
+                const parentUl = li.parentElement;
+                if (parentUl && parentUl.tagName === 'UL') {
+                    parentUl.classList.add('task-list');
+                }
+            }
+        });
+    }
+
     function renderMarkdown(contentStr, tocData) {
         // Content is now pre-rendered HTML, not markdown
         markdownContent.innerHTML = contentStr || '';
@@ -893,10 +955,43 @@
         // Render right-side TOC if available
         renderPageToc(tocData || []);
 
-        // Add copy buttons to code blocks (Pygments .codehilite or plain <pre><code>)
+        // Convert GitHub-style task lists to checkboxes
+        convertTaskLists();
+
+        // Convert mermaid code blocks to diagrams
+        // Mermaid blocks are rendered by Pygments as <div class="codehilite"><pre><code>...
+        // We need to detect language-mermaid or check code content and convert them
+        document.querySelectorAll('#markdown-content .codehilite').forEach(block => {
+            const pre = block.querySelector('pre');
+            const code = pre?.querySelector('code');
+            if (!code) return;
+
+            // Check if this is a mermaid block (look for mermaid syntax)
+            const content = code.textContent.trim();
+            if (content.startsWith('flowchart') || content.startsWith('graph') ||
+                content.startsWith('sequenceDiagram') || content.startsWith('classDiagram') ||
+                content.startsWith('stateDiagram') || content.startsWith('erDiagram') ||
+                content.startsWith('gantt') || content.startsWith('pie') ||
+                content.startsWith('journey')) {
+
+                // This is a mermaid diagram - convert it
+                const wrapper = document.createElement('div');
+                wrapper.className = 'mermaid-wrapper';
+
+                const mermaidDiv = document.createElement('div');
+                mermaidDiv.className = 'mermaid';
+                mermaidDiv.textContent = content;
+
+                wrapper.appendChild(mermaidDiv);
+                block.replaceWith(wrapper);
+                return;
+            }
+        });
+
+        // Add copy buttons to remaining code blocks (not mermaid)
         document.querySelectorAll('#markdown-content .codehilite, #markdown-content pre:has(code)').forEach(block => {
-            // Skip if already has a copy button
-            if (block.querySelector('.copy-btn')) return;
+            // Skip if already has a copy button or is a mermaid wrapper
+            if (block.querySelector('.copy-btn') || block.classList.contains('mermaid-wrapper')) return;
 
             const copyBtn = document.createElement('button');
             copyBtn.className = 'copy-btn';
@@ -908,7 +1003,7 @@
             block.appendChild(copyBtn);
         });
 
-        // Mermaid
+        // Initialize Mermaid diagrams
         if (window.mermaid) {
             mermaid.initialize({startOnLoad: false, theme: 'default', securityLevel: 'loose', logLevel: 5});
             try {
@@ -918,8 +1013,8 @@
             }
         }
 
-        // Highlight
-        document.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
+        // Highlight.js REMOVED - Code is already highlighted by Pygments during pre-rendering
+        // Applying hljs again causes "unescaped HTML" security warnings
 
         // Process links inside content
         document.querySelectorAll('#markdown-content a').forEach(link => {
@@ -1156,6 +1251,8 @@
     }
 
     function scrollToAnchor(anchorId) {
+        if (!anchorId || anchorId.trim() === '') return;
+
         try {
             anchorId = decodeURIComponent(anchorId);
         } catch {
@@ -1273,7 +1370,7 @@
 
 
         scrollToAnchor(anchor) {
-            if (!anchor) return;
+            if (!anchor || anchor.trim() === '') return;
 
             // 1) direct id
             let el = document.getElementById(anchor);
