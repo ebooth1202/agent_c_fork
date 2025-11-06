@@ -82,6 +82,17 @@ class MarkdownToHtmlReportTools(Toolset):
                 "description": "Optional flat list of filenames to ignore when generating the HTML viewer. Does not support folder level differentiation.",
                 "required": False,
                 "default": []
+            },
+            "template": {
+                "type": "string",
+                "description": "Optional template filename (e.g., 'markdown-viewer-template.html', 'centric-classic.html'). Defaults to 'markdown-viewer-template.html'",
+                "required": False
+            },
+            "brand": {
+                "type": "string",
+                "description": "Optional brand configuration name (e.g., 'default', 'centric'). Defaults to 'centric'. Brand configs in templates/brands/ control colors, logos, and typography.",
+                "required": False,
+                "default": "centric"
             }
         }
     )
@@ -100,6 +111,8 @@ class MarkdownToHtmlReportTools(Toolset):
         files_to_ignore = kwargs.get('files_to_ignore', [])
         javascript_safe = kwargs.get('javascript_safe', True)
         tool_context = kwargs.get('tool_context', {})
+        template = kwargs.get('template', 'markdown-viewer-template.html')
+        brand = kwargs.get('brand', 'centric')
 
         try:
             # Parse the workspace_start UNC path using the existing robust workspace parser
@@ -159,7 +172,9 @@ class MarkdownToHtmlReportTools(Toolset):
             final_structure = self._build_template_structure(registry, ui_tree)
 
             # Step 4: Generate HTML output
-            html_content, html_error = await self._generate_html_output(final_structure, title, output_path_full)
+            html_content, html_error = await self._generate_html_output(
+                final_structure, title, output_path_full, template, brand
+            )
             if html_error:
                 return self._create_error_response(html_error)
 
@@ -206,6 +221,16 @@ class MarkdownToHtmlReportTools(Toolset):
                 "type": "string",
                 "description": "Optional title for the HTML viewer (displayed in the sidebar)",
                 "required": False
+            },
+            "template": {
+                "type": "string",
+                "description": "Optional template filename (e.g., 'markdown-viewer-template.html', 'centric-classic.html'). Defaults to 'markdown-viewer-template.html'",
+                "required": False
+            },
+            "brand": {
+                "type": "string",
+                "description": "Optional brand configuration name (e.g., 'default', 'centric'). Defaults to 'default'. Brand configs in templates/brands/ control colors, logos, and typography.",
+                "required": False
             }
         }
     )
@@ -229,6 +254,8 @@ class MarkdownToHtmlReportTools(Toolset):
         output_filename = kwargs.get('output_filename')
         custom_structure_json = kwargs.get('custom_structure')
         title = kwargs.get('title', 'Custom Markdown Viewer')
+        template = kwargs.get('template', 'markdown-viewer-template.html')
+        brand = kwargs.get('brand', 'default')
 
         try:
             # Parse the custom structure JSON
@@ -283,7 +310,9 @@ class MarkdownToHtmlReportTools(Toolset):
             else:
                 output_path_full = output_filename
 
-            html_content, html_error = await self._generate_html_output(final_structure, title, output_path_full)
+            html_content, html_error = await self._generate_html_output(
+                final_structure, title, output_path_full, template, brand
+            )
             if html_error:
                 return self._create_error_response(html_error)
 
@@ -577,11 +606,36 @@ class MarkdownToHtmlReportTools(Toolset):
         except Exception as e:
             return None, None, f"Error processing paths: {str(e)}"
 
-    async def _generate_html_output(self, file_structure: list, title: str, output_path_full: str) -> tuple:
-        """Generate HTML output from file structure."""
+    async def _generate_html_output(
+        self,
+        file_structure: list,
+        title: str,
+        output_path_full: str,
+        template: str = "markdown-viewer-template.html",
+        brand: str = "default"
+    ) -> tuple:
+        """
+        Generate HTML output from file structure.
+
+        Args:
+            file_structure: File structure to inject
+            title: Document title
+            output_path_full: Output path
+            template: Template filename (default: "markdown-viewer-template.html")
+            brand: Brand configuration name (default: "default")
+
+        Returns:
+            Tuple of (html_content, error_message)
+        """
         try:
             # Get the HTML template
-            html_template = await self._get_html_template()
+            html_template = await self._get_html_template(template)
+
+            # Apply brand configuration
+            from .helpers.brand_loader import load_and_apply_brand
+            templates_dir = Path(__file__).parent / "templates"
+            html_template = load_and_apply_brand(html_template, templates_dir, brand)
+            logger.debug(f"Applied brand '{brand}' to template '{template}'")
 
             # Customize title
             html_template = html_template.replace(
@@ -683,14 +737,22 @@ class MarkdownToHtmlReportTools(Toolset):
         except Exception as e:
             logger.error(f"Failed to raise media event: {str(e)}")
 
-    async def _get_html_template(self) -> str:
-        """Get the HTML template for the viewer."""
+    async def _get_html_template(self, template: str = "markdown-viewer-template.html") -> str:
+        """
+        Get the HTML template for the viewer.
+
+        Args:
+            template: Template filename (default: "markdown-viewer-template.html")
+
+        Returns:
+            Template content as string
+        """
         try:
             from agent_c_tools.tools.markdown_to_html_report.templates.html_template_manager import HtmlTemplateManager
             template_manager = HtmlTemplateManager()
-            return await template_manager.get_html_template()
+            return await template_manager.get_html_template(template)
         except Exception as e:
-            logger.error(f"Failed to get HTML template: {str(e)}")
+            logger.error(f"Failed to get HTML template '{template}': {str(e)}")
             raise
 
     async def _create_result_html(self, output_info: dict) -> str:

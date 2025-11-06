@@ -24,17 +24,35 @@ async def run_example():
 
 
     # Run a tool call, pass in parameters.  Format of the tool name is <toolset_name>_<function_name>
-    # Test 0: Full folder gathering
+    # Test 0: Full folder gathering with DEFAULT brand
+    print("\n=== Test 0: Default brand (modern blue/gray) ===")
     result = await tester.run_tool_test(
         tool_name='generate_md_viewer',
-        tool_params={"workspace_start": "//md_tool/test_markdown/",
-                     "output_filename": "test_all.html",
-                     "title": "Gathering all files test", }
+        tool_params={
+            "workspace_start": "//md_tool/test_markdown/",
+            "output_filename": "test_default_brand.html",
+            "title": "Default Brand Test",
+            "brand": "default"
+        }
     )
-
     content = tester.extract_content_from_results(result)
     if content:
-        print("Raw content:", content)
+        print("✓ Default brand:", content[:100])
+
+    # Test 0b: Full folder gathering with CENTRIC brand
+    print("\n=== Test 0b: Centric brand (purple/orange) ===")
+    result0b = await tester.run_tool_test(
+        tool_name='generate_md_viewer',
+        tool_params={
+            "workspace_start": "//md_tool/test_markdown/",
+            "output_filename": "test_centric_brand.html",
+            "title": "Centric Brand Test",
+            "brand": "centric"
+        }
+    )
+    content0b = tester.extract_content_from_results(result0b)
+    if content0b:
+        print("✓ Centric brand:", content0b[:100])
 
     # Test 1: Backward compatible - relative paths with workspace
     print("\n=== Test 1: Relative paths with workspace (backward compatible) ===")

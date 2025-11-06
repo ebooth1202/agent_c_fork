@@ -1,0 +1,43 @@
+{
+  "name": "Centric Consulting",
+  "description": "Centric Consulting brand colors and logo",
+  "colors": {
+    "primary": "#1f5d82",
+    "primary_hover": "#174866",
+    "secondary": "#fdb825",
+    "accent": "#2fb677",
+    "heading": "#2c1a5d",
+    "text": "#232d3d",
+    "text_muted": "#67686a",
+    "sidebar_bg": "#ebebeb",
+    "sidebar_hover": "#e0e0e0",
+    "sidebar_active": "#d4e8f0",
+    "border": "#e1e4e8",
+    "code_bg": "#f8f9fa",
+    "code_border": "#fdb825",
+    "search_bg": "#ffffff",
+    "toc_bg": "#f5f7fa",
+    "toc_hover": "#e8ecf0",
+    "link": "#1f5d82",
+    "link_hover": "#174866"
+  },
+  "logo": {
+    "type": "svg",
+    "svg_content": "<svg viewBox=\"0 0 500 500\" style=\"width: 100%; height: 100%;\"><path d=\"M250 150 A100 100 0 0 0 150 250 A100 100 0 0 0 250 350\" stroke=\"#FF6A00\" stroke-width=\"30\" fill=\"none\"></path><path d=\"M250 180 A70 70 0 0 0 180 250 A70 70 0 0 0 250 320\" stroke=\"#FF6A00\" stroke-width=\"20\" fill=\"none\"></path><circle cx=\"250\" cy=\"250\" r=\"40\" fill=\"#4B0082\"></circle><line x1=\"290\" y1=\"250\" x2=\"350\" y2=\"250\" stroke=\"#4B0082\" stroke-width=\"10\"></line><circle cx=\"350\" cy=\"250\" r=\"15\" fill=\"#4B0082\"></circle><line x1=\"250\" y1=\"290\" x2=\"250\" y2=\"350\" stroke=\"#4B0082\" stroke-width=\"10\"></line><circle cx=\"250\" cy=\"350\" r=\"15\" fill=\"#4B0082\"></circle><line x1=\"210\" y1=\"250\" x2=\"150\" y2=\"250\" stroke=\"#4B0082\" stroke-width=\"10\"></line><circle cx=\"150\" cy=\"250\" r=\"15\" fill=\"#4B0082\"></circle><text x=\"250\" y=\"420\" font-family=\"Arial, sans-serif\" font-weight=\"bold\" font-size=\"60\" fill=\"#4B0082\" text-anchor=\"middle\">AGENT C</text><text x=\"250\" y=\"460\" font-family=\"Arial, sans-serif\" font-weight=\"bold\" font-size=\"24\" fill=\"#4B0082\" text-anchor=\"middle\">CENTRIC CONSULTING</text></svg>",
+    "width": "120px",
+    "height": "120px"
+  },
+  "typography": {
+    "font_family": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    "headings_font": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    "code_font": "'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Liberation Mono', 'Menlo', monospace",
+    "base_size": "16px",
+    "heading_weight": "600",
+    "line_height": "1.6"
+  },
+  "spacing": {
+    "sidebar_width": "300px",
+    "content_max_width": "900px",
+    "padding_base": "16px"
+  }
+}
