@@ -24,17 +24,17 @@ async def run_example():
 
 
     # Run a tool call, pass in parameters.  Format of the tool name is <toolset_name>_<function_name>
+    # Test 0: Full folder gathering
+    result = await tester.run_tool_test(
+        tool_name='generate_md_viewer',
+        tool_params={"workspace_start": "//md_tool/test_markdown/",
+                     "output_filename": "test_all.html",
+                     "title": "Gathering all files test", }
+    )
 
-    # result = await tester.run_tool_test(
-    #     tool_name='generate_md_viewer',
-    #     tool_params={"workspace_start": "//md_tool/test_markdown/",
-    #                  "output_filename": "test_all.html",
-    #                  "title": "Gathering all files test", }
-    # )
-    #
-    # content = tester.extract_content_from_results(result)
-    # if content:
-    #     print("Raw content:", content)
+    content = tester.extract_content_from_results(result)
+    if content:
+        print("Raw content:", content)
 
     # Test 1: Backward compatible - relative paths with workspace
     print("\n=== Test 1: Relative paths with workspace (backward compatible) ===")

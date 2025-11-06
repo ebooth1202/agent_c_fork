@@ -598,6 +598,21 @@ class MarkdownToHtmlReportTools(Toolset):
                 logger.warning("Pygments CSS not available - syntax highlighting may be limited")
                 html_template = html_template.replace('/* $PYGMENTS_CSS */', '/* Pygments not available */')
 
+            # Inject Mermaid.js for offline diagram rendering
+            mermaid_path = Path(__file__).parent / "templates" / "mermaid.min.js"
+            try:
+                if mermaid_path.exists():
+                    with open(mermaid_path, 'r', encoding='utf-8') as f:
+                        mermaid_js = f.read()
+                    html_template = html_template.replace('/* $MERMAID_JS */', mermaid_js)
+                    logger.debug("Injected Mermaid.js for offline diagram support")
+                else:
+                    logger.warning(f"Mermaid.js not found at {mermaid_path} - diagrams may not render")
+                    html_template = html_template.replace('/* $MERMAID_JS */', '/* Mermaid.js not available - diagrams will not render */')
+            except Exception as e:
+                logger.error(f"Error loading Mermaid.js: {e}")
+                html_template = html_template.replace('/* $MERMAID_JS */', '/* Error loading Mermaid.js */')
+
             # Inject JavaScript slugger code for consistency
             from .helpers.slugger import get_javascript_slugger_code
             js_slugger_code = get_javascript_slugger_code()
