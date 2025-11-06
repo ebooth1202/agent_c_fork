@@ -16,7 +16,9 @@ from agent_c.toolsets.json_schema import json_schema
 # New registry-based components
 from .helpers.doc_registry import DocRegistry
 from .helpers.registry_builder import build_registry_and_tree, validate_registry_integrity
-from .helpers.javascript_safe_content_processor import JavaScriptSafeContentProcessor
+from .helpers.html_document_renderer import render_registry_to_html
+# Legacy - kept for backward compatibility but no longer used
+# from .helpers.javascript_safe_content_processor import JavaScriptSafeContentProcessor
 
 # Existing components (preserved)
 from agent_c_tools.tools.markdown_to_html_report.md_to_docx.markdown_to_docx import MarkdownToDocxConverter
@@ -49,7 +51,7 @@ class MarkdownToHtmlReportTools(Toolset):
         self.workspace_tool: Optional[WorkspaceTools] = None
         self.file_collector = None
         self.docx_converter = MarkdownToDocxConverter()
-        self.js_processor = JavaScriptSafeContentProcessor()
+        # No longer need JS processor - rendering to HTML eliminates safety concerns
 
     async def post_init(self):
         self.workspace_tool = self.tool_chest.available_tools.get("WorkspaceTools")
@@ -81,11 +83,16 @@ class MarkdownToHtmlReportTools(Toolset):
                 "required": False,
                 "default": []
             },
-            "javascript_safe": {
-                "type": "boolean",
-                "description": "Whether to apply JavaScript safety processing to handle problematic patterns like C# interpolated strings (recommended: true)",
+            "template": {
+                "type": "string",
+                "description": "Optional template filename (e.g., 'markdown-viewer-template.html', 'centric-classic.html'). Defaults to 'markdown-viewer-template.html'",
+                "required": False
+            },
+            "brand": {
+                "type": "string",
+                "description": "Optional brand configuration name (e.g., 'default', 'centric'). Defaults to 'centric'. Brand configs in templates/brands/ control colors, logos, and typography.",
                 "required": False,
-                "default": True
+                "default": "centric"
             }
         }
     )
@@ -104,6 +111,8 @@ class MarkdownToHtmlReportTools(Toolset):
         files_to_ignore = kwargs.get('files_to_ignore', [])
         javascript_safe = kwargs.get('javascript_safe', True)
         tool_context = kwargs.get('tool_context', {})
+        template = kwargs.get('template', 'markdown-viewer-template.html')
+        brand = kwargs.get('brand', 'centric')
 
         try:
             # Parse the workspace_start UNC path using the existing robust workspace parser
@@ -141,9 +150,10 @@ class MarkdownToHtmlReportTools(Toolset):
                     tool_context=tool_context
                 )
 
-                # Apply JavaScript safety processing if requested
-                if javascript_safe:
-                    registry = self._apply_javascript_safety(registry)
+                # NEW: Render markdown to HTML (eliminates need for JS safety processing)
+                logger.info("Rendering markdown to HTML...")
+                registry, render_stats = render_registry_to_html(registry)
+                logger.info(f"HTML rendering stats: {render_stats}")
 
                 # Log warnings if any
                 if warnings:
@@ -162,7 +172,9 @@ class MarkdownToHtmlReportTools(Toolset):
             final_structure = self._build_template_structure(registry, ui_tree)
 
             # Step 4: Generate HTML output
-            html_content, html_error = await self._generate_html_output(final_structure, title, output_path_full)
+            html_content, html_error = await self._generate_html_output(
+                final_structure, title, output_path_full, template, brand
+            )
             if html_error:
                 return self._create_error_response(html_error)
 
@@ -188,12 +200,12 @@ class MarkdownToHtmlReportTools(Toolset):
             return self._create_error_response(f"Error generating markdown viewer: {str(e)}")
 
     @json_schema(
-        description="Generate an interactive HTML viewer with custom file hierarchy structure",
+        description="Generate an interactive HTML viewer with custom file hierarchy structure. Supports both relative paths (with workspace) and fully qualified UNC paths (without workspace).",
         params={
             "workspace": {
                 "type": "string",
-                "description": "The workspace containing the markdown files",
-                "required": True
+                "description": "Optional workspace name for resolving relative file paths. If omitted, all paths in custom_structure must be fully qualified UNC paths (e.g., '//workspace_name/path/to/file.md'). When provided, relative paths in custom_structure are resolved against this workspace.",
+                "required": False
             },
             "output_filename": {
                 "type": "string",
@@ -202,7 +214,7 @@ class MarkdownToHtmlReportTools(Toolset):
             },
             "custom_structure": {
                 "type": "string",
-                "description": "JSON string defining custom hierarchy. Example: '{\"items\": [{\"type\": \"folder\", \"name\": \"Getting Started\", \"children\": [{\"type\": \"file\", \"name\": \"Introduction\", \"path\": \"intro.md\"}]}, {\"type\": \"file\", \"name\": \"API Reference\", \"path\": \"api.md\"}]}'",
+                "description": "JSON string defining custom hierarchy. File paths can be: 1) Fully qualified UNC paths starting with '//' (e.g., '//workspace/path/file.md'), 2) Relative paths if workspace parameter provided (e.g., 'docs/file.md'), or 3) Mix of both. Example: '{\"items\": [{\"type\": \"folder\", \"name\": \"Getting Started\", \"children\": [{\"type\": \"file\", \"name\": \"Introduction\", \"path\": \"//my_workspace/intro.md\"}]}, {\"type\": \"file\", \"name\": \"API Reference\", \"path\": \"api.md\"}]}'",
                 "required": True
             },
             "title": {
@@ -210,28 +222,40 @@ class MarkdownToHtmlReportTools(Toolset):
                 "description": "Optional title for the HTML viewer (displayed in the sidebar)",
                 "required": False
             },
-            "javascript_safe": {
-                "type": "boolean",
-                "description": "Whether to apply JavaScript safety processing (recommended: true)",
-                "required": False,
-                "default": True
+            "template": {
+                "type": "string",
+                "description": "Optional template filename (e.g., 'markdown-viewer-template.html', 'centric-classic.html'). Defaults to 'markdown-viewer-template.html'",
+                "required": False
+            },
+            "brand": {
+                "type": "string",
+                "description": "Optional brand configuration name (e.g., 'default', 'centric'). Defaults to 'default'. Brand configs in templates/brands/ control colors, logos, and typography.",
+                "required": False
             }
         }
     )
     async def generate_custom_md_viewer(self, **kwargs) -> str:
-        """Generate an interactive HTML viewer with custom file hierarchy structure."""
+        """
+        Generate an interactive HTML viewer with custom file hierarchy structure.
+
+        Supports three path resolution modes:
+        1. Fully qualified paths: All paths start with '//' (workspace parameter not needed)
+        2. Relative paths: workspace parameter provided, paths resolved against it
+        3. Hybrid: Mix of fully qualified and relative paths in same structure
+        """
         success, validation_error = validate_required_fields(
-            kwargs, ["workspace", "output_filename", "custom_structure"])
+            kwargs, ["output_filename", "custom_structure"])
 
         # Validate required fields
         if not success:
             return self._create_error_response(validation_error)
 
-        workspace = kwargs.get('workspace')
+        workspace = kwargs.get('workspace')  # Optional now
         output_filename = kwargs.get('output_filename')
         custom_structure_json = kwargs.get('custom_structure')
         title = kwargs.get('title', 'Custom Markdown Viewer')
-        javascript_safe = kwargs.get('javascript_safe', True)
+        template = kwargs.get('template', 'markdown-viewer-template.html')
+        brand = kwargs.get('brand', 'default')
 
         try:
             # Parse the custom structure JSON
@@ -240,8 +264,8 @@ class MarkdownToHtmlReportTools(Toolset):
             except json.JSONDecodeError as e:
                 return self._create_error_response(f"Invalid JSON in custom_structure: {str(e)}")
 
-            # Create base path for file resolution
-            base_path = f"//{workspace}"
+            # Create base path for file resolution (None if workspace not provided)
+            base_path = f"//{workspace}" if workspace else None
 
             # NEW PIPELINE: Custom Structure → Registry → Link Rewriting → Template
 
@@ -253,9 +277,10 @@ class MarkdownToHtmlReportTools(Toolset):
                 base_path=base_path
             )
 
-            # Apply JavaScript safety processing if requested
-            if javascript_safe:
-                registry = self._apply_javascript_safety(registry)
+            # NEW: Render markdown to HTML (eliminates need for JS safety processing)
+            logger.info("Rendering markdown to HTML...")
+            registry, render_stats = render_registry_to_html(registry)
+            logger.info(f"HTML rendering stats: {render_stats}")
 
             # Log warnings if any
             if warnings:
@@ -276,11 +301,18 @@ class MarkdownToHtmlReportTools(Toolset):
             # Step 4: Create UNC output filename and generate HTML
             output_filename = ensure_file_extension(output_filename, 'html')
             if not output_filename.startswith('//'):
-                output_path_full = create_unc_path(workspace, output_filename)
+                if workspace:
+                    output_path_full = create_unc_path(workspace, output_filename)
+                else:
+                    return self._create_error_response(
+                        "When workspace is not provided, output_filename must be a fully qualified UNC path (e.g., '//workspace/path/file.html')"
+                    )
             else:
                 output_path_full = output_filename
 
-            html_content, html_error = await self._generate_html_output(final_structure, title, output_path_full)
+            html_content, html_error = await self._generate_html_output(
+                final_structure, title, output_path_full, template, brand
+            )
             if html_error:
                 return self._create_error_response(html_error)
 
@@ -467,10 +499,6 @@ class MarkdownToHtmlReportTools(Toolset):
             if file_content.startswith('{"error":'):
                 raise ValueError(f"Error reading file at {input_path}: {file_content}")
 
-            # Apply JavaScript safety if requested
-            if javascript_safe:
-                file_content = self.js_processor.process_markdown_content(file_content)
-
             # Create registry with single document
             registry = DocRegistry()
 
@@ -492,6 +520,11 @@ class MarkdownToHtmlReportTools(Toolset):
             from .helpers.link_rewriter import rewrite_all_documents
             registry = rewrite_all_documents(registry)
 
+            # NEW: Render markdown to HTML
+            logger.info("Rendering single file to HTML...")
+            registry, render_stats = render_registry_to_html(registry)
+            logger.info(f"HTML rendering stats: {render_stats}")
+
             # Create simple UI tree
             ui_tree = [{
                 'name': display_name,
@@ -505,40 +538,25 @@ class MarkdownToHtmlReportTools(Toolset):
         except Exception as e:
             raise ValueError(f"Error processing single file: {str(e)}")
 
-    def _apply_javascript_safety(self, registry: DocRegistry) -> DocRegistry:
-        """Apply JavaScript safety processing to all documents in registry."""
-        logger.debug("Applying JavaScript safety processing")
-
-        new_registry = DocRegistry()
-
-        for path, doc in registry.by_path.items():
-            # Apply safety processing to content
-            safe_content = self.js_processor.process_markdown_content(doc.content)
-
-            # Create new doc with processed content
-            from .helpers.doc_registry import DocMeta
-            safe_doc = DocMeta(
-                display_name=doc.display_name,
-                path=doc.path,
-                anchors=doc.anchors,
-                content=safe_content
-            )
-
-            new_registry.add_document(safe_doc)
-
-        logger.debug("JavaScript safety processing complete")
-        return new_registry
+    # REMOVED: _apply_javascript_safety - No longer needed with HTML pre-rendering
 
     def _build_template_structure(self, registry: DocRegistry, ui_tree: list[dict]) -> list[dict]:
         """Build final structure for template injection."""
-        # Add content to the UI tree structure
+        # Get document metadata (TOC, etc.) if available
+        doc_metadata = getattr(registry, '_doc_metadata', {})
+
+        # Add content and metadata to the UI tree structure
         def add_content_to_tree(items):
             for item in items:
                 if item.get('type') == 'file':
                     path = item.get('path')
-                    doc = registry.by_path.get(path)  # <- use the dict
+                    doc = registry.by_path.get(path)
                     if doc:
-                        item['content'] = doc.content
+                        item['content'] = doc.content  # Now HTML instead of markdown
+                        # Add TOC metadata if available
+                        metadata = doc_metadata.get(path, {})
+                        if metadata.get('toc'):
+                            item['toc'] = metadata['toc']
                 elif item.get('type') == 'folder' and 'children' in item:
                     add_content_to_tree(item['children'])
 
@@ -588,16 +606,66 @@ class MarkdownToHtmlReportTools(Toolset):
         except Exception as e:
             return None, None, f"Error processing paths: {str(e)}"
 
-    async def _generate_html_output(self, file_structure: list, title: str, output_path_full: str) -> tuple:
-        """Generate HTML output from file structure."""
+    async def _generate_html_output(
+        self,
+        file_structure: list,
+        title: str,
+        output_path_full: str,
+        template: str = "markdown-viewer-template.html",
+        brand: str = "default"
+    ) -> tuple:
+        """
+        Generate HTML output from file structure.
+
+        Args:
+            file_structure: File structure to inject
+            title: Document title
+            output_path_full: Output path
+            template: Template filename (default: "markdown-viewer-template.html")
+            brand: Brand configuration name (default: "default")
+
+        Returns:
+            Tuple of (html_content, error_message)
+        """
         try:
             # Get the HTML template
-            html_template = await self._get_html_template()
+            html_template = await self._get_html_template(template)
+
+            # Apply brand configuration
+            from .helpers.brand_loader import load_and_apply_brand
+            templates_dir = Path(__file__).parent / "templates"
+            html_template = load_and_apply_brand(html_template, templates_dir, brand)
+            logger.debug(f"Applied brand '{brand}' to template '{template}'")
 
             # Customize title
             html_template = html_template.replace(
                 Constants.DEFAULT_TITLE_PLACEHOLDER,
                 f"<h3 style=\"margin:0 16px 16px 16px;\">{title}</h3>")
+
+            # Inject Pygments CSS for syntax highlighting
+            from .helpers.markdown_renderer import MarkdownRenderer
+            pygments_css = MarkdownRenderer.get_pygments_css('default')
+            if pygments_css:
+                html_template = html_template.replace('/* $PYGMENTS_CSS */', pygments_css)
+                logger.debug("Injected Pygments CSS for syntax highlighting")
+            else:
+                logger.warning("Pygments CSS not available - syntax highlighting may be limited")
+                html_template = html_template.replace('/* $PYGMENTS_CSS */', '/* Pygments not available */')
+
+            # Inject Mermaid.js for offline diagram rendering
+            mermaid_path = Path(__file__).parent / "templates" / "mermaid.min.js"
+            try:
+                if mermaid_path.exists():
+                    with open(mermaid_path, 'r', encoding='utf-8') as f:
+                        mermaid_js = f.read()
+                    html_template = html_template.replace('/* $MERMAID_JS */', mermaid_js)
+                    logger.debug("Injected Mermaid.js for offline diagram support")
+                else:
+                    logger.warning(f"Mermaid.js not found at {mermaid_path} - diagrams may not render")
+                    html_template = html_template.replace('/* $MERMAID_JS */', '/* Mermaid.js not available - diagrams will not render */')
+            except Exception as e:
+                logger.error(f"Error loading Mermaid.js: {e}")
+                html_template = html_template.replace('/* $MERMAID_JS */', '/* Error loading Mermaid.js */')
 
             # Inject JavaScript slugger code for consistency
             from .helpers.slugger import get_javascript_slugger_code
@@ -669,14 +737,22 @@ class MarkdownToHtmlReportTools(Toolset):
         except Exception as e:
             logger.error(f"Failed to raise media event: {str(e)}")
 
-    async def _get_html_template(self) -> str:
-        """Get the HTML template for the viewer."""
+    async def _get_html_template(self, template: str = "markdown-viewer-template.html") -> str:
+        """
+        Get the HTML template for the viewer.
+
+        Args:
+            template: Template filename (default: "markdown-viewer-template.html")
+
+        Returns:
+            Template content as string
+        """
         try:
             from agent_c_tools.tools.markdown_to_html_report.templates.html_template_manager import HtmlTemplateManager
             template_manager = HtmlTemplateManager()
-            return await template_manager.get_html_template()
+            return await template_manager.get_html_template(template)
         except Exception as e:
-            logger.error(f"Failed to get HTML template: {str(e)}")
+            logger.error(f"Failed to get HTML template '{template}': {str(e)}")
             raise
 
     async def _create_result_html(self, output_info: dict) -> str:

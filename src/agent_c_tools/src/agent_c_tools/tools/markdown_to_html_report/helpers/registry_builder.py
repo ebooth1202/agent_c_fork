@@ -87,17 +87,27 @@ class RegistryBuilder:
     async def build_from_custom_structure(
         self,
         custom_structure: Dict[str, Any],
-        base_path: str
+        base_path: Optional[str]
     ) -> RegistryResult:
         """
         Build registry from custom user-provided structure.
 
+        Supports three path resolution modes:
+        1. Fully qualified paths: All paths start with '//' (base_path can be None)
+        2. Relative paths: base_path provided, paths resolved against it
+        3. Hybrid: Mix of fully qualified and relative paths
+
         Args:
             custom_structure: User-defined structure with items array
-            base_path: Base UNC path for resolving file paths
+            base_path: Optional base UNC path for resolving relative file paths.
+                      Required if custom_structure contains relative paths.
+                      Can be None if all paths are fully qualified UNC paths.
 
         Returns:
             RegistryResult with registry, UI tree, and warnings
+
+        Raises:
+            ValueError: If relative paths are used without base_path
         """
         logger.debug("Building registry from custom structure")
         warnings: List[str] = []
@@ -286,10 +296,19 @@ class RegistryBuilder:
         items: List[Dict],
         registry: DocRegistry,
         ui_tree: List[Dict],
-        base_path: str,
+        base_path: Optional[str],
         current_path: str = ""
     ) -> None:
-        """Process custom structure items recursively."""
+        """
+        Process custom structure items recursively.
+
+        Args:
+            items: List of structure items (files/folders)
+            registry: DocRegistry to populate
+            ui_tree: UI tree to build
+            base_path: Optional base path for relative path resolution
+            current_path: Current folder path (for nested folders)
+        """
         for item in items:
             item_type = item.get('type')
             item_name = item.get('name')
@@ -342,10 +361,35 @@ class RegistryBuilder:
                     'children': folder_children
                 })
 
-    def _resolve_custom_file_path(self, file_path: str, base_path: str) -> str:
-        """Resolve custom file path to UNC format."""
+    def _resolve_custom_file_path(self, file_path: str, base_path: Optional[str]) -> str:
+        """
+        Resolve custom file path to UNC format.
+
+        Supports three modes:
+        1. Fully qualified UNC paths: Start with '//' (e.g., '//workspace/path/file.md')
+        2. Relative paths: Resolved against base_path if provided
+        3. Hybrid: Mix of both in same structure
+
+        Args:
+            file_path: Path from custom structure
+            base_path: Optional base UNC path for relative resolution
+
+        Returns:
+            Fully resolved UNC path
+
+        Raises:
+            ValueError: If relative path provided without base_path
+        """
+        # Fully qualified UNC path - use as-is
         if file_path.startswith('//'):
             return file_path
+
+        # Relative path requires base_path
+        if not base_path:
+            raise ValueError(
+                f"Relative path '{file_path}' requires workspace parameter. "
+                "Either provide workspace parameter or use fully qualified UNC paths (e.g., '//workspace/path/file.md')"
+            )
 
         if file_path.startswith('/'):
             # Absolute path - extract workspace from base_path if present
@@ -354,7 +398,7 @@ class RegistryBuilder:
                 return f"//{workspace}{file_path}"
             return file_path
 
-        # Relative path
+        # Relative path - resolve against base_path
         return f"{base_path.rstrip('/')}/{file_path}"
 
     # -----------------------

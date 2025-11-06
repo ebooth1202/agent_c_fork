@@ -202,7 +202,7 @@ class ViewerBridge {
                 padding: 12px 16px;
                 border-radius: 6px;
                 color: white;
-                font-family: 'Roboto', sans-serif;
+                font-family: system-ui, -apple-system, sans-serif;
                 font-size: 14px;
                 z-index: 10000;
                 opacity: 0;

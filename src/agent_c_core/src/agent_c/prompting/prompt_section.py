@@ -63,6 +63,7 @@ class PromptSection(BaseModel):
     def validate_section_type(self):
         if self.section_type is None:
             self.section_type  = to_snake_case(self.__class__.__name__.removesuffix('Section'))
+        return self
 
 
     @classmethod

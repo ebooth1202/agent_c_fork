@@ -182,8 +182,24 @@ class ToolDebugger:
         self.tool_cache_dir = ".tool_cache"
         self.tool_cache = ToolCache(cache_dir=self.tool_cache_dir)
 
-        # Initialize the tool chest
-        self.tool_chest = ToolChest()
+        # Initialize the tool chest with required tool_opts
+        tool_opts = {
+            'tool_cache': self.tool_cache,
+            'workspaces': self.workspaces,
+            'session_manager': None,  # Not needed for debugging
+            'model_configs': None  # Not needed for debugging
+        }
+
+        # Debug logging for workspaces
+        if self.workspaces:
+            self.logger.info(f"Workspaces initialized: {len(self.workspaces)} workspaces")
+            for ws in self.workspaces:
+                ws_path = ws.workspace_path if hasattr(ws, 'workspace_path') else ws.workspace_root
+                self.logger.info(f"  - Workspace '{ws.name}': {ws_path}")
+        else:
+            self.logger.warning("No workspaces initialized!")
+
+        self.tool_chest = ToolChest(tool_opts)
         self.logger.info("ToolDebugger initialized")
 
     def _find_agent_c_base_path(self, provided_path: str = None) -> str:
@@ -287,17 +303,22 @@ class ToolDebugger:
             self.logger.info(f"Adding tool class {tool_class.__name__} to tool chest")
             self.tool_chest.add_tool_class(tool_class)
 
+            # Initialize tool_opts if it's None
+            if tool_opts is None:
+                tool_opts = {}
+
             # Initialize the tool cache
-            if not self.tool_cache is None:
+            if self.tool_cache is not None:
                 tool_opts['tool_cache'] = self.tool_cache
 
-            # Add workspace to tool_opts if local workspaces are initialized included
+            # Add workspace to tool_opts if local workspaces are initialized
             # if a dependent tool needs them initialized and you set this to False your dependent tool is likely to blow up
             if self.init_local_workspaces:
                 tool_opts['workspaces'] = self.workspaces
+                self.logger.debug(f"Added {len(self.workspaces)} workspaces to tool_opts")
 
             # Initialize the tools with parameters
-            self.logger.info(f"Initializing tools with parameters: {tool_opts}")
+            self.logger.info(f"Initializing tools with parameters: {list(tool_opts.keys())}")
             await self.tool_chest.init_tools(tool_opts=tool_opts)
 
             # Set the active toolsets
@@ -325,6 +346,7 @@ class ToolDebugger:
 
         from agent_c_tools.tools.workspace.local_storage import LocalStorageWorkspace
         from agent_c_tools.tools.workspace.local_project import LocalProjectWorkspace
+        from agent_c_tools.tools.workspace.base import WorkspaceDataEntry
 
         import agent_c_tools.tools.workspace.local_storage as local_storage_module
         local_storage_module.TokenCounter = MockTokenCounter
@@ -332,7 +354,7 @@ class ToolDebugger:
         local_project = LocalProjectWorkspace()
 
         self.workspaces = [local_project]
-        self.logger.info(f"Initialized workspaces {local_project.workspace_root}")
+        self.logger.info(f"Initialized LocalProjectWorkspace: {local_project.workspace_root}")
 
         # Load .local_workspaces.json from agent_c base directory
         workspaces_file_path = os.path.join(self.agent_c_base_path, ".local_workspaces.json")
@@ -343,13 +365,24 @@ class ToolDebugger:
                 local_workspaces = json.load(json_file)
 
             for ws in local_workspaces['local_workspaces']:
-                self.workspaces.append(LocalStorageWorkspace(**ws))
-                
-            self.logger.info(f"Loaded {len(local_workspaces['local_workspaces'])} additional workspaces")
+                # Convert workspace_path to path_or_bucket if needed (for backwards compatibility)
+                if 'workspace_path' in ws and 'path_or_bucket' not in ws:
+                    ws['path_or_bucket'] = ws.pop('workspace_path')
+
+                # Create WorkspaceDataEntry object
+                entry = WorkspaceDataEntry(**ws)
+
+                # Create LocalStorageWorkspace with the entry
+                new_workspace = LocalStorageWorkspace(entry=entry)
+                self.workspaces.append(new_workspace)
+                self.logger.debug(f"  Loaded workspace '{entry.name}' from {entry.path_or_bucket}")
+
+            self.logger.info(f"Loaded {len(local_workspaces['local_workspaces'])} additional workspaces from config file")
+            self.logger.info(f"Total workspaces available: {len(self.workspaces)}")
         except FileNotFoundError:
-            self.logger.info(f"No .local_workspaces.json file found at: {workspaces_file_path}")
+            self.logger.warning(f"No .local_workspaces.json file found at: {workspaces_file_path}")
         except Exception as e:
-            self.logger.error(f"Error loading .local_workspaces.json: {str(e)}")
+            self.logger.error(f"Error loading .local_workspaces.json: {str(e)}", exc_info=True)
 
     def print_tool_info(self) -> None:
         """
