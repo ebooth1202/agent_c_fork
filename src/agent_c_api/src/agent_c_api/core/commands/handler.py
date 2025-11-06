@@ -38,6 +38,26 @@ class ChatCommandHandler:
             for cmd_str in cmd.command_strings:
                 self.command_map[cmd_str.lower()] = cmd
 
+    @staticmethod
+    def _normalize_quotes(text: str) -> str:
+        """Normalize various quote characters to standard ASCII quotes."""
+        # Single quotes
+        text = text.replace("\u2018", "'")  # '
+        text = text.replace("\u2019", "'")  # '
+        text = text.replace("\u201a", "'")  # ‚
+        text = text.replace("\u201b", "'")  # ‛
+
+        # Double quotes
+        text = text.replace("\u201c", '"')  # "
+        text = text.replace("\u201d", '"')  # "
+        text = text.replace("\u201e", '"')  # „
+        text = text.replace("\u201f", '"')  # ‟
+
+        # Backticks (if we want to in the future)
+        # text = text.replace("`", "'")
+
+        return text
+
     async def handle_command(self, user_message, context: 'RealtimeBridge') -> bool:
         user_message = user_message.strip()
 
@@ -49,6 +69,9 @@ class ChatCommandHandler:
 
         if "\n" in user_message:
             return False
+
+        # Normalize quotes before parsing
+        user_message = self._normalize_quotes(user_message)
 
         # Split into command and args
         parts = user_message.split(None, 1)
