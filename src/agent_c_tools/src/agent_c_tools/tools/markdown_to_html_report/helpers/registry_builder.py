@@ -447,7 +447,31 @@ class RegistryBuilder:
                 'content': doc.content
             })
 
+        # Sort each level: folders first (alphabetically), then files (alphabetically)
+        self._sort_tree_levels(tree)
+
         return tree
+
+    def _sort_tree_levels(self, tree: List[Dict]) -> None:
+        """
+        Recursively sort each tree level so folders appear before files,
+        with each group sorted alphabetically by name.
+        """
+        def sort_key(node: Dict) -> tuple:
+            # Sort by (is_file, lowercase_name)
+            # Folders (type='folder') have is_file=False (0), files have is_file=True (1)
+            # This ensures folders come before files, each group sorted alphabetically
+            is_file = node.get('type') == 'file'
+            name = node.get('name', '').lower()
+            return (is_file, name)
+
+        # Sort current level
+        tree.sort(key=sort_key)
+
+        # Recursively sort children of folders
+        for node in tree:
+            if node.get('type') == 'folder' and 'children' in node:
+                self._sort_tree_levels(node['children'])
 
     # -----------------------
     # Diagnostics
