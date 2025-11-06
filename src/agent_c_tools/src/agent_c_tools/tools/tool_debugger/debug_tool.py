@@ -362,13 +362,9 @@ class ToolDebugger:
         try:
             self.logger.info(f"Loading local workspaces from: {workspaces_file_path}")
             with open(workspaces_file_path, 'r') as json_file:
-                local_workspaces = json.load(json_file)
+                workspaces_list = json.load(json_file)
 
-            for ws in local_workspaces['local_workspaces']:
-                # Convert workspace_path to path_or_bucket if needed (for backwards compatibility)
-                if 'workspace_path' in ws and 'path_or_bucket' not in ws:
-                    ws['path_or_bucket'] = ws.pop('workspace_path')
-
+            for ws in workspaces_list:
                 # Create WorkspaceDataEntry object
                 entry = WorkspaceDataEntry(**ws)
 
@@ -377,7 +373,7 @@ class ToolDebugger:
                 self.workspaces.append(new_workspace)
                 self.logger.debug(f"  Loaded workspace '{entry.name}' from {entry.path_or_bucket}")
 
-            self.logger.info(f"Loaded {len(local_workspaces['local_workspaces'])} additional workspaces from config file")
+            self.logger.info(f"Loaded {len(workspaces_list)} additional workspaces from config file")
             self.logger.info(f"Total workspaces available: {len(self.workspaces)}")
         except FileNotFoundError:
             self.logger.warning(f"No .local_workspaces.json file found at: {workspaces_file_path}")
