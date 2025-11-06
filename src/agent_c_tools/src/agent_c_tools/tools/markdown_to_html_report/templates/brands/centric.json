@@ -39,5 +39,24 @@
     "sidebar_width": "300px",
     "content_max_width": "900px",
     "padding_base": "16px"
+  },
+  "mermaid": {
+    "theme": "base",
+    "themeVariables": {
+      "primaryColor": "#d4e8f0",
+      "primaryBorderColor": "#1f5d82",
+      "primaryTextColor": "#232d3d",
+      "lineColor": "#67686a",
+      "secondaryColor": "#fff8e6",
+      "secondaryBorderColor": "#fdb825",
+      "tertiaryColor": "#e8f5f0",
+      "tertiaryBorderColor": "#2fb677",
+      "fontFamily": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+      "noteBkgColor": "#fff8e6",
+      "noteBorderColor": "#fdb825",
+      "edgeLabelBackground": "#ffffff",
+      "clusterBkg": "#f8f9fa",
+      "clusterBorder": "#e1e4e8"
+    }
   }
 }

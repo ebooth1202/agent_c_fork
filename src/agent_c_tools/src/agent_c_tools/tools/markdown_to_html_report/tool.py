@@ -12,15 +12,9 @@ from typing import Optional
 
 from agent_c.toolsets.tool_set import Toolset
 from agent_c.toolsets.json_schema import json_schema
-
-# New registry-based components
 from .helpers.doc_registry import DocRegistry
 from .helpers.registry_builder import build_registry_and_tree, validate_registry_integrity
 from .helpers.html_document_renderer import render_registry_to_html
-# Legacy - kept for backward compatibility but no longer used
-# from .helpers.javascript_safe_content_processor import JavaScriptSafeContentProcessor
-
-# Existing components (preserved)
 from agent_c_tools.tools.markdown_to_html_report.md_to_docx.markdown_to_docx import MarkdownToDocxConverter
 from ..workspace.tool import WorkspaceTools
 from ...helpers.path_helper import create_unc_path, ensure_file_extension, os_file_system_path, has_file_extension, normalize_path
@@ -40,7 +34,7 @@ class Constants:
 
 class MarkdownToHtmlReportTools(Toolset):
     """
-    Transforms your markdown documents into beautiful, interactive HTML reports and Word documents.
+    Transforms your Markdown documents into beautiful, interactive HTML reports and Word documents.
     Your agent can create professional presentations, documentation, and reports that are easy to share,
     navigate, and read across different platforms and devices.
     """
@@ -109,7 +103,6 @@ class MarkdownToHtmlReportTools(Toolset):
         output_filename = kwargs.get('output_filename')
         title = kwargs.get('title', 'Agent C Output Viewer')
         files_to_ignore = kwargs.get('files_to_ignore', [])
-        javascript_safe = kwargs.get('javascript_safe', True)
         tool_context = kwargs.get('tool_context', {})
         template = kwargs.get('template', 'markdown-viewer-template.html')
         brand = kwargs.get('brand', 'centric')
@@ -133,13 +126,13 @@ class MarkdownToHtmlReportTools(Toolset):
             if path_error:
                 return self._create_error_response(path_error)
 
-            # NEW PIPELINE: Collect → Registry → Link Rewriting → Template
+            # PIPELINE: Collect → Registry → Link Rewriting → Template
 
             # Step 1: Determine if input is a file or directory and collect appropriately
             if has_file_extension(input_path, Constants.MARKDOWN_EXTENSIONS):
                 # Single file mode
                 registry, ui_tree, warnings = await self._handle_single_file_with_registry(
-                    input_path_full, input_path, javascript_safe)
+                    input_path_full, input_path)
             else:
                 # Directory mode - use new registry builder (includes link rewriting)
                 registry, ui_tree, warnings = await build_registry_and_tree(
@@ -256,6 +249,7 @@ class MarkdownToHtmlReportTools(Toolset):
         title = kwargs.get('title', 'Custom Markdown Viewer')
         template = kwargs.get('template', 'markdown-viewer-template.html')
         brand = kwargs.get('brand', 'default')
+        tool_context = kwargs.get('tool_context', {})
 
         try:
             # Parse the custom structure JSON
@@ -317,7 +311,7 @@ class MarkdownToHtmlReportTools(Toolset):
                 return self._create_error_response(html_error)
 
             # Step 5: Raise media event
-            await self._raise_media_event(output_filename, output_path_full, len(registry.by_path), {})
+            await self._raise_media_event(output_filename, output_path_full, len(registry.by_path), tool_context)
 
             message = f"Successfully generated custom HTML viewer at {output_filename}."
             logger.debug(message)
@@ -397,6 +391,7 @@ class MarkdownToHtmlReportTools(Toolset):
         style = kwargs.get('style', 'default')
         include_toc = kwargs.get('include_toc', True)
         page_break_level = kwargs.get('page_break_level', 1)
+        tool_context = kwargs.get('tool_context', {})
 
         try:
             # Process paths
@@ -459,16 +454,14 @@ class MarkdownToHtmlReportTools(Toolset):
                 "style": style
             }
 
-            # Generate and raise HTML content for the result
+            # Generate and raise markdown content for the result
             try:
-                html_content = await self._create_result_html(output_info)
-                await self._raise_render_media(
-                    sent_by_class=self.__class__.__name__,
-                    sent_by_function='markdown_to_docx',
-                    content_type="text/html",
-                    content=html_content,
-                    tool_context=kwargs.get('tool_context', {})
-                )
+                markdown_content = self._create_result_markdown(output_info)
+                bridge = tool_context.get('bridge')
+                if bridge:
+                    await bridge.raise_render_media_markdown(markdown_content, self.__class__.__name__)
+                else:
+                    logger.warning("Bridge not available in tool_context, skipping media event")
             except Exception as e:
                 logger.error(f"Failed to raise media event: {str(e)}")
 
@@ -484,10 +477,8 @@ class MarkdownToHtmlReportTools(Toolset):
             logger.exception("Error converting markdown to Word document")
             return self._create_error_response(f"Error converting markdown to Word document: {str(e)}")
 
-    # NEW METHODS for the new pipeline
 
-    async def _handle_single_file_with_registry(self, input_path_full: str, input_path: str,
-                                              javascript_safe: bool) -> tuple[DocRegistry, list[dict], list[str]]:
+    async def _handle_single_file_with_registry(self, input_path_full: str, input_path: str) -> tuple[DocRegistry, list[dict], list[str]]:
         """Handle single file processing using the new registry approach."""
         try:
             error, workspace_obj, relative_path = self.workspace_tool.validate_and_get_workspace_path(input_path_full)
@@ -538,9 +529,8 @@ class MarkdownToHtmlReportTools(Toolset):
         except Exception as e:
             raise ValueError(f"Error processing single file: {str(e)}")
 
-    # REMOVED: _apply_javascript_safety - No longer needed with HTML pre-rendering
-
-    def _build_template_structure(self, registry: DocRegistry, ui_tree: list[dict]) -> list[dict]:
+    @staticmethod
+    def _build_template_structure(registry: DocRegistry, ui_tree: list[dict]) -> list[dict]:
         """Build final structure for template injection."""
         # Get document metadata (TOC, etc.) if available
         doc_metadata = getattr(registry, '_doc_metadata', {})
@@ -567,13 +557,14 @@ class MarkdownToHtmlReportTools(Toolset):
 
         return final_structure
 
-    # Existing helper methods (preserved)
 
-    def _create_error_response(self, error_message: str) -> str:
+    @staticmethod
+    def _create_error_response(error_message: str) -> str:
         """Create a standardized error response."""
         return json.dumps({"success": False, "error": error_message})
 
-    def _create_success_response(self, message: str, **additional_data) -> str:
+    @staticmethod
+    def _create_success_response(message: str, **additional_data) -> str:
         """Create a standardized success response."""
         response = {
             "success": True,
@@ -582,7 +573,8 @@ class MarkdownToHtmlReportTools(Toolset):
         }
         return json.dumps(response)
 
-    async def _validate_and_process_paths(self, workspace: str, input_path: str, output_filename: str) -> tuple:
+    @staticmethod
+    async def _validate_and_process_paths(workspace: str, input_path: str, output_filename: str) -> tuple:
         """Validate and process input/output paths."""
         try:
             # Normalize input path for cross-platform compatibility
@@ -714,7 +706,7 @@ class MarkdownToHtmlReportTools(Toolset):
     async def _raise_media_event(self, output_filename: str, output_path_full: str, file_count: int, tool_context: dict):
         """Generate and raise media event for the result."""
         try:
-            # Get file system path and raise a media event
+            # Get file system path
             file_system_path = os_file_system_path(self.workspace_tool, output_path_full)
 
             # Create output info dictionary
@@ -725,19 +717,20 @@ class MarkdownToHtmlReportTools(Toolset):
                 "file_count": file_count
             }
 
-            # Generate and raise HTML content for the result
-            html_content = await self._create_result_html(output_info)
-            await self._raise_render_media(
-                sent_by_class=self.__class__.__name__,
-                sent_by_function='generate_md_viewer',
-                content_type="text/html",
-                content=html_content,
-                tool_context=tool_context
-            )
+            # Generate markdown content for the result
+            markdown_content = self._create_result_markdown(output_info)
+
+            # Use architect's preferred pattern: bridge.raise_render_media_markdown
+            bridge = tool_context.get('bridge')
+            if bridge:
+                await bridge.raise_render_media_markdown(markdown_content, self.__class__.__name__)
+            else:
+                logger.warning("Bridge not available in tool_context, skipping media event")
         except Exception as e:
             logger.error(f"Failed to raise media event: {str(e)}")
 
-    async def _get_html_template(self, template: str = "markdown-viewer-template.html") -> str:
+    @staticmethod
+    async def _get_html_template(template: str = "markdown-viewer-template.html") -> str:
         """
         Get the HTML template for the viewer.
 
@@ -755,7 +748,8 @@ class MarkdownToHtmlReportTools(Toolset):
             logger.error(f"Failed to get HTML template '{template}': {str(e)}")
             raise
 
-    async def _create_result_html(self, output_info: dict) -> str:
+    @staticmethod
+    async def _create_result_html(output_info: dict) -> str:
         """Create HTML content for result media events."""
         try:
             from .helpers.media_helper import MediaEventHelper
@@ -772,20 +766,48 @@ class MarkdownToHtmlReportTools(Toolset):
             </div>
             """
 
-    async def _raise_render_media(self, sent_by_class: str, sent_by_function: str,
-                                content_type: str, content: str, tool_context: dict = None):
-        """Raise a render media event."""
+    @staticmethod
+    def _create_result_markdown(output_info: dict) -> str:
+        """Create markdown content for result media events."""
         try:
-            if tool_context and hasattr(self.tool_chest, '_raise_render_media'):
-                await self.tool_chest._raise_render_media(
-                    sent_by_class=sent_by_class,
-                    sent_by_function=sent_by_function,
-                    content_type=content_type,
-                    content=content,
-                    tool_context=tool_context
-                )
+            # Build markdown notification
+            output_type = output_info.get('type', 'html')
+
+            if output_type == 'docx':
+                markdown_content = f"""### ✅ Word Document Generated Successfully
+
+**Output File:** `{output_info.get('output_filename', 'Unknown')}`
+
+**Full Path:** `{output_info.get('output_path', 'Unknown')}`
+
+**Style:** {output_info.get('style', 'default')}
+"""
+            else:
+                # HTML viewer output
+                markdown_content = f"""### ✅ HTML Viewer Generated Successfully
+
+**Output File:** `{output_info.get('output_filename', 'Unknown')}`
+
+**Full Path:** `{output_info.get('output_path', 'Unknown')}`
+
+**Files Processed:** {output_info.get('file_count', 0)}
+"""
+
+            # Add file system path if available
+            if output_info.get('file_system_path'):
+                markdown_content += f"\n**File System Path:** `{output_info['file_system_path']}`\n"
+
+            return markdown_content
+
         except Exception as e:
-            logger.error(f"Failed to raise render media event: {str(e)}")
+            logger.error(f"Failed to create result markdown: {str(e)}")
+            # Return basic markdown as fallback
+            return f"""### ✅ File Generated Successfully
+
+**Output:** `{output_info.get('output_filename', 'Unknown')}`
+
+**Files Processed:** {output_info.get('file_count', 0)}
+"""
 
 
 
