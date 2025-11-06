@@ -15,7 +15,7 @@ from agent_c.toolsets.json_schema import json_schema
 from .helpers.doc_registry import DocRegistry
 from .helpers.registry_builder import build_registry_and_tree, validate_registry_integrity
 from .helpers.html_document_renderer import render_registry_to_html
-from agent_c_tools.tools.markdown_to_html_report.md_to_docx.markdown_to_docx import MarkdownToDocxConverter
+from .services.docx_generator import DocxGenerator
 from ..workspace.tool import WorkspaceTools
 from ...helpers.path_helper import create_unc_path, ensure_file_extension, os_file_system_path, has_file_extension, normalize_path
 from ...helpers.validate_kwargs import validate_required_fields
@@ -44,11 +44,25 @@ class MarkdownToHtmlReportTools(Toolset):
         # Get workspace tools for file operations
         self.workspace_tool: Optional[WorkspaceTools] = None
         self.file_collector = None
-        self.docx_converter = MarkdownToDocxConverter()
-        # No longer need JS processor - rendering to HTML eliminates safety concerns
+        self.docx_converter = DocxGenerator()
+
+        # Services - will be initialized in post_init after workspace_tool is available
+        self.html_service = None
+        self.notification_service = None
+        self.response_builder = None
 
     async def post_init(self):
+        from .services.html_generator import HtmlGenerationService
+        from .services.notification_service import NotificationBuilder, NotificationSender
+        from .helpers.response_builder import ResponseBuilder
+
         self.workspace_tool = self.tool_chest.available_tools.get("WorkspaceTools")
+
+        # Initialize services
+        self.html_service = HtmlGenerationService(self.workspace_tool)
+        self.notification_builder = NotificationBuilder()
+        self.notification_sender = NotificationSender()
+        self.response_builder = ResponseBuilder()
 
     @json_schema(
         description="Generate an interactive HTML viewer for markdown files in a workspace directory",
@@ -96,7 +110,7 @@ class MarkdownToHtmlReportTools(Toolset):
         success, validation_error = validate_required_fields(
             kwargs, ["workspace_start", "output_filename"])
         if not success:
-            return self._create_error_response(validation_error)
+            return self.response_builder.create_error_response(validation_error)
 
         # Extract parameters
         workspace_start = kwargs.get('workspace_start')
@@ -112,10 +126,10 @@ class MarkdownToHtmlReportTools(Toolset):
             error, workspace_obj, relative_path = self.workspace_tool._parse_unc_path(workspace_start)
 
             if error:
-                return self._create_error_response(f"Invalid workspace path '{workspace_start}': {error}")
+                return self.response_builder.create_error_response(f"Invalid workspace path '{workspace_start}': {error}")
 
             if not workspace_obj:
-                return self._create_error_response(f"Workspace not found for path '{workspace_start}'")
+                return self.response_builder.create_error_response(f"Workspace not found for path '{workspace_start}'")
 
             workspace_path = workspace_obj.name
             input_path = relative_path or ""
@@ -124,7 +138,7 @@ class MarkdownToHtmlReportTools(Toolset):
             input_path_full, output_path_full, path_error = await self._validate_and_process_paths(
                 workspace_path, input_path, output_filename)
             if path_error:
-                return self._create_error_response(path_error)
+                return self.response_builder.create_error_response(path_error)
 
             # PIPELINE: Collect → Registry → Link Rewriting → Template
 
@@ -154,7 +168,7 @@ class MarkdownToHtmlReportTools(Toolset):
                         logger.warning(warning)
 
             if not registry.by_path:
-                return self._create_error_response("No markdown files found to process")
+                return self.response_builder.create_error_response("No markdown files found to process")
 
             # Step 2: Validate registry integrity
             issues = validate_registry_integrity(registry)
@@ -165,11 +179,11 @@ class MarkdownToHtmlReportTools(Toolset):
             final_structure = self._build_template_structure(registry, ui_tree)
 
             # Step 4: Generate HTML output
-            html_content, html_error = await self._generate_html_output(
+            html_content, html_error = await self.html_service.generate_html_output(
                 final_structure, title, output_path_full, template, brand
             )
             if html_error:
-                return self._create_error_response(html_error)
+                return self.response_builder.create_error_response(html_error)
 
             # Step 5: Raise media event
             await self._raise_media_event(output_filename, output_path_full, len(registry.by_path), tool_context)
@@ -178,7 +192,7 @@ class MarkdownToHtmlReportTools(Toolset):
             message = f"Successfully generated HTML viewer at {output_filename}."
             logger.debug(message)
 
-            return self._create_success_response(
+            return self.response_builder.create_success_response(
                 message,
                 output_file=output_filename,
                 output_path=output_path_full,
@@ -190,7 +204,7 @@ class MarkdownToHtmlReportTools(Toolset):
 
         except Exception as e:
             logger.exception("Error generating markdown viewer")
-            return self._create_error_response(f"Error generating markdown viewer: {str(e)}")
+            return self.response_builder.create_error_response(f"Error generating markdown viewer: {str(e)}")
 
     @json_schema(
         description="Generate an interactive HTML viewer with custom file hierarchy structure. Supports both relative paths (with workspace) and fully qualified UNC paths (without workspace).",
@@ -241,7 +255,7 @@ class MarkdownToHtmlReportTools(Toolset):
 
         # Validate required fields
         if not success:
-            return self._create_error_response(validation_error)
+            return self.response_builder.create_error_response(validation_error)
 
         workspace = kwargs.get('workspace')  # Optional now
         output_filename = kwargs.get('output_filename')
@@ -256,7 +270,7 @@ class MarkdownToHtmlReportTools(Toolset):
             try:
                 custom_structure = json.loads(custom_structure_json)
             except json.JSONDecodeError as e:
-                return self._create_error_response(f"Invalid JSON in custom_structure: {str(e)}")
+                return self.response_builder.create_error_response(f"Invalid JSON in custom_structure: {str(e)}")
 
             # Create base path for file resolution (None if workspace not provided)
             base_path = f"//{workspace}" if workspace else None
@@ -282,7 +296,7 @@ class MarkdownToHtmlReportTools(Toolset):
                     logger.warning(warning)
 
             if not registry.by_path:
-                return self._create_error_response("No valid markdown files found in the custom structure")
+                return self.response_builder.create_error_response("No valid markdown files found in the custom structure")
 
             # Step 2: Validate registry integrity
             issues = validate_registry_integrity(registry)
@@ -298,17 +312,17 @@ class MarkdownToHtmlReportTools(Toolset):
                 if workspace:
                     output_path_full = create_unc_path(workspace, output_filename)
                 else:
-                    return self._create_error_response(
+                    return self.response_builder.create_error_response(
                         "When workspace is not provided, output_filename must be a fully qualified UNC path (e.g., '//workspace/path/file.html')"
                     )
             else:
                 output_path_full = output_filename
 
-            html_content, html_error = await self._generate_html_output(
+            html_content, html_error = await self.html_service.generate_html_output(
                 final_structure, title, output_path_full, template, brand
             )
             if html_error:
-                return self._create_error_response(html_error)
+                return self.response_builder.create_error_response(html_error)
 
             # Step 5: Raise media event
             await self._raise_media_event(output_filename, output_path_full, len(registry.by_path), tool_context)
@@ -316,7 +330,7 @@ class MarkdownToHtmlReportTools(Toolset):
             message = f"Successfully generated custom HTML viewer at {output_filename}."
             logger.debug(message)
 
-            return self._create_success_response(
+            return self.response_builder.create_success_response(
                 message,
                 output_file=output_filename,
                 output_path=output_path_full,
@@ -329,7 +343,7 @@ class MarkdownToHtmlReportTools(Toolset):
 
         except Exception as e:
             logger.exception("Error generating custom markdown viewer")
-            return self._create_error_response(f"Error generating custom markdown viewer: {str(e)}")
+            return self.response_builder.create_error_response(f"Error generating custom markdown viewer: {str(e)}")
 
     # Preserve existing markdown_to_docx method unchanged
     @json_schema(
@@ -377,13 +391,13 @@ class MarkdownToHtmlReportTools(Toolset):
         # as it doesn't need the new link processing architecture
 
         if not self.docx_converter.docx_conversion_available:
-            return self._create_error_response("Required dependencies not available. Please install python-markdown, python-docx, and beautifulsoup4.")
+            return self.response_builder.create_error_response("Required dependencies not available. Please install python-markdown, python-docx, and beautifulsoup4.")
 
         # Validate required fields
         success, validation_error = validate_required_fields(
             kwargs, ["workspace", "input_path"])
         if not success:
-            return self._create_error_response(validation_error)
+            return self.response_builder.create_error_response(validation_error)
 
         workspace = kwargs.get('workspace')
         input_path = kwargs.get('input_path')
@@ -398,7 +412,7 @@ class MarkdownToHtmlReportTools(Toolset):
             input_path_full = create_unc_path(workspace, input_path)
 
             if not has_file_extension(input_path_full, Constants.DOCX_EXTENSIONS):
-                return self._create_error_response(f"Input file '{input_path_full}' is not a markdown file.")
+                return self.response_builder.create_error_response(f"Input file '{input_path_full}' is not a markdown file.")
 
             input_filename = normalize_path(input_path_full).split('/')[-1]
 
@@ -435,12 +449,12 @@ class MarkdownToHtmlReportTools(Toolset):
                 )
             except Exception as e:
                 logger.error(f"Error writing docx file: {e}")
-                return self._create_error_response(f"Failed to write Word document: {str(e)}")
+                return self.response_builder.create_error_response(f"Failed to write Word document: {str(e)}")
 
             # Parse the write result using the helper function
             success, write_data, error_msg = parse_workspace_result(write_result, "write operation")
             if not success:
-                return self._create_error_response(f"Failed to write Word document: {error_msg}")
+                return self.response_builder.create_error_response(f"Failed to write Word document: {error_msg}")
 
             # Get file system path
             file_system_path = os_file_system_path(self.workspace_tool, output_path_full)
@@ -456,16 +470,16 @@ class MarkdownToHtmlReportTools(Toolset):
 
             # Generate and raise markdown content for the result
             try:
-                markdown_content = self._create_result_markdown(output_info)
-                bridge = tool_context.get('bridge')
-                if bridge:
-                    await bridge.raise_render_media_markdown(markdown_content, self.__class__.__name__)
-                else:
-                    logger.warning("Bridge not available in tool_context, skipping media event")
+                markdown_content = self.notification_builder.build_markdown_notification(output_info)
+                await self.notification_sender.send_markdown_notification(
+                    markdown_content,
+                    tool_context,
+                    self.__class__.__name__
+                )
             except Exception as e:
                 logger.error(f"Failed to raise media event: {str(e)}")
 
-            return self._create_success_response(
+            return self.response_builder.create_success_response(
                 f"Successfully converted markdown to Word document at {output_path_full}",
                 input_file=input_path_full,
                 output_file=output_path_full,
@@ -475,7 +489,7 @@ class MarkdownToHtmlReportTools(Toolset):
 
         except Exception as e:
             logger.exception("Error converting markdown to Word document")
-            return self._create_error_response(f"Error converting markdown to Word document: {str(e)}")
+            return self.response_builder.create_error_response(f"Error converting markdown to Word document: {str(e)}")
 
 
     async def _handle_single_file_with_registry(self, input_path_full: str, input_path: str) -> tuple[DocRegistry, list[dict], list[str]]:
@@ -558,20 +572,6 @@ class MarkdownToHtmlReportTools(Toolset):
         return final_structure
 
 
-    @staticmethod
-    def _create_error_response(error_message: str) -> str:
-        """Create a standardized error response."""
-        return json.dumps({"success": False, "error": error_message})
-
-    @staticmethod
-    def _create_success_response(message: str, **additional_data) -> str:
-        """Create a standardized success response."""
-        response = {
-            "success": True,
-            "message": message,
-            **additional_data
-        }
-        return json.dumps(response)
 
     @staticmethod
     async def _validate_and_process_paths(workspace: str, input_path: str, output_filename: str) -> tuple:
@@ -598,111 +598,6 @@ class MarkdownToHtmlReportTools(Toolset):
         except Exception as e:
             return None, None, f"Error processing paths: {str(e)}"
 
-    async def _generate_html_output(
-        self,
-        file_structure: list,
-        title: str,
-        output_path_full: str,
-        template: str = "markdown-viewer-template.html",
-        brand: str = "default"
-    ) -> tuple:
-        """
-        Generate HTML output from file structure.
-
-        Args:
-            file_structure: File structure to inject
-            title: Document title
-            output_path_full: Output path
-            template: Template filename (default: "markdown-viewer-template.html")
-            brand: Brand configuration name (default: "default")
-
-        Returns:
-            Tuple of (html_content, error_message)
-        """
-        try:
-            # Get the HTML template
-            html_template = await self._get_html_template(template)
-
-            # Apply brand configuration
-            from .helpers.brand_loader import load_and_apply_brand
-            templates_dir = Path(__file__).parent / "templates"
-            html_template = load_and_apply_brand(html_template, templates_dir, brand)
-            logger.debug(f"Applied brand '{brand}' to template '{template}'")
-
-            # Customize title
-            html_template = html_template.replace(
-                Constants.DEFAULT_TITLE_PLACEHOLDER,
-                f"<h3 style=\"margin:0 16px 16px 16px;\">{title}</h3>")
-
-            # Inject Pygments CSS for syntax highlighting
-            from .helpers.markdown_renderer import MarkdownRenderer
-            pygments_css = MarkdownRenderer.get_pygments_css('default')
-            if pygments_css:
-                html_template = html_template.replace('/* $PYGMENTS_CSS */', pygments_css)
-                logger.debug("Injected Pygments CSS for syntax highlighting")
-            else:
-                logger.warning("Pygments CSS not available - syntax highlighting may be limited")
-                html_template = html_template.replace('/* $PYGMENTS_CSS */', '/* Pygments not available */')
-
-            # Inject Mermaid.js for offline diagram rendering
-            mermaid_path = Path(__file__).parent / "templates" / "mermaid.min.js"
-            try:
-                if mermaid_path.exists():
-                    with open(mermaid_path, 'r', encoding='utf-8') as f:
-                        mermaid_js = f.read()
-                    html_template = html_template.replace('/* $MERMAID_JS */', mermaid_js)
-                    logger.debug("Injected Mermaid.js for offline diagram support")
-                else:
-                    logger.warning(f"Mermaid.js not found at {mermaid_path} - diagrams may not render")
-                    html_template = html_template.replace('/* $MERMAID_JS */', '/* Mermaid.js not available - diagrams will not render */')
-            except Exception as e:
-                logger.error(f"Error loading Mermaid.js: {e}")
-                html_template = html_template.replace('/* $MERMAID_JS */', '/* Error loading Mermaid.js */')
-
-            # Inject JavaScript slugger code for consistency
-            from .helpers.slugger import get_javascript_slugger_code
-            js_slugger_code = get_javascript_slugger_code()
-            html_template = html_template.replace('$SLUGGER_JS_CODE', js_slugger_code)
-
-            # Replace placeholder with the processed structure
-            json_structure = json.dumps(file_structure, ensure_ascii=False)
-            html_content = html_template.replace('$FILE_STRUCTURE', json_structure)
-
-            # Write the generated HTML to the workspace
-            logger.debug("Writing HTML viewer to output location...")
-            write_result = await self.workspace_tool.write(
-                path=output_path_full,
-                data=html_content,
-                mode="write"
-            )
-
-            # Handle potential empty or invalid JSON response
-            try:
-                if not write_result or write_result.strip() == "":
-                    write_data = {"success": True}
-                else:
-                    write_data = json.loads(write_result)
-            except json.JSONDecodeError as e:
-                # Check if it's a plain text success message
-                if write_result and ("successfully written" in write_result.lower() or
-                                   "success" in write_result.lower() or
-                                   "data written" in write_result.lower() or
-                                   "file created" in write_result.lower()):
-                    logger.debug(f"Received plain text success message: {write_result}")
-                    write_data = {"success": True}
-                else:
-                    logger.error(f"Failed to parse workspace write response: {write_result}")
-                    return None, f"Invalid response from workspace write operation: {str(e)}"
-
-            if 'error' in write_data:
-                return None, f"Failed to write HTML file: {write_data['error']}"
-
-            return html_content, None
-
-        except Exception as e:
-            logger.exception("Error generating HTML output")
-            return None, f"Error generating HTML output: {str(e)}"
-
     async def _raise_media_event(self, output_filename: str, output_path_full: str, file_count: int, tool_context: dict):
         """Generate and raise media event for the result."""
         try:
@@ -717,98 +612,17 @@ class MarkdownToHtmlReportTools(Toolset):
                 "file_count": file_count
             }
 
-            # Generate markdown content for the result
-            markdown_content = self._create_result_markdown(output_info)
+            # Generate markdown content using notification builder
+            markdown_content = self.notification_builder.build_markdown_notification(output_info)
 
-            # Use architect's preferred pattern: bridge.raise_render_media_markdown
-            bridge = tool_context.get('bridge')
-            if bridge:
-                await bridge.raise_render_media_markdown(markdown_content, self.__class__.__name__)
-            else:
-                logger.warning("Bridge not available in tool_context, skipping media event")
+            # Send notification using notification sender
+            await self.notification_sender.send_markdown_notification(
+                markdown_content,
+                tool_context,
+                self.__class__.__name__
+            )
         except Exception as e:
             logger.error(f"Failed to raise media event: {str(e)}")
-
-    @staticmethod
-    async def _get_html_template(template: str = "markdown-viewer-template.html") -> str:
-        """
-        Get the HTML template for the viewer.
-
-        Args:
-            template: Template filename (default: "markdown-viewer-template.html")
-
-        Returns:
-            Template content as string
-        """
-        try:
-            from agent_c_tools.tools.markdown_to_html_report.templates.html_template_manager import HtmlTemplateManager
-            template_manager = HtmlTemplateManager()
-            return await template_manager.get_html_template(template)
-        except Exception as e:
-            logger.error(f"Failed to get HTML template '{template}': {str(e)}")
-            raise
-
-    @staticmethod
-    async def _create_result_html(output_info: dict) -> str:
-        """Create HTML content for result media events."""
-        try:
-            from .helpers.media_helper import MediaEventHelper
-            media_helper = MediaEventHelper()
-            return await media_helper.create_result_html(output_info)
-        except Exception as e:
-            logger.error(f"Failed to create result HTML: {str(e)}")
-            # Return basic HTML as fallback
-            return f"""
-            <div style="padding: 16px; background: #f8f9fa; border-radius: 8px; margin: 8px 0;">
-                <h4 style="margin: 0 0 8px 0; color: #28a745;">✅ File Generated Successfully</h4>
-                <p style="margin: 4px 0;"><strong>Output:</strong> {output_info.get('output_filename', 'Unknown')}</p>
-                <p style="margin: 4px 0;"><strong>Files Processed:</strong> {output_info.get('file_count', 0)}</p>
-            </div>
-            """
-
-    @staticmethod
-    def _create_result_markdown(output_info: dict) -> str:
-        """Create markdown content for result media events."""
-        try:
-            # Build markdown notification
-            output_type = output_info.get('type', 'html')
-
-            if output_type == 'docx':
-                markdown_content = f"""### ✅ Word Document Generated Successfully
-
-**Output File:** `{output_info.get('output_filename', 'Unknown')}`
-
-**Full Path:** `{output_info.get('output_path', 'Unknown')}`
-
-**Style:** {output_info.get('style', 'default')}
-"""
-            else:
-                # HTML viewer output
-                markdown_content = f"""### ✅ HTML Viewer Generated Successfully
-
-**Output File:** `{output_info.get('output_filename', 'Unknown')}`
-
-**Full Path:** `{output_info.get('output_path', 'Unknown')}`
-
-**Files Processed:** {output_info.get('file_count', 0)}
-"""
-
-            # Add file system path if available
-            if output_info.get('file_system_path'):
-                markdown_content += f"\n**File System Path:** `{output_info['file_system_path']}`\n"
-
-            return markdown_content
-
-        except Exception as e:
-            logger.error(f"Failed to create result markdown: {str(e)}")
-            # Return basic markdown as fallback
-            return f"""### ✅ File Generated Successfully
-
-**Output:** `{output_info.get('output_filename', 'Unknown')}`
-
-**Files Processed:** {output_info.get('file_count', 0)}
-"""
-
 
 
 # Register the toolset

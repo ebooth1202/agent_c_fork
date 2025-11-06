@@ -84,7 +84,8 @@ class LinkRewriter:
 
         return processed_content
 
-    def _find_code_fence_ranges(self, content: str) -> List[tuple[int, int]]:
+    @staticmethod
+    def _find_code_fence_ranges(content: str) -> List[tuple[int, int]]:
         """
         Find all code fence ranges in the content.
 

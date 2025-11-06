@@ -29,7 +29,7 @@ async def run_example():
     result = await tester.run_tool_test(
         tool_name='generate_md_viewer',
         tool_params={
-            "workspace_start": "//md_tool/test_markdown/",
+            "workspace_start": "//md_tool/tests/fixtures/test_markdown/",
             "output_filename": "test_default_brand.html",
             "title": "Default Brand Test",
             "brand": "default"
@@ -44,7 +44,7 @@ async def run_example():
     result0b = await tester.run_tool_test(
         tool_name='generate_md_viewer',
         tool_params={
-            "workspace_start": "//md_tool/test_markdown/",
+            "workspace_start": "//md_tool/tests/fixtures/test_markdown/",
             "output_filename": "test_centric_brand.html",
             "title": "Centric Brand Test",
             "brand": "centric"
@@ -59,8 +59,8 @@ async def run_example():
     result1 = await tester.run_tool_test(
         tool_name='generate_custom_md_viewer',
         tool_params={
-            "workspace": "md_tool/test_markdown",
-            "output_filename": "test_custom_relative.html",
+            "workspace": "md_tool/tests/fixtures/test_markdown",
+            "output_filename": "//md_tool/tests/output/test_custom_relative.html",
             "custom_structure": """{
                 "items": [
                     {
@@ -89,7 +89,7 @@ async def run_example():
         tool_name='generate_custom_md_viewer',
         tool_params={
             # No workspace parameter!
-            "output_filename": "//md_tool/test_markdown/test_custom_qualified.html",
+            "output_filename": "//md_tool/tests/output/test_custom_qualified.html",
             "custom_structure": """{
                 "items": [
                     {
@@ -99,12 +99,12 @@ async def run_example():
                             {
                                 "type": "file",
                                 "name": "Project Guide",
-                                "path": "//md_tool/test_markdown/dir1/02_project-guide.md"
+                                "path": "//md_tool/tests/fixtures/test_markdown/dir1/02_project-guide.md"
                             },
                             {
                                 "type": "file",
                                 "name": "Custom Index",
-                                "path": "//md_tool/test_markdown/dir2/01 index.md"
+                                "path": "//md_tool/tests/fixtures/test_markdown/dir2/01 index.md"
                             }
                         ]
                     }
@@ -122,8 +122,8 @@ async def run_example():
     result3 = await tester.run_tool_test(
         tool_name='generate_custom_md_viewer',
         tool_params={
-            "workspace": "md_tool/test_markdown",  # For relative paths
-            "output_filename": "test_custom_hybrid.html",
+            "workspace": "md_tool/tests/fixtures/test_markdown",  # For relative paths
+            "output_filename": "//md_tool/tests/output/test_custom_hybrid.html",
             "custom_structure": """{
                 "items": [
                     {
@@ -144,7 +144,7 @@ async def run_example():
                             {
                                 "type": "file",
                                 "name": "Project Guide (fully qualified)",
-                                "path": "//md_tool/test_markdown/dir1/02_project-guide.md"
+                                "path": "//md_tool/tests/fixtures/test_markdown/dir1/02_project-guide.md"
                             },
                             {
                                 "type": "file",
@@ -154,7 +154,7 @@ async def run_example():
                             {
                                 "type": "file",
                                 "name": "FAQ (fully qualified)",
-                                "path": "//md_tool/test_markdown/dir2/04 faq.md"
+                                "path": "//md_tool/tests/fixtures/test_markdown/dir2/04 faq.md"
                             }
                         ]
                     }

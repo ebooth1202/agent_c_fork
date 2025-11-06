@@ -17,7 +17,7 @@ except ImportError:
     logging.warning("python-docx and/or BeautifulSoup not available. The markdown to Word conversion will not work."
                     "Install with: pip install markdown python-docx beautifulsoup4")
 
-class MarkdownToDocxConverter:
+class DocxGenerator:
     """Helper class for converting markdown to Word documents."""
 
     def __init__(self):

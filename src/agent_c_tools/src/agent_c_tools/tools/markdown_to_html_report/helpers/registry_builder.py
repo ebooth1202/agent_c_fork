@@ -6,7 +6,6 @@ from both directory crawling and custom structure inputs.
 """
 
 import logging
-import os
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple, NamedTuple
 
