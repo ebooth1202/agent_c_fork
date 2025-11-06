@@ -29,6 +29,7 @@ class BrandConfig:
         self.logo = config_data.get('logo', {})
         self.typography = config_data.get('typography', {})
         self.spacing = config_data.get('spacing', {})
+        self.mermaid = config_data.get('mermaid', {})
 
     def get_css_variables(self) -> str:
         """
@@ -96,6 +97,56 @@ class BrandConfig:
 
         # Fallback to text name
         return f'<div class="sidebar-logo-text" style="font-size: 20px; font-weight: 600; text-align: center; margin-bottom: 16px;">{self.name}</div>'
+
+    def get_mermaid_init_js(self) -> str:
+        """
+        Generate Mermaid initialization JavaScript with brand theme.
+
+        Returns:
+            JavaScript string to initialize Mermaid with brand colors
+        """
+        # Default Mermaid config
+        if not self.mermaid:
+            return 'mermaid.initialize({startOnLoad: false, theme: "default", securityLevel: "loose", logLevel: 5});'
+
+        # Build config object from brand
+        theme = self.mermaid.get('theme', 'base')
+        theme_vars = self.mermaid.get('themeVariables', {})
+
+        # Build JavaScript object notation
+        js_lines = ["mermaid.initialize({"]
+        js_lines.append("    startOnLoad: false,")
+        js_lines.append('    securityLevel: "loose",')
+        js_lines.append("    logLevel: 5,")
+        js_lines.append(f'    theme: "{theme}",')
+
+        if theme_vars:
+            js_lines.append("    themeVariables: {")
+
+            # Convert Python dict to JavaScript object
+            for i, (key, value) in enumerate(theme_vars.items()):
+                comma = "," if i < len(theme_vars) - 1 else ""
+
+                # Handle different value types
+                if isinstance(value, str):
+                    # Escape single quotes in the value and use double quotes for JS string
+                    escaped_value = value.replace('"', '\\"')
+                    js_lines.append(f'        {key}: "{escaped_value}"{comma}')
+                elif isinstance(value, bool):
+                    js_value = "true" if value else "false"
+                    js_lines.append(f"        {key}: {js_value}{comma}")
+                elif isinstance(value, (int, float)):
+                    js_lines.append(f"        {key}: {value}{comma}")
+                else:
+                    # Default to string representation
+                    escaped_value = str(value).replace('"', '\\"')
+                    js_lines.append(f'        {key}: "{escaped_value}"{comma}')
+
+            js_lines.append("    }")
+
+        js_lines.append("});")
+
+        return "\n".join(js_lines)
 
 
 class BrandLoader:
@@ -188,6 +239,11 @@ class BrandLoader:
         logo_html = brand.get_logo_html()
         if "<!-- $BRAND_LOGO -->" in template_html:
             template_html = template_html.replace("<!-- $BRAND_LOGO -->", logo_html)
+
+        # Inject Mermaid theme initialization
+        mermaid_init_js = brand.get_mermaid_init_js()
+        if "/* $MERMAID_THEME_INIT */" in template_html:
+            template_html = template_html.replace("/* $MERMAID_THEME_INIT */", mermaid_init_js)
 
         logger.debug(f"Applied brand '{brand_name}' to template")
         return template_html

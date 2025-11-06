@@ -249,6 +249,7 @@ class MarkdownToHtmlReportTools(Toolset):
         title = kwargs.get('title', 'Custom Markdown Viewer')
         template = kwargs.get('template', 'markdown-viewer-template.html')
         brand = kwargs.get('brand', 'default')
+        tool_context = kwargs.get('tool_context', {})
 
         try:
             # Parse the custom structure JSON
@@ -310,7 +311,7 @@ class MarkdownToHtmlReportTools(Toolset):
                 return self._create_error_response(html_error)
 
             # Step 5: Raise media event
-            await self._raise_media_event(output_filename, output_path_full, len(registry.by_path), {})
+            await self._raise_media_event(output_filename, output_path_full, len(registry.by_path), tool_context)
 
             message = f"Successfully generated custom HTML viewer at {output_filename}."
             logger.debug(message)
@@ -390,6 +391,7 @@ class MarkdownToHtmlReportTools(Toolset):
         style = kwargs.get('style', 'default')
         include_toc = kwargs.get('include_toc', True)
         page_break_level = kwargs.get('page_break_level', 1)
+        tool_context = kwargs.get('tool_context', {})
 
         try:
             # Process paths
@@ -455,13 +457,11 @@ class MarkdownToHtmlReportTools(Toolset):
             # Generate and raise markdown content for the result
             try:
                 markdown_content = self._create_result_markdown(output_info)
-                await self._raise_render_media(
-                    sent_by_class=self.__class__.__name__,
-                    sent_by_function='markdown_to_docx',
-                    content_type="text/markdown",
-                    content=markdown_content,
-                    tool_context=kwargs.get('tool_context', {})
-                )
+                bridge = tool_context.get('bridge')
+                if bridge:
+                    await bridge.raise_render_media_markdown(markdown_content, self.__class__.__name__)
+                else:
+                    logger.warning("Bridge not available in tool_context, skipping media event")
             except Exception as e:
                 logger.error(f"Failed to raise media event: {str(e)}")
 
@@ -706,7 +706,7 @@ class MarkdownToHtmlReportTools(Toolset):
     async def _raise_media_event(self, output_filename: str, output_path_full: str, file_count: int, tool_context: dict):
         """Generate and raise media event for the result."""
         try:
-            # Get file system path and raise a media event
+            # Get file system path
             file_system_path = os_file_system_path(self.workspace_tool, output_path_full)
 
             # Create output info dictionary
@@ -717,15 +717,15 @@ class MarkdownToHtmlReportTools(Toolset):
                 "file_count": file_count
             }
 
-            # Generate and raise markdown content for the result
+            # Generate markdown content for the result
             markdown_content = self._create_result_markdown(output_info)
-            await self._raise_render_media(
-                sent_by_class=self.__class__.__name__,
-                sent_by_function='generate_md_viewer',
-                content_type="text/markdown",
-                content=markdown_content,
-                tool_context=tool_context
-            )
+
+            # Use architect's preferred pattern: bridge.raise_render_media_markdown
+            bridge = tool_context.get('bridge')
+            if bridge:
+                await bridge.raise_render_media_markdown(markdown_content, self.__class__.__name__)
+            else:
+                logger.warning("Bridge not available in tool_context, skipping media event")
         except Exception as e:
             logger.error(f"Failed to raise media event: {str(e)}")
 
@@ -808,21 +808,6 @@ class MarkdownToHtmlReportTools(Toolset):
 
 **Files Processed:** {output_info.get('file_count', 0)}
 """
-
-    async def _raise_render_media(self, sent_by_class: str, sent_by_function: str,
-                                content_type: str, content: str, tool_context: dict = None):
-        """Raise a render media event."""
-        try:
-            if tool_context and hasattr(self.tool_chest, '_raise_render_media'):
-                await self.tool_chest._raise_render_media(
-                    sent_by_class=sent_by_class,
-                    sent_by_function=sent_by_function,
-                    content_type=content_type,
-                    content=content,
-                    tool_context=tool_context
-                )
-        except Exception as e:
-            logger.error(f"Failed to raise render media event: {str(e)}")
 
 
 

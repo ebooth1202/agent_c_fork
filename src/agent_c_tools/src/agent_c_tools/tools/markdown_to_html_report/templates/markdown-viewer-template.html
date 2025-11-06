@@ -1267,9 +1267,9 @@
             block.appendChild(copyBtn);
         });
 
-        // Initialize Mermaid diagrams
+        // Initialize Mermaid diagrams with brand theme
         if (window.mermaid) {
-            mermaid.initialize({startOnLoad: false, theme: 'default', securityLevel: 'loose', logLevel: 5});
+            /* $MERMAID_THEME_INIT */
             try {
                 mermaid.init(undefined, document.querySelectorAll('.mermaid'));
             } catch (e) {
