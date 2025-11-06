@@ -82,12 +82,6 @@ class MarkdownToHtmlReportTools(Toolset):
                 "description": "Optional flat list of filenames to ignore when generating the HTML viewer. Does not support folder level differentiation.",
                 "required": False,
                 "default": []
-            },
-            "javascript_safe": {
-                "type": "boolean",
-                "description": "DEPRECATED: No longer used. Content is now pre-rendered to HTML, eliminating safety concerns. Kept for backward compatibility.",
-                "required": False,
-                "default": True
             }
         }
     )
@@ -191,12 +185,12 @@ class MarkdownToHtmlReportTools(Toolset):
             return self._create_error_response(f"Error generating markdown viewer: {str(e)}")
 
     @json_schema(
-        description="Generate an interactive HTML viewer with custom file hierarchy structure",
+        description="Generate an interactive HTML viewer with custom file hierarchy structure. Supports both relative paths (with workspace) and fully qualified UNC paths (without workspace).",
         params={
             "workspace": {
                 "type": "string",
-                "description": "The workspace containing the markdown files",
-                "required": True
+                "description": "Optional workspace name for resolving relative file paths. If omitted, all paths in custom_structure must be fully qualified UNC paths (e.g., '//workspace_name/path/to/file.md'). When provided, relative paths in custom_structure are resolved against this workspace.",
+                "required": False
             },
             "output_filename": {
                 "type": "string",
@@ -205,36 +199,36 @@ class MarkdownToHtmlReportTools(Toolset):
             },
             "custom_structure": {
                 "type": "string",
-                "description": "JSON string defining custom hierarchy. Example: '{\"items\": [{\"type\": \"folder\", \"name\": \"Getting Started\", \"children\": [{\"type\": \"file\", \"name\": \"Introduction\", \"path\": \"intro.md\"}]}, {\"type\": \"file\", \"name\": \"API Reference\", \"path\": \"api.md\"}]}'",
+                "description": "JSON string defining custom hierarchy. File paths can be: 1) Fully qualified UNC paths starting with '//' (e.g., '//workspace/path/file.md'), 2) Relative paths if workspace parameter provided (e.g., 'docs/file.md'), or 3) Mix of both. Example: '{\"items\": [{\"type\": \"folder\", \"name\": \"Getting Started\", \"children\": [{\"type\": \"file\", \"name\": \"Introduction\", \"path\": \"//my_workspace/intro.md\"}]}, {\"type\": \"file\", \"name\": \"API Reference\", \"path\": \"api.md\"}]}'",
                 "required": True
             },
             "title": {
                 "type": "string",
                 "description": "Optional title for the HTML viewer (displayed in the sidebar)",
                 "required": False
-            },
-            "javascript_safe": {
-                "type": "boolean",
-                "description": "DEPRECATED: No longer used. Content is now pre-rendered to HTML. Kept for backward compatibility.",
-                "required": False,
-                "default": True
             }
         }
     )
     async def generate_custom_md_viewer(self, **kwargs) -> str:
-        """Generate an interactive HTML viewer with custom file hierarchy structure."""
+        """
+        Generate an interactive HTML viewer with custom file hierarchy structure.
+
+        Supports three path resolution modes:
+        1. Fully qualified paths: All paths start with '//' (workspace parameter not needed)
+        2. Relative paths: workspace parameter provided, paths resolved against it
+        3. Hybrid: Mix of fully qualified and relative paths in same structure
+        """
         success, validation_error = validate_required_fields(
-            kwargs, ["workspace", "output_filename", "custom_structure"])
+            kwargs, ["output_filename", "custom_structure"])
 
         # Validate required fields
         if not success:
             return self._create_error_response(validation_error)
 
-        workspace = kwargs.get('workspace')
+        workspace = kwargs.get('workspace')  # Optional now
         output_filename = kwargs.get('output_filename')
         custom_structure_json = kwargs.get('custom_structure')
         title = kwargs.get('title', 'Custom Markdown Viewer')
-        javascript_safe = kwargs.get('javascript_safe', True)
 
         try:
             # Parse the custom structure JSON
@@ -243,8 +237,8 @@ class MarkdownToHtmlReportTools(Toolset):
             except json.JSONDecodeError as e:
                 return self._create_error_response(f"Invalid JSON in custom_structure: {str(e)}")
 
-            # Create base path for file resolution
-            base_path = f"//{workspace}"
+            # Create base path for file resolution (None if workspace not provided)
+            base_path = f"//{workspace}" if workspace else None
 
             # NEW PIPELINE: Custom Structure → Registry → Link Rewriting → Template
 
@@ -280,7 +274,12 @@ class MarkdownToHtmlReportTools(Toolset):
             # Step 4: Create UNC output filename and generate HTML
             output_filename = ensure_file_extension(output_filename, 'html')
             if not output_filename.startswith('//'):
-                output_path_full = create_unc_path(workspace, output_filename)
+                if workspace:
+                    output_path_full = create_unc_path(workspace, output_filename)
+                else:
+                    return self._create_error_response(
+                        "When workspace is not provided, output_filename must be a fully qualified UNC path (e.g., '//workspace/path/file.html')"
+                    )
             else:
                 output_path_full = output_filename
 
