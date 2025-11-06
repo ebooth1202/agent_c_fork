@@ -98,6 +98,35 @@ class BrandConfig:
         # Fallback to text name
         return f'<div class="sidebar-logo-text" style="font-size: 20px; font-weight: 600; text-align: center; margin-bottom: 16px;">{self.name}</div>'
 
+    @staticmethod
+    def _python_value_to_js(key: str, value: Any, include_comma: bool = False) -> str:
+        """
+        Convert a Python value to JavaScript literal syntax.
+
+        Args:
+            key: The JavaScript object key name
+            value: The Python value to convert
+            include_comma: Whether to include a trailing comma
+
+        Returns:
+            JavaScript property assignment string (e.g., 'key: "value",')
+        """
+        comma = "," if include_comma else ""
+
+        if isinstance(value, str):
+            # Escape double quotes in the value and use double quotes for JS string
+            escaped_value = value.replace('"', '\\"')
+            return f'{key}: "{escaped_value}"{comma}'
+        elif isinstance(value, bool):
+            js_value = "true" if value else "false"
+            return f"{key}: {js_value}{comma}"
+        elif isinstance(value, (int, float)):
+            return f"{key}: {value}{comma}"
+        else:
+            # Default to string representation
+            escaped_value = str(value).replace('"', '\\"')
+            return f'{key}: "{escaped_value}"{comma}'
+
     def get_mermaid_init_js(self) -> str:
         """
         Generate Mermaid initialization JavaScript with brand theme.
@@ -124,23 +153,11 @@ class BrandConfig:
             js_lines.append("    themeVariables: {")
 
             # Convert Python dict to JavaScript object
-            for i, (key, value) in enumerate(theme_vars.items()):
-                comma = "," if i < len(theme_vars) - 1 else ""
-
-                # Handle different value types
-                if isinstance(value, str):
-                    # Escape single quotes in the value and use double quotes for JS string
-                    escaped_value = value.replace('"', '\\"')
-                    js_lines.append(f'        {key}: "{escaped_value}"{comma}')
-                elif isinstance(value, bool):
-                    js_value = "true" if value else "false"
-                    js_lines.append(f"        {key}: {js_value}{comma}")
-                elif isinstance(value, (int, float)):
-                    js_lines.append(f"        {key}: {value}{comma}")
-                else:
-                    # Default to string representation
-                    escaped_value = str(value).replace('"', '\\"')
-                    js_lines.append(f'        {key}: "{escaped_value}"{comma}')
+            theme_vars_list = list(theme_vars.items())
+            for i, (key, value) in enumerate(theme_vars_list):
+                is_last = (i == len(theme_vars_list) - 1)
+                js_property = self._python_value_to_js(key, value, include_comma=not is_last)
+                js_lines.append(f"        {js_property}")
 
             js_lines.append("    }")
 

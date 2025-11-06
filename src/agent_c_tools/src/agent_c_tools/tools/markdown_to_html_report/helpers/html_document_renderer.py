@@ -9,7 +9,7 @@ import logging
 from typing import Dict, Any
 
 from .doc_registry import DocRegistry, DocMeta
-from .markdown_renderer import MarkdownRenderer, RenderResult
+from .markdown_renderer import MarkdownRenderer
 
 logger = logging.getLogger(__name__)
 

@@ -7,7 +7,7 @@ and transforms viewer:// protocol links to data-attribute based navigation.
 
 import re
 import logging
-from typing import Dict, List, Optional, NamedTuple
+from typing import List, Optional, NamedTuple
 from html.parser import HTMLParser
 
 try:
