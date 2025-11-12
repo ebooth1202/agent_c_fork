@@ -13,7 +13,7 @@ echo "Installing mkcert using Homebrew"
 brew install mkcert
 brew install nss
 mkcert -install
-chdmod a+x  scripts/generate_certs.sh
+chmod a+x  scripts/generate_certs.sh
 ./scripts/generate_certs.sh
 
 # Check for Python and print the version
