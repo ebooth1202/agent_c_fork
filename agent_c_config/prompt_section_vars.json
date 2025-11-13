@@ -1,0 +1,48 @@
+{
+    "dynamic_persona": [
+        "rendered_persona_prompt"
+    ],
+    "core_instruction": [
+        "timestamp"
+    ],
+    "environment_info": [
+        "session_info",
+        "timestamp"
+    ],
+    "workspace": [
+        "workspace_list"
+    ],
+    "memory": [
+        "session_memory",
+        "user_memory"
+    ],
+    "user_bio": [
+        "firstname",
+        "lastname",
+        "user_kvps",
+        "userid"
+    ],
+    "user_bio_section_no_tool_use": [
+        "firstname",
+        "lastname",
+        "user_kvps",
+        "userid"
+    ],
+    "r_s_s": [
+        "feed_list"
+    ],
+    "assistant_behavior": [
+        "agent_process_directive"
+    ],
+    "agent_assist": [
+        "aa_sessions",
+        "agent_ids"
+    ],
+    "agent_team": [
+        "at_agent_ids",
+        "at_sessions"
+    ],
+    "agent_clone": [
+        "clone_sessions"
+    ]
+}
